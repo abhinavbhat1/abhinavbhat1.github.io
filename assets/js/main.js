@@ -10,40 +10,31 @@
   function setTheme(t) { root.setAttribute('data-theme', t); try { localStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
 
-  // ── Journey: one viewport of scroll per section; panels crossfade as the ball rolls ──
-  const journey = $('journey'), panels = Array.from(document.querySelectorAll('#panels .panel')), N = panels.length;
-  const dots = $('dots');
-  journey.style.height = `calc(${N} * 100vh + 40vh)`;
-  panels.forEach((p, i) => { const b = document.createElement('button'); b.setAttribute('aria-label', p.dataset.title); b.innerHTML = `<span>${p.dataset.title}</span>`; b.addEventListener('click', () => goTo(i)); dots.appendChild(b); });
-  function vh() { return window.innerHeight; }
-  function journeyTop() { return journey.getBoundingClientRect().top + window.scrollY; }
-  function goTo(i) { window.scrollTo({ top: journeyTop() + i * vh() + 2, behavior: reduced ? 'instant' : 'smooth' }); }
-  document.querySelectorAll('[data-go]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); goTo(+a.dataset.go); }));
-  let progress = 0, active = -1;
-  function journeyProgress() { return progress; }
-  window.journeyProgress = journeyProgress;
+  // ── Scroll journey: the ball rolls along the landscape as the CV column scrolls ──
+  const main = $('cv-main'), secs = Array.from(document.querySelectorAll('section.sec')), stops = $('stops');
+  secs.forEach(sec => { const li = document.createElement('li'); li.innerHTML = `<a href="#${sec.id}"><i></i>${sec.dataset.title}</a>`; stops.appendChild(li); });
+  const stopEls = Array.from(stops.children);
+  let progress = 0, shift = 0;
+  window.journeyProgress = () => progress;
+  window.journeyViewShift = () => shift;   // -1 … 1: where the ball should sit horizontally (hero: right; CV: left)
   function layout() {
-    const top = journeyTop(), y = window.scrollY - top, span = journey.offsetHeight - vh();
-    const t = Math.max(0, Math.min(N - 1, y / vh()));            // continuous section index
-    progress = Math.max(0, Math.min(1, y / span));                 // 0 → 1 across the whole journey
-    // before the journey starts the ball sits at the top; the overview page is scrolled past first
-    if (y < 0) progress = 0;
-    panels.forEach((p, i) => {
-      const d = Math.abs(t - i);
-      const o = Math.max(0, 1 - d * 1.5);
-      p.style.opacity = o.toFixed(3);
-      p.style.transform = `translate(-50%, calc(-50% + ${((t - i) * -36).toFixed(1)}px)) scale(${(1 - Math.min(0.06, d * 0.06)).toFixed(3)})`;
-      p.style.filter = reduced ? 'none' : `blur(${Math.min(14, d * 14).toFixed(1)}px)`;
-      p.classList.toggle('active', d < 0.5);
-    });
-    const a = Math.round(t);
-    if (a !== active) { active = a; dots.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-current', i === a ? 'true' : 'false')); }
+    const vh = window.innerHeight, r = main.getBoundingClientRect();
+    const top = r.top + window.scrollY, span = Math.max(1, main.offsetHeight - vh * 0.6);
+    progress = Math.max(0, Math.min(1, (window.scrollY + vh * 0.55 - top) / span));
+    const narrow = window.innerWidth < 900;
+    const heroEnd = Math.max(1, top - vh);                     // 0 at page top → 1 when the CV reaches the viewport
+    const k = Math.max(0, Math.min(1, (window.scrollY) / heroEnd));
+    shift = narrow ? 0 : (-0.35 + k * 0.72);                    // right of the hero text → left column beside the CV
+    let on = 0; secs.forEach((sec, i) => { if (sec.getBoundingClientRect().top < vh * 0.5) on = i; });
+    stopEls.forEach((li, i) => { li.classList.toggle('on', i === on); li.classList.toggle('done', i < on); });
     window.dispatchEvent(new CustomEvent('journeychange'));
   }
   let tick = false;
   window.addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(() => { layout(); tick = false; }); } }, { passive: true });
   window.addEventListener('resize', layout);
   layout();
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.05, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
   // ── "What are you hiring for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe', 'lead'];

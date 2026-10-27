@@ -61,9 +61,14 @@ const camOff = new THREE.Vector3(0, 5.4, 7.2), look = new THREE.Vector3(), camTa
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const lossV = document.getElementById('loss-v'), lossBar = document.getElementById('loss-bar');
 function target() { return window.journeyProgress ? window.journeyProgress() : 0; }
+let shownShift = 0;
 function update() {
   const p = target();
   shown += (p - shown) * (reduced ? 1 : 0.1); if (Math.abs(p - shown) < 1e-4) shown = p;
+  const sh = window.journeyViewShift ? window.journeyViewShift() : 0;
+  shownShift += (sh - shownShift) * (reduced ? 1 : 0.1); if (Math.abs(sh - shownShift) < 1e-4) shownShift = sh;
+  const W = window.innerWidth, Hh = window.innerHeight;
+  camera.setViewOffset(W, Hh, shownShift * W * 0.5, 0, W, Hh);
   const k = shown * (NP - 1), i = Math.floor(k), u = k - i, p0 = path[i], p1 = path[Math.min(NP - 1, i + 1)];
   const x = p0[0] + u * (p1[0] - p0[0]), y = p0[1] + u * (p1[1] - p0[1]), z = f(x, y) * ZS + 0.13;
   ball.position.set(x, z, y); halo.position.set(x, z - 0.11, y);
@@ -74,7 +79,7 @@ function update() {
   if (lossV) lossV.textContent = lossNorm.toFixed(2);
   if (lossBar) lossBar.style.transform = `scaleX(${lossNorm})`;
   renderer.render(scene, camera);
-  return Math.abs(p - shown) > 1e-4;
+  return Math.abs(p - shown) > 1e-4 || Math.abs(sh - shownShift) > 1e-4;
 }
 function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); camOff.set(0, w < 720 ? 6.5 : 5.4, w < 720 ? 9.5 : 7.2); update(); }
 window.addEventListener('resize', resize);
