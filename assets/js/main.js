@@ -10,49 +10,13 @@
   function setTheme(t) { root.setAttribute('data-theme', t); try { localStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
 
-  // ── Intro: an MLP assembles on white, pulses, then dissolves into the page ──
-  (function intro() {
-    const box = $('intro'), cv = $('intro-canvas'); if (!box || !cv) return;
-    const skip = () => finish(true);
-    $('intro-skip').addEventListener('click', skip);
-    let finished = false;
-    function finish() { if (finished) return; finished = true; box.classList.add('out'); document.body.classList.add('ready'); setTimeout(() => box.remove(), 800); }
-    if (reduced) { finish(); return; }
-    const ctx = cv.getContext('2d'); let W, H, dpr;
-    function size() { dpr = Math.min(2, window.devicePixelRatio || 1); W = cv.width = Math.floor(innerWidth * dpr); H = cv.height = Math.floor(innerHeight * dpr); }
-    size(); window.addEventListener('resize', size);
-    const layers = [4, 6, 7, 6, 3], nodes = [], edges = [], r = rng(99);
-    const lx = (i) => (0.5 + (i - (layers.length - 1) / 2) * 0.16);
-    layers.forEach((n, li) => { for (let k = 0; k < n; k++) nodes.push({ li, tx: lx(li), ty: 0.5 + (k - (n - 1) / 2) * 0.1, sx: 0.1 + r() * 0.8, sy: 0.1 + r() * 0.8, vx: (r() - 0.5) * 0.004, vy: (r() - 0.5) * 0.004, ph: r() * 6.28 }); });
-    let base = 0; layers.forEach((n, li) => { if (li < layers.length - 1) { for (let a = 0; a < n; a++) for (let b = 0; b < layers[li + 1]; b++) edges.push([base + a, base + n + b, 0.3 + r() * 0.7]); } base += n; });
-    const t0 = performance.now(); const ease = (t) => 1 - Math.pow(1 - t, 3);
-    function frame(now) {
-      if (finished) return;
-      const t = (now - t0) / 1000;
-      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.scale(dpr, dpr);
-      const w = innerWidth, h = innerHeight, cx = w / 2, cy = h / 2, S = Math.min(w, h) * 0.9;
-      const a = Math.max(0, Math.min(1, (t - 0.5) / 1.1)), ea = ease(a);           // scattered → assembled
-      const d = Math.max(0, Math.min(1, (t - 2.35) / 0.7)), ed = ease(d);          // assembled → dissolve
-      const pos = nodes.map(n => { const jx = Math.sin(t * 3 + n.ph) * 0.012, jy = Math.cos(t * 2.3 + n.ph) * 0.012; const sx = n.sx + n.vx * t * 60 + jx, sy = n.sy + n.vy * t * 60 + jy; let x = sx + (n.tx - sx) * ea, y = sy + (n.ty - sy) * ea; x = cx + (x - 0.5) * S * (1 + ed * 1.6); y = cy + (y - 0.5) * S * (1 + ed * 1.6); return [x, y]; });
-      ctx.lineWidth = 1;
-      edges.forEach(([i, j, wgt]) => { const p = pos[i], q = pos[j]; const al = ea * (1 - ed) * 0.55 * wgt; if (al < 0.01) return; ctx.strokeStyle = `rgba(87,6,140,${al.toFixed(3)})`; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
-        // signal pulses sweeping left → right once assembled
-        if (ea > 0.95 && ed < 1) { const s = ((t - 1.6) * 0.9 - nodes[i].li * 0.25) % 1; if (s > 0 && s < 1) { const x = p[0] + (q[0] - p[0]) * s, y = p[1] + (q[1] - p[1]) * s; ctx.fillStyle = `rgba(137,0,225,${(0.9 * (1 - ed)).toFixed(3)})`; ctx.beginPath(); ctx.arc(x, y, 2.2, 0, 6.28); ctx.fill(); } } });
-      pos.forEach((p, i) => { const n = nodes[i]; const rr = 5 + 2 * Math.sin(t * 4 + n.ph) * (1 - ea) + 2 * ea; ctx.fillStyle = `rgba(87,6,140,${(1 - ed).toFixed(3)})`; ctx.beginPath(); ctx.arc(p[0], p[1], rr, 0, 6.28); ctx.fill(); ctx.strokeStyle = `rgba(255,255,255,${(1 - ed).toFixed(3)})`; ctx.lineWidth = 1.5; ctx.stroke(); });
-      const cap = box.querySelector('.cap'); if (cap) cap.textContent = t < 1.6 ? 'assembling…' : t < 2.35 ? 'forward pass' : '';
-      if (t > 2.95) finish(); else requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-    window.addEventListener('wheel', skip, { once: true, passive: true }); window.addEventListener('touchstart', skip, { once: true, passive: true }); window.addEventListener('keydown', skip, { once: true });
-  })();
-
   // ── Frames: the ball rolls to each section's stop; content unfolds out of the ball ──
   const frames = Array.from(document.querySelectorAll('.frame')), rail = $('rail');
   const SECS = Array.from(new Set(frames.filter(f => f.dataset.sec !== 'hero').map(f => f.dataset.sec)));
   const stopOf = (sec) => sec === 'hero' ? 0 : (SECS.indexOf(sec) + 1) / SECS.length;
-  let ballTarget = 0, viewMode = 'hero', active = null;
-  window.ballTarget = () => ballTarget;
-  window.ballView = () => viewMode;    // hero | travel | sub
+  window.J = { target: 0, mode: 'hero', visited: 0, stops: SECS.length };
+  let active = null;
+  const prog = $('prog'), progBar = $('prog-bar'), progLbl = $('prog-lbl'), progSub = $('prog-sub');
   // chapter titles: split into words that assemble from random offsets
   document.querySelectorAll('[data-split]').forEach(h => { const words = h.textContent.split(' '); h.innerHTML = words.map((w, i) => `<span class="w" style="--jx:${((Math.random() - 0.5) * 120).toFixed(0)}px;--jy:${(20 + Math.random() * 60).toFixed(0)}px;--jr:${((Math.random() - 0.5) * 16).toFixed(1)}deg;transition-delay:${(i * 0.06).toFixed(2)}s">${w}${i < words.length - 1 ? ' ' : ''}</span>`).join(''); });
   // rail dots: one per section (links to its chapter frame)
@@ -62,18 +26,22 @@
     if (f === active) return;
     const prev = active; active = f;
     if (prev) { prev.classList.add('leaving'); prev.classList.remove('active'); setTimeout(() => prev.classList.remove('leaving'), 700); }
-    const sec = f.dataset.sec; ballTarget = stopOf(sec);
-    viewMode = sec === 'hero' ? 'hero' : f.classList.contains('travel') ? 'travel' : 'sub';
+    const sec = f.dataset.sec; window.J.target = stopOf(sec);
+    const isTravel = f.classList.contains('travel'), isLast = sec === SECS[SECS.length - 1];
+    window.J.mode = sec === 'hero' ? 'hero' : isLast ? (isTravel ? 'final' : 'finalsub') : (isTravel ? 'travel' : 'sub');
+    const si = SECS.indexOf(sec); window.J.visited = Math.max(window.J.visited, si + (isTravel ? 0 : 1));
+    if (window.ballEvent && sec !== 'hero') { if (!isTravel && (!prev || prev.classList.contains('travel') || prev.dataset.sec !== sec)) window.ballEvent('open'); if (prev && !prev.classList.contains('travel') && (isTravel || prev.dataset.sec !== sec)) window.ballEvent('close'); }
+    if (prog) { const n = SECS.length; if (sec === 'hero') { progLbl.textContent = 'Start'; progSub.textContent = 'scroll to begin'; progBar.style.transform = 'scaleX(0)'; } else { const title = f.closest('.deck').querySelector(`.frame.travel[data-sec="${sec}"] h2`).textContent; progLbl.textContent = `${si + 1} of ${n} · ${title.length > 34 ? title.slice(0, 32) + '…' : title}`; progSub.textContent = isLast ? 'converged' : isTravel ? 'rolling to the next stop' : 'reading'; progBar.style.transform = `scaleX(${((si + (isTravel ? 0.3 : 1)) / n).toFixed(3)})`; } }
     const panel = f.querySelector('.panel');
     if (panel) { const b = window.ballScreen ? window.ballScreen() : null; const r = panel.getBoundingClientRect(); const cx = b ? b.x - r.left : r.width * 0.5, cy = b ? b.y - r.top : r.height * 0.5; panel.style.setProperty('--cx', cx.toFixed(0) + 'px'); panel.style.setProperty('--cy', cy.toFixed(0) + 'px'); }
     requestAnimationFrame(() => f.classList.add('active'));
-    const si = SECS.indexOf(sec); railLinks.forEach((a, i) => { a.classList.toggle('on', i === si); a.classList.toggle('done', i < si); });
+    railLinks.forEach((a, i) => { a.classList.toggle('on', i === si); a.classList.toggle('done', i < si); });
     if (f.dataset.auto && window.AUTO && window.AUTO[f.dataset.auto]) { const badge = f.querySelector('[data-auto-badge]'); if (badge) { badge.textContent = 'auto-running'; badge.classList.remove('done'); } setTimeout(() => { if (active === f) window.AUTO[f.dataset.auto](() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }); }, 650); }
     window.dispatchEvent(new CustomEvent('journeychange'));
   }
   const fio = new IntersectionObserver(es => { let best = null; es.forEach(e => { if (e.isIntersecting && (!best || e.intersectionRatio > best.intersectionRatio)) best = e; }); if (best && best.intersectionRatio >= 0.5) activate(best.target); }, { threshold: [0.5, 0.75, 1] });
   frames.forEach(f => fio.observe(f));
-  activate(frames[0]);
+  activate(frames[0]); window.J.visited = 0;
   document.querySelectorAll('header.top a[href^="#"], .rail a').forEach(a => a.addEventListener('click', e => { const t = document.querySelector(a.getAttribute('href')); if (t) { e.preventDefault(); t.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'start' }); } }));
 
   // ── "What are you hiring for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
