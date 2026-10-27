@@ -12,7 +12,7 @@
 <meta property="og:url" content="https://abhinavbhat1.github.io/">
 <meta name="theme-color" content="#f8f7fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f0a16" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2357068c'/%3E%3Cpath d='M9 23 L16 8 L23 23 M12 18 H20' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232b68dc'/%3E%3Cpath d='M9 23 L16 8 L23 23 M12 18 H20' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/css/style.css">
 <script>var __t = 'light'; try { var s = localStorage.getItem('theme'); if (s === 'dark' || s === 'light') __t = s; } catch (e) {} document.documentElement.setAttribute('data-theme', __t);</script>
 <script type="application/ld+json">
@@ -56,8 +56,9 @@
   </div>
 </header>
 
-<div id="stage" aria-live="polite">
-  <div class="hero-copy" id="hero-copy">
+<main id="stage">
+  <section class="hero" id="hero">
+    <div class="hero-copy" id="hero-copy">
       <h1>Abhinav Bhat</h1>
       <p class="lead">Pursuing a Master's of Computer Science at the <span>Courant Institute of Mathematical Sciences, NYU</span>.</p>
       <div class="topics" aria-label="Interests"><span>Machine learning</span><span>Healthcare AI</span><span>JEPA</span><span>World models</span></div>
@@ -69,10 +70,12 @@
         <a class="btn" href="mailto:ab14664@nyu.edu">Email</a>
       </div>
       <div class="school"><span class="logo"><img src="assets/logos/nyu-courant.png" alt="NYU Courant Institute"></span><span>M.S. Computer Science · expected May 2028</span></div>
-  </div>
+    </div>
+  </section>
 
-  <section class="sec" data-sec="research" data-short="Research">
-    <div class="track">
+  <section class="sec" id="research" data-sec="research" data-short="Research">
+    <div class="sticky">
+      <div class="track">
       <article class="card title">
         <div class="num">01 · Latest research</div>
         <h2>Predicting post-contrast 3D breast MRI from pre-contrast scans</h2>
@@ -97,10 +100,12 @@
         <div class="out" id="jepa-out"></div>
       </div>
       </article>
+      </div>
     </div>
   </section>
-  <section class="sec" data-sec="wearables" data-short="Wearables">
-    <div class="track">
+  <section class="sec" id="wearables" data-sec="wearables" data-short="Wearables">
+    <div class="sticky">
+      <div class="track">
       <article class="card title">
         <div class="num">02 · Research</div>
         <h2>LUMINA Wearables: the archive layer of an AI-ready patient record</h2>
@@ -126,10 +131,12 @@
         <div class="out" id="vol-out"></div>
       </div>
       </article>
+      </div>
     </div>
   </section>
-  <section class="sec" data-sec="adherence" data-short="Adherence">
-    <div class="track">
+  <section class="sec" id="adherence" data-sec="adherence" data-short="Adherence">
+    <div class="sticky">
+      <div class="track">
       <article class="card title">
         <div class="num">03 · Research</div>
         <h2>PACD: a contextual-bandit system for medication adherence</h2>
@@ -162,10 +169,12 @@
         <div class="out" id="bandit-out"></div>
       </div>
       </article>
+      </div>
     </div>
   </section>
-  <section class="sec" data-sec="earlier" data-short="Earlier work">
-    <div class="track">
+  <section class="sec" id="earlier" data-sec="earlier" data-short="Earlier work">
+    <div class="sticky">
+      <div class="track">
       <article class="card title">
         <div class="num">04 · Research</div>
         <h2>Honest evaluation and computational pathology</h2>
@@ -194,10 +203,12 @@
         <div class="out" id="metrics-out"></div>
       </div>
       </article>
+      </div>
     </div>
   </section>
-  <section class="sec" data-sec="experience" data-short="Honeywell">
-    <div class="track">
+  <section class="sec" id="experience" data-sec="experience" data-short="Honeywell">
+    <div class="sticky">
+      <div class="track">
       <article class="card title">
         <div class="num">05 · Experience</div>
         <h2>Honeywell: intern to Tech Lead</h2>
@@ -226,10 +237,12 @@
         <div class="out" id="drift-out"></div>
       </div>
       </article>
+      </div>
     </div>
   </section>
-  <section class="sec" data-sec="education" data-short="Education">
-    <div class="track">
+  <section class="sec" id="education" data-sec="education" data-short="Education">
+    <div class="sticky">
+      <div class="track">
       <article class="card title">
         <div class="num">06 · Education</div>
         <h2>NYU Courant and Manipal</h2>
@@ -253,10 +266,12 @@
       </ul>
       <div class="logos" style="margin-top:1rem"><span class="logo"><img src="assets/logos/iaeste.png" alt="IAESTE"></span></div>
       </article>
+      </div>
     </div>
   </section>
-  <section class="sec" data-sec="skills" data-short="Skills">
-    <div class="track">
+  <section class="sec" id="skills" data-sec="skills" data-short="Skills">
+    <div class="sticky">
+      <div class="track">
       <article class="card title">
         <div class="num">07 · Skills</div>
         <h2>The toolkit</h2>
@@ -272,10 +287,12 @@
         <div class="g"><h3>Programming</h3><div class="tags"><span class="hot">Python</span><span class="hot">SQL</span><span>Java</span><span>C++</span><span>C</span><span>R</span><span>Bash</span><span>PowerShell</span><span>Groovy</span></div></div>
       </div>
       </article>
+      </div>
     </div>
   </section>
-  <section class="sec final" data-sec="contact" data-short="Contact">
-    <article class="card contact">
+  <section class="sec final" id="contact" data-sec="contact" data-short="Contact">
+    <div class="sticky">
+      <article class="card contact">
       <div class="eyebrow"><span>Contact</span></div>
       <h2>Let's talk about Summer 2027.</h2>
       <p class="org">Machine learning, applied AI, data engineering or software engineering internships, and research collaborations in healthcare AI.</p>
@@ -287,11 +304,10 @@
         <a href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span class="k">CV</span>Download the one-page PDF</a>
         <a href="Abhinav_Bhat_CV.pdf" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 13h6M9 17h6"/></svg><span class="k">Read</span>Open the one-page PDF</a>
       </div>
-    </article>
+      </article>
+    </div>
   </section>
-</div>
-
-<div id="scroller" aria-hidden="true"></div>
+</main>
 
 <nav class="rail" id="rail" aria-label="Sections"></nav>
 <div class="pill" id="pill"></div>

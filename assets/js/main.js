@@ -10,121 +10,101 @@
   function setTheme(t) { root.setAttribute('data-theme', t); try { localStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
 
-  // ── Timeline: scroll → beats → tracks (sideways), neurons (build), camera ──
+  // ── Scroll: a normal document; inside each topic the cards travel sideways in a sticky viewport ──
   document.documentElement.classList.add('intro');
   let introDone = false;
-  const stage = $('stage'), scroller = $('scroller'), rail = $('rail'), heroCopy = $('hero-copy'), pill = $('pill');
-  const secs = Array.from(document.querySelectorAll('#stage .sec')).filter(s => !s.classList.contains('final'));
-  const finalSec = document.querySelector('#stage .sec.final'), contactCard = finalSec.querySelector('.card.contact');
-  const tracks = secs.map(sec => ({ sec, el: sec.querySelector('.track'), cards: Array.from(sec.querySelectorAll('.card')), centers: [] }));
-  const NS = secs.length;
-  window.LAYERS = tracks.map(t => t.cards.length);          // neurons per layer (one per card)
-  const beats = []; let acc = 0;
-  const push = (b) => { b.start = acc; acc += b.len; b.end = acc; beats.push(b); return b; };
-  push({ type: 'hero', len: 1.0 });
-  tracks.forEach((t, k) => { push({ type: 'travel', len: 0.6, k }); push({ type: 'mods', len: t.cards.length, k }); if (k > 0) push({ type: 'connect', len: 0.5, k }); });
-  push({ type: 'final', len: 3.2 });
-  const TOTAL = acc;
-  const UNIT = () => Math.max(380, Math.round(window.innerHeight * 0.62));
-  function measure() { tracks.forEach(t => { t.centers = t.cards.map(c => c.offsetLeft + c.offsetWidth / 2); }); }
-  function sizeScroller() { scroller.style.height = (TOTAL * UNIT() + window.innerHeight) + 'px'; }
-  sizeScroller(); measure();
-  window.addEventListener('resize', () => { const s = window.scrollY / UNIT(); sizeScroller(); measure(); window.scrollTo(0, s * UNIT()); });
-  window.addEventListener('load', measure);
-  // points of interest: module centres, the output neuron, the contact card
-  const pois = [{ at: 0 }];
-  beats.forEach(b => { if (b.type === 'mods') for (let i = 0; i < b.len; i++) pois.push({ at: b.start + i + 0.5, k: b.k }); if (b.type === 'final') { pois.push({ at: b.start + 0.18 * b.len, final: true }); pois.push({ at: b.start + 0.9 * b.len, final: true, contact: true }); } });
-  const firstPoi = (k) => pois.find(p => p.k === k);
-  tracks.forEach((t, k) => { const a = document.createElement('a'); a.href = '#' + t.sec.dataset.sec; a.innerHTML = `<span>${t.sec.dataset.short}</span>`; a.setAttribute('aria-label', t.sec.dataset.short); a.addEventListener('click', e => { e.preventDefault(); goTo(firstPoi(k).at); }); rail.appendChild(a); });
-  { const a = document.createElement('a'); a.href = '#contact'; a.innerHTML = '<span>Contact</span>'; a.setAttribute('aria-label', 'Contact'); a.addEventListener('click', e => { e.preventDefault(); goTo(pois.find(p => p.contact).at); }); rail.appendChild(a); }
+  const rail = $('rail'), heroCopy = $('hero-copy'), pill = $('pill');
+  const secs = Array.from(document.querySelectorAll('.sec')).filter(s => !s.classList.contains('final'));
+  const finalSec = document.querySelector('.sec.final'), contactCard = finalSec.querySelector('.card.contact');
+  const tracks = secs.map(sec => ({ sec, el: sec.querySelector('.track'), cards: Array.from(sec.querySelectorAll('.card')), centers: [], entering: 0, leaving: 0, local: 0 }));
+  const NS = secs.length; window.LAYERS = tracks.map(t => t.cards.length);
+  const STEP = 0.62; const vh = () => window.innerHeight; const narrowQ = () => window.innerWidth < 900;
+  function layoutHeights() { tracks.forEach(t => { t.sec.style.height = Math.round(vh() * (1 + STEP * Math.max(1, t.cards.length - 1))) + 'px'; t.centers = t.cards.map(c => c.offsetLeft + c.offsetWidth / 2); }); finalSec.style.height = Math.round(vh() * 2.6) + 'px'; }
+  layoutHeights(); window.addEventListener('resize', layoutHeights); window.addEventListener('load', layoutHeights);
+  function pois() { const out = [{ y: 0 }]; tracks.forEach((t, k) => { const top = t.sec.offsetTop, span = t.sec.offsetHeight - vh(), n = t.cards.length; for (let i = 0; i < n; i++) out.push({ y: top + (n > 1 ? span * i / (n - 1) : 0), k, i }); }); const ft = finalSec.offsetTop, fs = finalSec.offsetHeight - vh(); out.push({ y: ft + fs * 0.3, final: true }); out.push({ y: ft + fs * 0.92, final: true, contact: true }); return out; }
+  const firstY = (k) => pois().find(p => p.k === k && p.i === 0).y;
+  tracks.forEach((t, k) => { const a = document.createElement('a'); a.href = '#' + t.sec.dataset.sec; a.innerHTML = `<span>${t.sec.dataset.short}</span>`; a.setAttribute('aria-label', t.sec.dataset.short); a.addEventListener('click', e => { e.preventDefault(); goTo(firstY(k)); }); rail.appendChild(a); });
+  { const a = document.createElement('a'); a.href = '#contact'; a.innerHTML = '<span>Contact</span>'; a.setAttribute('aria-label', 'Contact'); a.addEventListener('click', e => { e.preventDefault(); goTo(pois().find(p => p.contact).y); }); rail.appendChild(a); }
   const railLinks = Array.from(rail.children);
-  document.querySelectorAll('header.top a[href^="#"]').forEach(a => a.addEventListener('click', e => { const id = a.getAttribute('href').slice(1); const k = tracks.findIndex(t => t.sec.dataset.sec === id); if (k >= 0) { e.preventDefault(); goTo(firstPoi(k).at); } else if (id === 'contact') { e.preventDefault(); goTo(pois.find(p => p.contact).at); } else if (id === 'top') { e.preventDefault(); goTo(0); } }));
-  // scrolling: free, with a soft settle onto the nearest module once the wheel stops
+  document.querySelectorAll('header.top a[href^="#"]').forEach(a => a.addEventListener('click', e => { const id = a.getAttribute('href').slice(1); const k = tracks.findIndex(t => t.sec.dataset.sec === id); if (k >= 0) { e.preventDefault(); goTo(firstY(k)); } else if (id === 'contact') { e.preventDefault(); goTo(pois().find(p => p.contact).y); } else if (id === 'top') { e.preventDefault(); goTo(0); } }));
+  // smooth programmatic scroll, and a soft settle onto the nearest card once the wheel stops (never backwards)
   let scrollTw = null;
-  function goTo(units, ms) { const from = window.scrollY, to = units * UNIT(); if (scrollTw) cancelAnimationFrame(scrollTw.raf); if (reduced) { window.scrollTo(0, to); return; } const d = ms || Math.min(900, 260 + Math.abs(to - from) * 0.35); const t0 = performance.now(); const step = (now) => { const k = Math.min(1, (now - t0) / d); const e = 1 - Math.pow(1 - k, 3); window.scrollTo(0, from + (to - from) * e); if (k < 1) scrollTw.raf = requestAnimationFrame(step); else scrollTw = null; }; scrollTw = { raf: requestAnimationFrame(step) }; }
+  function goTo(to, ms) { const from = window.scrollY; if (scrollTw) cancelAnimationFrame(scrollTw.raf); if (reduced) { window.scrollTo(0, to); return; } const d = ms || Math.min(900, 260 + Math.abs(to - from) * 0.35); const t0 = performance.now(); const step = (now) => { const k = Math.min(1, (now - t0) / d); const e = 1 - Math.pow(1 - k, 3); window.scrollTo(0, from + (to - from) * e); if (k < 1) scrollTw.raf = requestAnimationFrame(step); else scrollTw = null; }; scrollTw = { raf: requestAnimationFrame(step) }; }
   let settleTimer = null, touching = false, lastY = 0, dir = 1;
   window.addEventListener('scroll', () => { const y = window.scrollY; if (y !== lastY) dir = y > lastY ? 1 : -1; lastY = y; }, { passive: true });
   function cancelTween() { if (scrollTw) { cancelAnimationFrame(scrollTw.raf); scrollTw = null; } }
   function scheduleSettle() { clearTimeout(settleTimer); settleTimer = setTimeout(() => {
-    if (touching || !introDone) return; const s = window.scrollY / UNIT();
-    const ahead = dir > 0 ? pois.find(p => p.at > s + 0.03) : [...pois].reverse().find(p => p.at < s - 0.03);
-    const behind = dir > 0 ? [...pois].reverse().find(p => p.at <= s + 0.03) : pois.find(p => p.at >= s - 0.03);
-    if (!ahead || !behind) return; const span = Math.abs(ahead.at - behind.at) || 1, frac = Math.abs(s - behind.at) / span;
-    if (frac > 0.42) goTo(ahead.at, 520); else if (frac < 0.1 && frac > 0.005) goTo(behind.at, 320);
+    if (touching || !introDone) return; const s = window.scrollY, P = pois();
+    const ahead = dir > 0 ? P.find(p => p.y > s + 6) : [...P].reverse().find(p => p.y < s - 6);
+    const behind = dir > 0 ? [...P].reverse().find(p => p.y <= s + 6) : P.find(p => p.y >= s - 6);
+    if (!ahead || !behind) return; const span = Math.abs(ahead.y - behind.y) || 1, frac = Math.abs(s - behind.y) / span;
+    if (frac > 0.42) goTo(ahead.y, 520); else if (frac < 0.1 && frac > 0.004) goTo(behind.y, 320);
   }, 150); }
   window.addEventListener('wheel', () => { cancelTween(); scheduleSettle(); }, { passive: true });
   window.addEventListener('touchstart', () => { touching = true; cancelTween(); }, { passive: true });
   window.addEventListener('touchend', () => { touching = false; scheduleSettle(); }, { passive: true });
   window.addEventListener('keydown', (e) => {
     if (!introDone) return; if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
-    const s = window.scrollY / UNIT();
-    if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { const n = pois.find(p => p.at > s + 0.08); if (n) { e.preventDefault(); goTo(n.at); } }
-    if (['ArrowUp', 'PageUp'].includes(e.key)) { const prev = [...pois].reverse().find(p => p.at < s - 0.08); e.preventDefault(); goTo(prev ? prev.at : 0); }
-    if (e.key === 'Home') { e.preventDefault(); goTo(0); } if (e.key === 'End') { e.preventDefault(); goTo(pois[pois.length - 1].at); }
+    const s = window.scrollY, P = pois();
+    if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { const n = P.find(p => p.y > s + 8); if (n) { e.preventDefault(); goTo(n.y); } }
+    if (['ArrowUp', 'PageUp'].includes(e.key)) { const prev = [...P].reverse().find(p => p.y < s - 8); e.preventDefault(); goTo(prev ? prev.y : 0); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); } if (e.key === 'End') { e.preventDefault(); goTo(P[P.length - 1].y); }
   });
-  const onIntroDone = () => { introDone = true; window.scrollTo(0, 0); };
-  window.addEventListener('introdone', onIntroDone);
+  window.addEventListener('introdone', () => { introDone = true; window.scrollTo(0, 0); layoutHeights(); });
   const skipOnInput = () => { if (!introDone && window.introSkip) window.introSkip(); };
   window.addEventListener('wheel', skipOnInput, { passive: true }); window.addEventListener('touchstart', skipOnInput, { passive: true }); window.addEventListener('keydown', skipOnInput);
 
   const clamp01 = (v) => Math.max(0, Math.min(1, v));
   const ss = (v) => { v = clamp01(v); return v * v * (3 - 2 * v); };
-  const narrowQ = () => window.innerWidth < 900;
-  window.T = { phase: 'hero', k: -1, local: 0, finalU: 0 };
+  window.T = { phase: 'hero', kf: 0, wide: 0, finalU: 0, heroK: 1 };
   window.NODES = tracks.map(t => t.cards.map(() => ({ b: 0, sx: 0, sy: 0 })));
-  window.EDGES = tracks.map(() => 0); window.EDGES.push(0); // last entry: layer 6 → output
+  window.EDGES = tracks.map(() => 0); window.EDGES.push(0);
   const played = new Set();
-  function setCard(card, k, scale, tx) { const vis = k > 0.002; card.style.opacity = k.toFixed(3); card.style.visibility = vis ? 'visible' : 'hidden'; card.style.transform = `translateY(${tx.toFixed(1)}px) scale(${scale.toFixed(3)})`; card.classList.toggle('on', k > 0.6); }
+  function setCard(card, k, scale) { const vis = k > 0.002; card.style.opacity = k.toFixed(3); card.style.visibility = vis ? 'visible' : 'hidden'; card.style.transform = `scale(${scale.toFixed(3)})`; }
   let sv = 0, lastNow = 0, lastPill = '';
   function frame(now) {
     const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 1 / 60; lastNow = now;
-    const s = introDone ? window.scrollY / UNIT() : 0;
-    sv += (s - sv) * (reduced ? 1 : 1 - Math.exp(-dt * 10)); if (Math.abs(s - sv) < 0.0004) sv = s; window.__sv = sv;
-    let bi = beats.findIndex(b => sv < b.end); if (bi < 0) bi = beats.length - 1; const b = beats[bi]; const u = clamp01((sv - b.start) / b.len);
-    // ── hero ──
-    const heroK = sv < 0.55 ? 1 : clamp01(1 - (sv - 0.55) / 0.45); heroCopy.style.opacity = heroK.toFixed(3); heroCopy.style.visibility = heroK > 0.002 ? 'visible' : 'hidden'; heroCopy.style.transform = `${narrowQ() ? '' : 'translateY(-50%) '}translateY(${((1 - heroK) * -24).toFixed(1)}px)`; heroCopy.classList.toggle('on', heroK > 0.6);
-    // ── sections ──
-    let curK = -1, local = 0, phase = 'hero', finalU = 0, wide = 0;
-    if (b.type === 'travel') { curK = b.k; local = -0.6 + u * 0.6; phase = 'sec'; wide = b.k > 0 ? 1 - ss(u / 0.55) : 0; }
-    else if (b.type === 'mods') { curK = b.k; local = u * b.len; phase = 'sec'; }
-    else if (b.type === 'connect') { curK = b.k; local = tracks[b.k].cards.length + u * 0.5; phase = 'sec'; wide = ss(u / 0.6); }
-    else if (b.type === 'final') { curK = NS - 1; phase = 'final'; finalU = u; }
-    const vw = window.innerWidth, bandCenter = narrowQ() ? vw / 2 : vw * 0.63;
+    const s = introDone ? window.scrollY : 0;
+    sv += (s - sv) * (reduced ? 1 : 1 - Math.exp(-dt * 12)); if (Math.abs(s - sv) < 0.4) sv = s; window.__sv = sv;
+    const H = vh(), vw = window.innerWidth, bandCenter = narrowQ() ? vw / 2 : vw * 0.63;
+    // hero → first layer
+    const enter0 = clamp01((H - (tracks[0].sec.offsetTop - sv)) / H); const heroK = 1 - ss(enter0);
+    heroCopy.style.opacity = (1 - ss((enter0 - 0.25) / 0.6)).toFixed(3);
+    // sections
     tracks.forEach((t, k) => {
-      const M = t.cards.length;
-      // build progress per card (neuron): fully built for past sections, none for future ones
-      let tl; if (k < curK || phase === 'final') tl = M + 1; else if (k > curK) tl = -1; else tl = local;
-      const show = k === curK && phase === 'sec';
-      if (!show) { t.el.style.visibility = 'hidden'; }
-      else {
-        // horizontal position: card i is centred at tl = i + 0.5
-        const q = tl - 0.5; const i0 = Math.floor(Math.max(0, Math.min(M - 1.0001, q))); const f = q - i0;
-        const cx = (q < 0) ? t.centers[0] + q * 380 : (i0 >= M - 1 ? t.centers[M - 1] + (q - (M - 1)) * 380 : t.centers[i0] + (t.centers[i0 + 1] - t.centers[i0]) * f);
-        const enter = tl < 0 ? ss((tl + 0.6) / 0.6) : 1;
-        t.el.style.visibility = 'visible';
-        t.el.style.transform = `translate3d(${(bandCenter - cx - t.el.offsetLeft).toFixed(1)}px, ${narrowQ() ? 0 : '-50%'}${narrowQ() ? 'px' : ''}, 0) translateY(${((1 - enter) * 70).toFixed(1)}px)`;
-        t.el.style.opacity = enter.toFixed(3);
-      }
+      const top = t.sec.offsetTop, span = Math.max(1, t.sec.offsetHeight - H), relTop = top - sv, n = t.cards.length;
+      const p = clamp01(-relTop / span); t.entering = clamp01((H - relTop) / H); t.leaving = clamp01(-(relTop + span) / H);
+      const local = p * (n - 1) + t.leaving; t.local = local;
+      const onScreen = t.entering > 0 && t.leaving < 1;
+      const q = Math.min(n - 1, local); const i0 = Math.floor(Math.min(Math.max(n - 1.0001, 0), Math.max(0, q))); const f = q - i0;
+      const cx = (n > 1 && i0 < n - 1) ? t.centers[i0] + (t.centers[i0 + 1] - t.centers[i0]) * f : t.centers[Math.min(i0, n - 1)];
+      t.el.style.visibility = onScreen ? 'visible' : 'hidden';
+      if (onScreen) t.el.style.transform = `translate3d(${(bandCenter - cx - t.el.offsetLeft).toFixed(1)}px, ${narrowQ() ? '0px' : '-50%'}, 0)`;
       t.cards.forEach((card, i) => {
-        const d = Math.abs(tl - (i + 0.5));
-        const detach = ss((tl - (i + 0.55)) / 0.45);                 // card → neuron
+        const d = Math.abs(local - i); const detach = ss((local - i - 0.12) / 0.55);
         const focus = 1 - 0.4 * clamp01(d); const scale = (1 - 0.06 * clamp01(d)) * (1 - 0.45 * detach);
-        const alpha = show ? focus * (1 - detach) : 0;
-        setCard(card, alpha, scale, 0);
-        const n = window.NODES[k][i]; n.b = (k < curK || phase === 'final') ? 1 : (k > curK ? 0 : detach);
-        if (show && detach > 0 && detach < 1) { const r = card.getBoundingClientRect(); n.sx = r.left + r.width / 2; n.sy = r.top + r.height / 2; }
-        if (show && detach === 0 && d < 0.4 && card.dataset.auto && !played.has(card) && window.AUTO && window.AUTO[card.dataset.auto]) { played.add(card); const badge = card.querySelector('[data-auto-badge]'); setTimeout(() => window.AUTO[card.dataset.auto](() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 250); }
+        setCard(card, onScreen ? focus * (1 - detach) : 0, scale);
+        const nd = window.NODES[k][i]; nd.b = detach;
+        if (onScreen && detach > 0 && detach < 1) { const r = card.getBoundingClientRect(); nd.sx = r.left + r.width / 2; nd.sy = r.top + r.height / 2; }
+        if (onScreen && detach === 0 && d < 0.4 && card.dataset.auto && !played.has(card) && window.AUTO && window.AUTO[card.dataset.auto]) { played.add(card); const badge = card.querySelector('[data-auto-badge]'); setTimeout(() => window.AUTO[card.dataset.auto](() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 250); }
       });
-      // incoming edges for layer k (from k-1): drawn during this section's connect beat
-      if (k > 0) window.EDGES[k] = (k < curK || phase === 'final') ? 1 : (k > curK ? 0 : (b.type === 'connect' ? ss(u) : 0));
+      if (k > 0) window.EDGES[k] = ss((tracks[k - 1].leaving - 0.08) / 0.6);
     });
-    window.EDGES[NS] = phase === 'final' ? ss(finalU / 0.22) : 0;
-    // contact card
-    const ck = phase === 'final' ? ss((finalU - 0.52) / 0.2) : 0; contactCard.style.opacity = ck.toFixed(3); contactCard.style.visibility = ck > 0.002 ? 'visible' : 'hidden'; contactCard.style.transform = `${narrowQ() ? '' : 'translateY(-50%) '}translateY(${((1 - ck) * 36).toFixed(1)}px)`; contactCard.classList.toggle('on', ck > 0.6);
-    window.T = { phase, k: curK, local, finalU, wide };
+    // camera: which layer, and how far between layers
+    let kf = 0, wide = 0, curK = -1, phase = 'hero';
+    const trans = tracks.findIndex(t => t.leaving > 0 && t.leaving < 1);
+    if (trans >= 0) { const lv = tracks[trans].leaving; kf = trans + ss(lv); wide = Math.sin(Math.PI * lv); curK = lv < 0.5 ? trans : Math.min(NS - 1, trans + 1); phase = 'sec'; }
+    else { const pinned = tracks.findIndex(t => t.entering > 0 && t.leaving === 0); if (pinned >= 0) { kf = pinned; curK = pinned; phase = 'sec'; } }
+    // final: output neuron, descent, contact card
+    const fTop = finalSec.offsetTop, fSpan = Math.max(1, finalSec.offsetHeight - H);
+    const finalU = clamp01((sv - (fTop - H)) / (fSpan + H));
+    if (finalU > 0) { phase = 'final'; curK = NS; }
+    window.EDGES[NS] = ss(finalU / 0.22);
+    const ck = ss((finalU - 0.5) / 0.2); contactCard.style.opacity = ck.toFixed(3); contactCard.style.visibility = ck > 0.002 ? 'visible' : 'hidden'; contactCard.style.transform = `${narrowQ() ? '' : 'translateY(-50%) '}translateY(${((1 - ck) * 36).toFixed(1)}px)`;
+    window.T = { phase, kf, wide, finalU, heroK: phase === 'final' ? 0 : heroK, curK };
     // rail + pill
-    const secIdx = phase === 'final' ? NS : curK; railLinks.forEach((a, i) => { a.classList.toggle('on', i === secIdx); a.classList.toggle('done', i < secIdx); });
-    const txt = phase === 'hero' ? '' : phase === 'final' ? '<b>Output</b>Contact' : `<b>Layer ${curK + 1} / ${NS}</b>${tracks[curK].sec.dataset.short}`;
+    railLinks.forEach((a, i) => { a.classList.toggle('on', i === curK); a.classList.toggle('done', i < curK); });
+    const txt = curK < 0 ? '' : curK >= NS ? '<b>Output</b>Contact' : `<b>Layer ${curK + 1} / ${NS}</b>${tracks[curK].sec.dataset.short}`;
     if (txt !== lastPill) { lastPill = txt; pill.innerHTML = txt; pill.classList.toggle('show', !!txt); }
     requestAnimationFrame(frame);
   }
@@ -134,7 +114,7 @@
   const fid = $('fidget-toggle');
   if (fid) fid.addEventListener('click', () => { const on = !document.documentElement.classList.contains('fidget'); document.documentElement.classList.toggle('fidget', on); fid.setAttribute('aria-pressed', String(on)); window.FIDGET = on; });
 
-  // ── "What are you hiring for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
+  // ── "What are you looking for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe'];
   const NAMES = { ml: 'machine learning', health: 'healthcare AI', data: 'data engineering', swe: 'software engineering' };
   const lines = Array.from(document.querySelectorAll('.lines li[data-w]'));
