@@ -5,40 +5,56 @@
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ── Theme ──
-  function currentTheme() { const t = root.getAttribute('data-theme'); if (t) return t; return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+  function currentTheme() { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
   window.currentTheme = currentTheme;
   function setTheme(t) { root.setAttribute('data-theme', t); try { localStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
 
-  // ── Timeline: scroll → virtual progress → ball, camera kind, overlays ──
+  // ── Timeline: scroll → beats → tracks (sideways), neurons (build), camera ──
   document.documentElement.classList.add('intro');
   let introDone = false;
-  const stage = $('stage'), scroller = $('scroller'), rail = $('rail'), heroCopy = $('hero-copy');
-  const secs = Array.from(document.querySelectorAll('#stage .sec'));
-  const NS = secs.filter(s => !s.classList.contains('final')).length;
+  const stage = $('stage'), scroller = $('scroller'), rail = $('rail'), heroCopy = $('hero-copy'), pill = $('pill');
+  const secs = Array.from(document.querySelectorAll('#stage .sec')).filter(s => !s.classList.contains('final'));
+  const finalSec = document.querySelector('#stage .sec.final'), contactCard = finalSec.querySelector('.card.contact');
+  const tracks = secs.map(sec => ({ sec, el: sec.querySelector('.track'), cards: Array.from(sec.querySelectorAll('.card')), centers: [] }));
+  const NS = secs.length;
+  window.LAYERS = tracks.map(t => t.cards.length);          // neurons per layer (one per card)
   const beats = []; let acc = 0;
   const push = (b) => { b.start = acc; acc += b.len; b.end = acc; beats.push(b); return b; };
   push({ type: 'hero', len: 1.0 });
-  secs.forEach((sec, i) => {
-    const chapter = sec.querySelector('.chapter'), panels = Array.from(sec.querySelectorAll('.panel'));
-    if (sec.classList.contains('final')) { push({ type: 'final', len: 3.0, sec, chapter, panel: panels[0] }); return; }
-    const k = i + 1;
-    push({ type: 'travel', len: 1.0, sec, k, chapter });
-    push({ type: 'hold', len: 0.5, sec, k, chapter });
-    panels.forEach(p => push({ type: 'sub', len: 1.3, sec, k, panel: p }));
-  });
+  tracks.forEach((t, k) => { push({ type: 'travel', len: 0.6, k }); push({ type: 'mods', len: t.cards.length, k }); if (k > 0) push({ type: 'connect', len: 0.5, k }); });
+  push({ type: 'final', len: 3.2 });
   const TOTAL = acc;
-  const UNIT = () => Math.max(360, window.innerHeight * 0.52);
+  const UNIT = () => Math.max(380, Math.round(window.innerHeight * 0.62));
+  function measure() { tracks.forEach(t => { t.centers = t.cards.map(c => c.offsetLeft + c.offsetWidth / 2); }); }
   function sizeScroller() { scroller.style.height = (TOTAL * UNIT() + window.innerHeight) + 'px'; }
-  sizeScroller(); window.addEventListener('resize', () => { const s = window.scrollY / UNIT(); sizeScroller(); window.scrollTo(0, s * UNIT()); });
-  // points of interest for keyboard / rail stepping (in units)
-  const pois = [{ at: 0.2, label: 'Start' }];
-  beats.forEach(b => { if (b.type === 'hold') pois.push({ at: b.start + 0.45 * b.len, sec: b.sec }); if (b.type === 'sub') pois.push({ at: b.start + 0.5 * b.len, sec: b.sec }); if (b.type === 'final') { pois.push({ at: b.start + 0.22 * b.len, sec: b.sec }); pois.push({ at: b.start + 0.92 * b.len, sec: b.sec, contact: true }); } });
-  const secPoi = (sec) => pois.find(p => p.sec === sec && !p.contact) || pois[0];
-  secs.forEach(sec => { const a = document.createElement('a'); a.href = '#' + sec.dataset.sec; a.innerHTML = `<span>${sec.dataset.short}</span>`; a.setAttribute('aria-label', sec.dataset.short); a.addEventListener('click', e => { e.preventDefault(); goTo(sec.classList.contains('final') ? pois.find(p => p.contact).at : secPoi(sec).at); }); rail.appendChild(a); });
+  sizeScroller(); measure();
+  window.addEventListener('resize', () => { const s = window.scrollY / UNIT(); sizeScroller(); measure(); window.scrollTo(0, s * UNIT()); });
+  window.addEventListener('load', measure);
+  // points of interest: module centres, the output neuron, the contact card
+  const pois = [{ at: 0 }];
+  beats.forEach(b => { if (b.type === 'mods') for (let i = 0; i < b.len; i++) pois.push({ at: b.start + i + 0.5, k: b.k }); if (b.type === 'final') { pois.push({ at: b.start + 0.18 * b.len, final: true }); pois.push({ at: b.start + 0.9 * b.len, final: true, contact: true }); } });
+  const firstPoi = (k) => pois.find(p => p.k === k);
+  tracks.forEach((t, k) => { const a = document.createElement('a'); a.href = '#' + t.sec.dataset.sec; a.innerHTML = `<span>${t.sec.dataset.short}</span>`; a.setAttribute('aria-label', t.sec.dataset.short); a.addEventListener('click', e => { e.preventDefault(); goTo(firstPoi(k).at); }); rail.appendChild(a); });
+  { const a = document.createElement('a'); a.href = '#contact'; a.innerHTML = '<span>Contact</span>'; a.setAttribute('aria-label', 'Contact'); a.addEventListener('click', e => { e.preventDefault(); goTo(pois.find(p => p.contact).at); }); rail.appendChild(a); }
   const railLinks = Array.from(rail.children);
-  document.querySelectorAll('header.top a[href^="#"]').forEach(a => a.addEventListener('click', e => { const id = a.getAttribute('href').slice(1); const sec = secs.find(s => s.dataset.sec === id); if (sec) { e.preventDefault(); goTo(sec.classList.contains('final') ? pois.find(p => p.contact).at : secPoi(sec).at); } else if (id === 'top') { e.preventDefault(); goTo(0); } }));
-  function goTo(units) { window.scrollTo({ top: units * UNIT(), behavior: reduced ? 'instant' : 'smooth' }); }
+  document.querySelectorAll('header.top a[href^="#"]').forEach(a => a.addEventListener('click', e => { const id = a.getAttribute('href').slice(1); const k = tracks.findIndex(t => t.sec.dataset.sec === id); if (k >= 0) { e.preventDefault(); goTo(firstPoi(k).at); } else if (id === 'contact') { e.preventDefault(); goTo(pois.find(p => p.contact).at); } else if (id === 'top') { e.preventDefault(); goTo(0); } }));
+  // scrolling: free, with a soft settle onto the nearest module once the wheel stops
+  let scrollTw = null;
+  function goTo(units, ms) { const from = window.scrollY, to = units * UNIT(); if (scrollTw) cancelAnimationFrame(scrollTw.raf); if (reduced) { window.scrollTo(0, to); return; } const d = ms || Math.min(900, 260 + Math.abs(to - from) * 0.35); const t0 = performance.now(); const step = (now) => { const k = Math.min(1, (now - t0) / d); const e = 1 - Math.pow(1 - k, 3); window.scrollTo(0, from + (to - from) * e); if (k < 1) scrollTw.raf = requestAnimationFrame(step); else scrollTw = null; }; scrollTw = { raf: requestAnimationFrame(step) }; }
+  let settleTimer = null, touching = false, lastY = 0, dir = 1;
+  window.addEventListener('scroll', () => { const y = window.scrollY; if (y !== lastY) dir = y > lastY ? 1 : -1; lastY = y; }, { passive: true });
+  function cancelTween() { if (scrollTw) { cancelAnimationFrame(scrollTw.raf); scrollTw = null; } }
+  function scheduleSettle() { clearTimeout(settleTimer); settleTimer = setTimeout(() => {
+    if (touching || !introDone) return; const s = window.scrollY / UNIT();
+    const ahead = dir > 0 ? pois.find(p => p.at > s + 0.03) : [...pois].reverse().find(p => p.at < s - 0.03);
+    const behind = dir > 0 ? [...pois].reverse().find(p => p.at <= s + 0.03) : pois.find(p => p.at >= s - 0.03);
+    if (!ahead || !behind) return; const span = Math.abs(ahead.at - behind.at) || 1, frac = Math.abs(s - behind.at) / span;
+    if (frac > 0.42) goTo(ahead.at, 520); else if (frac < 0.1 && frac > 0.005) goTo(behind.at, 320);
+  }, 150); }
+  window.addEventListener('wheel', () => { cancelTween(); scheduleSettle(); }, { passive: true });
+  window.addEventListener('touchstart', () => { touching = true; cancelTween(); }, { passive: true });
+  window.addEventListener('touchend', () => { touching = false; scheduleSettle(); }, { passive: true });
   window.addEventListener('keydown', (e) => {
     if (!introDone) return; if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
     const s = window.scrollY / UNIT();
@@ -46,65 +62,91 @@
     if (['ArrowUp', 'PageUp'].includes(e.key)) { const prev = [...pois].reverse().find(p => p.at < s - 0.08); e.preventDefault(); goTo(prev ? prev.at : 0); }
     if (e.key === 'Home') { e.preventDefault(); goTo(0); } if (e.key === 'End') { e.preventDefault(); goTo(pois[pois.length - 1].at); }
   });
-
-  // intro lock: keep the page at the top until the scene hands over
-  const onIntroDone = () => { introDone = true; };
+  const onIntroDone = () => { introDone = true; window.scrollTo(0, 0); };
   window.addEventListener('introdone', onIntroDone);
-  const skipOnInput = (e) => { if (!introDone && window.introSkip) window.introSkip(); };
+  const skipOnInput = () => { if (!introDone && window.introSkip) window.introSkip(); };
   window.addEventListener('wheel', skipOnInput, { passive: true }); window.addEventListener('touchstart', skipOnInput, { passive: true }); window.addEventListener('keydown', skipOnInput);
 
-  window.T = { ballP: 0, kind: 'hero', finalU: 0, stops: NS, visited: 0 };
-  const prog = $('prog'), progBar = $('prog-bar'), progLbl = $('prog-lbl'), progSub = $('prog-sub');
-  const win = (x, a, b, fi, fo) => { if (x <= a || x >= b) return 0; const i = fi > 0 ? clamp01((x - a) / fi) : 1, o = fo > 0 ? clamp01((b - x) / fo) : 1; return Math.min(i, o); };
   const clamp01 = (v) => Math.max(0, Math.min(1, v));
   const ss = (v) => { v = clamp01(v); return v * v * (3 - 2 * v); };
-  const played = new Set();
-  function setLayer(el, k, dy) { const vis = k > 0.001; el.style.opacity = k.toFixed(3); el.style.visibility = vis ? 'visible' : 'hidden'; el.classList.toggle('on', k > 0.6); if (dy !== undefined) el.style.transform = `${(el.classList.contains('panel') || el.classList.contains('hero-copy')) && !narrowQ() ? 'translateY(-50%) ' : ''}translateY(${dy.toFixed(1)}px)`; }
   const narrowQ = () => window.innerWidth < 900;
-  let sv = 0, lastSecIdx = -1, lastNow = 0;
+  window.T = { phase: 'hero', k: -1, local: 0, finalU: 0 };
+  window.NODES = tracks.map(t => t.cards.map(() => ({ b: 0, sx: 0, sy: 0 })));
+  window.EDGES = tracks.map(() => 0); window.EDGES.push(0); // last entry: layer 6 → output
+  const played = new Set();
+  function setCard(card, k, scale, tx) { const vis = k > 0.002; card.style.opacity = k.toFixed(3); card.style.visibility = vis ? 'visible' : 'hidden'; card.style.transform = `translateY(${tx.toFixed(1)}px) scale(${scale.toFixed(3)})`; card.classList.toggle('on', k > 0.6); }
+  let sv = 0, lastNow = 0, lastPill = '';
   function frame(now) {
     const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 1 / 60; lastNow = now;
     const s = introDone ? window.scrollY / UNIT() : 0;
-    sv += (s - sv) * (reduced ? 1 : 1 - Math.exp(-dt * 6.5)); if (Math.abs(s - sv) < 0.0005) sv = s; window.__sv = sv;
+    sv += (s - sv) * (reduced ? 1 : 1 - Math.exp(-dt * 10)); if (Math.abs(s - sv) < 0.0004) sv = s; window.__sv = sv;
     let bi = beats.findIndex(b => sv < b.end); if (bi < 0) bi = beats.length - 1; const b = beats[bi]; const u = clamp01((sv - b.start) / b.len);
-    // ball + camera kind
-    let ballP = 0, kind = 'hero', finalU = 0;
-    if (b.type === 'travel') { ballP = ((b.k - 1) + ss(u)) / NS; kind = 'travel'; }
-    else if (b.type === 'hold') { ballP = b.k / NS; kind = u < 0.75 ? 'travel' : 'content'; }
-    else if (b.type === 'sub') { ballP = b.k / NS; kind = 'content'; }
-    else if (b.type === 'final') { ballP = 1; kind = 'final'; finalU = u; }
-    const visited = b.type === 'hero' ? 0 : b.type === 'final' ? NS : (b.type === 'travel' ? b.k - 1 : b.k);
-    window.T = { ballP, kind, finalU, stops: NS, visited };
-    // overlays
-    const heroK = win(sv, -1, beats[0].end, 0, 0.42); setLayer(heroCopy, heroK, (1 - heroK) * -24); if (prog) prog.classList.toggle('hide', heroK > 0.25);
-    beats.forEach((bt, i) => {
-      if (bt.type === 'travel') { const hold = beats[i + 1], sub0 = beats[i + 2]; const a = bt.start + 0.5 * bt.len, z = sub0.start + 0.05 * sub0.len; const k = win(sv, a, z, 0.32, 0.36); setLayer(bt.chapter, k, (1 - k) * 28); }
-      if (bt.type === 'sub') { const k = win(sv, bt.start, bt.end, 0.16 * bt.len, 0.16 * bt.len); const dy = (sv - bt.start) / bt.len; setLayer(bt.panel, k, (1 - k) * (sv < bt.start + bt.len / 2 ? 34 : -34) + (dy - 0.5) * -10); if (k > 0.6 && bt.panel.dataset.auto && !played.has(bt.panel) && window.AUTO && window.AUTO[bt.panel.dataset.auto]) { played.add(bt.panel); const badge = bt.panel.querySelector('[data-auto-badge]'); setTimeout(() => window.AUTO[bt.panel.dataset.auto](() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 350); } }
-      if (bt.type === 'final') { const ck = win(sv, bt.start + 0.02 * bt.len, bt.start + 0.42 * bt.len, 0.25, 0.3); setLayer(bt.chapter, ck, (1 - ck) * 28); const pk = win(sv, bt.start + 0.58 * bt.len, bt.end + 9, 0.3, 0); setLayer(bt.panel, pk, (1 - pk) * 40); }
+    // ── hero ──
+    const heroK = sv < 0.55 ? 1 : clamp01(1 - (sv - 0.55) / 0.45); heroCopy.style.opacity = heroK.toFixed(3); heroCopy.style.visibility = heroK > 0.002 ? 'visible' : 'hidden'; heroCopy.style.transform = `${narrowQ() ? '' : 'translateY(-50%) '}translateY(${((1 - heroK) * -24).toFixed(1)}px)`; heroCopy.classList.toggle('on', heroK > 0.6);
+    // ── sections ──
+    let curK = -1, local = 0, phase = 'hero', finalU = 0, wide = 0;
+    if (b.type === 'travel') { curK = b.k; local = -0.6 + u * 0.6; phase = 'sec'; wide = b.k > 0 ? 1 - ss(u / 0.55) : 0; }
+    else if (b.type === 'mods') { curK = b.k; local = u * b.len; phase = 'sec'; }
+    else if (b.type === 'connect') { curK = b.k; local = tracks[b.k].cards.length + u * 0.5; phase = 'sec'; wide = ss(u / 0.6); }
+    else if (b.type === 'final') { curK = NS - 1; phase = 'final'; finalU = u; }
+    const vw = window.innerWidth, bandCenter = narrowQ() ? vw / 2 : vw * 0.63;
+    tracks.forEach((t, k) => {
+      const M = t.cards.length;
+      // build progress per card (neuron): fully built for past sections, none for future ones
+      let tl; if (k < curK || phase === 'final') tl = M + 1; else if (k > curK) tl = -1; else tl = local;
+      const show = k === curK && phase === 'sec';
+      if (!show) { t.el.style.visibility = 'hidden'; }
+      else {
+        // horizontal position: card i is centred at tl = i + 0.5
+        const q = tl - 0.5; const i0 = Math.floor(Math.max(0, Math.min(M - 1.0001, q))); const f = q - i0;
+        const cx = (q < 0) ? t.centers[0] + q * 380 : (i0 >= M - 1 ? t.centers[M - 1] + (q - (M - 1)) * 380 : t.centers[i0] + (t.centers[i0 + 1] - t.centers[i0]) * f);
+        const enter = tl < 0 ? ss((tl + 0.6) / 0.6) : 1;
+        t.el.style.visibility = 'visible';
+        t.el.style.transform = `translate3d(${(bandCenter - cx - t.el.offsetLeft).toFixed(1)}px, ${narrowQ() ? 0 : '-50%'}${narrowQ() ? 'px' : ''}, 0) translateY(${((1 - enter) * 70).toFixed(1)}px)`;
+        t.el.style.opacity = enter.toFixed(3);
+      }
+      t.cards.forEach((card, i) => {
+        const d = Math.abs(tl - (i + 0.5));
+        const detach = ss((tl - (i + 0.55)) / 0.45);                 // card → neuron
+        const focus = 1 - 0.4 * clamp01(d); const scale = (1 - 0.06 * clamp01(d)) * (1 - 0.45 * detach);
+        const alpha = show ? focus * (1 - detach) : 0;
+        setCard(card, alpha, scale, 0);
+        const n = window.NODES[k][i]; n.b = (k < curK || phase === 'final') ? 1 : (k > curK ? 0 : detach);
+        if (show && detach > 0 && detach < 1) { const r = card.getBoundingClientRect(); n.sx = r.left + r.width / 2; n.sy = r.top + r.height / 2; }
+        if (show && detach === 0 && d < 0.4 && card.dataset.auto && !played.has(card) && window.AUTO && window.AUTO[card.dataset.auto]) { played.add(card); const badge = card.querySelector('[data-auto-badge]'); setTimeout(() => window.AUTO[card.dataset.auto](() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 250); }
+      });
+      // incoming edges for layer k (from k-1): drawn during this section's connect beat
+      if (k > 0) window.EDGES[k] = (k < curK || phase === 'final') ? 1 : (k > curK ? 0 : (b.type === 'connect' ? ss(u) : 0));
     });
-    // rail + progress
-    const secIdx = b.sec ? secs.indexOf(b.sec) : -1; const key = secIdx + ':' + b.type;
-    if (key !== lastSecIdx) { lastSecIdx = key; railLinks.forEach((a, i) => { a.classList.toggle('on', i === secIdx); a.classList.toggle('done', i < secIdx); });
-      if (prog) { if (secIdx < 0) { progLbl.textContent = 'Start'; progSub.textContent = 'scroll to begin'; } else { const t = b.sec.querySelector('.chapter h2').textContent; progLbl.textContent = `${Math.min(secIdx + 1, NS + 1)} of ${NS + 1} · ${t.length > 34 ? t.slice(0, 32) + '…' : t}`; progSub.textContent = b.type === 'final' ? 'folding back into the network' : b.type === 'travel' ? 'rolling to the next stop' : 'reading'; } } }
-    if (progBar) progBar.style.transform = `scaleX(${clamp01(sv / (TOTAL - 0.3)).toFixed(3)})`;
+    window.EDGES[NS] = phase === 'final' ? ss(finalU / 0.22) : 0;
+    // contact card
+    const ck = phase === 'final' ? ss((finalU - 0.52) / 0.2) : 0; contactCard.style.opacity = ck.toFixed(3); contactCard.style.visibility = ck > 0.002 ? 'visible' : 'hidden'; contactCard.style.transform = `${narrowQ() ? '' : 'translateY(-50%) '}translateY(${((1 - ck) * 36).toFixed(1)}px)`; contactCard.classList.toggle('on', ck > 0.6);
+    window.T = { phase, k: curK, local, finalU, wide };
+    // rail + pill
+    const secIdx = phase === 'final' ? NS : curK; railLinks.forEach((a, i) => { a.classList.toggle('on', i === secIdx); a.classList.toggle('done', i < secIdx); });
+    const txt = phase === 'hero' ? '' : phase === 'final' ? '<b>Output</b>Contact' : `<b>Layer ${curK + 1} / ${NS}</b>${tracks[curK].sec.dataset.short}`;
+    if (txt !== lastPill) { lastPill = txt; pill.innerHTML = txt; pill.classList.toggle('show', !!txt); }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  window.addEventListener('introdone', () => { window.scrollTo(0, 0); });
+
+  // ── Fidget toggle ──
+  const fid = $('fidget-toggle');
+  if (fid) fid.addEventListener('click', () => { const on = !document.documentElement.classList.contains('fidget'); document.documentElement.classList.toggle('fidget', on); fid.setAttribute('aria-pressed', String(on)); window.FIDGET = on; });
 
   // ── "What are you hiring for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
-  const TOPICS = ['ml', 'health', 'data', 'swe', 'lead'];
-  const NAMES = { ml: 'machine learning', health: 'healthcare AI', data: 'data engineering', swe: 'software engineering', lead: 'leadership' };
+  const TOPICS = ['ml', 'health', 'data', 'swe'];
+  const NAMES = { ml: 'machine learning', health: 'healthcare AI', data: 'data engineering', swe: 'software engineering' };
   const lines = Array.from(document.querySelectorAll('.lines li[data-w]'));
   lines.forEach(li => { li._w = li.dataset.w.split(',').map(Number); });
   const note = $('focus-note');
   function applyFocus(f) {
-    if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = 'Pick what you are hiring for and the CV re-weights itself.'; return; }
+    if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = 'Pick a focus and the site re-weights to it.'; return; }
     const k = TOPICS.indexOf(f); const scores = lines.map(li => li._w[k]);
     const mx = Math.max(...scores); const ex = scores.map(s => Math.exp(6 * (s - mx))); const Z = ex.reduce((a, b) => a + b, 0); const att = ex.map(e => e / Z); const amax = Math.max(...att);
     let kept = 0;
     lines.forEach((li, i) => { const rel = att[i] / amax; li.classList.toggle('hi', rel > 0.55); li.classList.toggle('lo', rel < 0.2); li.style.opacity = rel < 0.2 ? '' : (0.55 + 0.45 * rel).toFixed(2); if (rel > 0.55) kept++; });
-    note.textContent = `Highlighting the ${kept} lines most relevant to ${NAMES[f]}. Everything else steps back.`;
+    note.textContent = `Re-weighted for ${NAMES[f]}: ${kept} points highlighted.`;
   }
   document.querySelectorAll('#focus-chips .chip').forEach(c => c.addEventListener('click', () => { document.querySelectorAll('#focus-chips .chip').forEach(x => x.setAttribute('aria-pressed', 'false')); c.setAttribute('aria-pressed', 'true'); applyFocus(c.dataset.f); }));
 
