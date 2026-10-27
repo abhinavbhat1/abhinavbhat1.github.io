@@ -1,8 +1,8 @@
-/* One scene, one camera, one timeline.
-   The intro dives into an output neuron of a 3D MLP; inside it is the loss landscape.
-   The ball rolls down the landscape as the reader scrolls (main.js writes window.T).
-   At the end the landscape folds back into the ball, which is the neuron again,
-   and the network reassembles around it: the story closes where it began. */
+/* The network is built while you read.
+   Intro: the complete MLP flies in from behind the viewer, fires once, then settles into a ghost.
+   Scroll: each section is a layer; every card collapses into a neuron that locks into its slot;
+   layers wire up as you move on. Contact: the output neuron becomes a marble that rolls into a
+   glass bowl and settles in the minimum. Fidget mode lets you poke nodes, edges and the marble. */
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
 
 const canvas = document.getElementById('landscape');
@@ -11,197 +11,210 @@ const narrow = () => window.innerWidth < 900;
 let renderer;
 try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' }); }
 catch (e) { canvas.style.display = 'none'; window.introSkip && window.introSkip(); throw e; }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, narrow() ? 1.5 : 1.75));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, narrow() ? 1.5 : 2));
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 200);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 200);
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const smooth = (t) => { t = clamp(t); return t * t * (3 - 2 * t); };
-const ease3 = (t) => 1 - Math.pow(1 - clamp(t), 3);
+const easeOut = (t) => 1 - Math.pow(1 - clamp(t), 4);
 function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-
-// ───────── loss landscape + descent path ─────────
-const BUMPS = [{ a: -2.4, x: 2.2, y: -1.6, s: 2.4 }, { a: -1.0, x: -2.6, y: 1.8, s: 1.6 }, { a: 0.9, x: -0.3, y: -0.2, s: 1.4 }, { a: 0.6, x: 1.0, y: 2.6, s: 1.1 }];
-function f(x, y) { let v = 0.07 * (x * x + y * y); for (const b of BUMPS) { const dx = x - b.x, dy = y - b.y; v += b.a * Math.exp(-(dx * dx + dy * dy) / b.s); } return v + 0.05 * Math.sin(1.7 * x) * Math.cos(1.5 * y); }
-function grad(x, y) { const h = 1e-3; return [(f(x + h, y) - f(x - h, y)) / (2 * h), (f(x, y + h) - f(x, y - h)) / (2 * h)]; }
-const raw = [[-3.4, 3.6]]; let vel = [0, 0];
-for (let i = 0; i < 900; i++) { const [x, y] = raw[raw.length - 1]; const g = grad(x, y); vel = [0.9 * vel[0] + g[0], 0.9 * vel[1] + g[1]]; raw.push([x - 0.06 * vel[0], y - 0.06 * vel[1]]); if (i > 120 && Math.hypot(g[0], g[1]) < 1e-3 && Math.hypot(vel[0], vel[1]) < 1e-3) break; }
-const lens = [0]; for (let i = 1; i < raw.length; i++) lens.push(lens[i - 1] + Math.hypot(raw[i][0] - raw[i - 1][0], raw[i][1] - raw[i - 1][1]));
-const total = lens[lens.length - 1], NP = 500, path = [];
-for (let k = 0; k < NP; k++) { const t = (k / (NP - 1)) * total; let i = 1; while (i < lens.length - 1 && lens[i] < t) i++; const u = (t - lens[i - 1]) / ((lens[i] - lens[i - 1]) || 1); path.push([raw[i - 1][0] + u * (raw[i][0] - raw[i - 1][0]), raw[i - 1][1] + u * (raw[i][1] - raw[i - 1][1])]); }
-const pathPoint = (p, out = new THREE.Vector3()) => { const k = clamp(p) * (NP - 1), i = Math.floor(k), u = k - i, p0 = path[i], p1 = path[Math.min(NP - 1, i + 1)]; const x = p0[0] + u * (p1[0] - p0[0]), y = p0[1] + u * (p1[1] - p0[1]); return out.set(x, f(x, y), y); };
-const pathDir = (p, out = new THREE.Vector3()) => { const a = pathPoint(clamp(p - 0.02)), b = pathPoint(clamp(p + 0.02)); out.subVectors(b, a); out.y = 0; return out.lengthSq() > 1e-6 ? out.normalize() : out.set(0.73, 0, -0.68); };
-const START = pathPoint(0), END = pathPoint(1);
 const UP = new THREE.Vector3(0, 1, 0);
 
-const land = new THREE.Group(); scene.add(land);
-const SIZE = 16, SEG = narrow() ? 64 : 104;
-const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG); geo.rotateX(-Math.PI / 2);
-const pos = geo.attributes.position, col = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3); geo.setAttribute('color', col);
-let zmin = Infinity, zmax = -Infinity; const zs = new Float32Array(pos.count);
-for (let i = 0; i < pos.count; i++) { const z = f(pos.getX(i), pos.getZ(i)); zs[i] = z; zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); pos.setY(i, z); }
-pos.needsUpdate = true;
-const wire = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, wireframe: true, transparent: true, opacity: 0.32 })); land.add(wire);
-const dots = new THREE.Points(geo, new THREE.PointsMaterial({ vertexColors: true, size: 0.04, transparent: true, opacity: 0.8 })); land.add(dots);
-const pathLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(path.map(p => new THREE.Vector3(p[0], f(p[0], p[1]) + 0.025, p[1]))), new THREE.LineBasicMaterial({ transparent: true, opacity: 0.85 })); land.add(pathLine);
-const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.22, 32), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false })); shadow.rotation.x = -Math.PI / 2; land.add(shadow);
-let stopRings = [];
-function buildStops(n) { stopRings.forEach(r => land.remove(r)); stopRings = []; for (let k = 1; k <= n; k++) { const p = pathPoint(k / n); const m = new THREE.Mesh(new THREE.RingGeometry(0.07, 0.1, 40), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set(p.x, p.y + 0.02, p.z); land.add(m); stopRings.push(m); } }
-
-// ───────── the ball (also the neuron we live inside) ─────────
-const ballG = new THREE.Group(); scene.add(ballG);
-const ballTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 256); const r = rng(5); g.fillStyle = 'rgba(0,0,0,0.22)'; for (let i = 0; i < 14; i++) { g.beginPath(); g.arc(r() * 256, r() * 256, 14 + r() * 18, 0, 6.28); g.fill(); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
-const ballMat = new THREE.MeshBasicMaterial({ map: ballTex });
-const ball = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), ballMat); ball.renderOrder = 5; ballG.add(ball);
-const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
-const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, opacity: 0.55, depthWrite: false })); glow.scale.setScalar(1.1); ballG.add(glow);
-
-// ───────── the MLP ─────────
-const net = new THREE.Group(); scene.add(net);
-const layers = [4, 6, 7, 6, 3], nodes = [], edges = [];
-{ const r = rng(2024); layers.forEach((n, li) => { for (let k = 0; k < n; k++) { const ang = (k / n) * Math.PI * 2 + li * 0.5, rad = 0.55 + 0.42 * Math.sqrt(n); nodes.push({ li, target: new THREE.Vector3((li - (layers.length - 1) / 2) * 2.1, Math.cos(ang) * rad * 0.72, Math.sin(ang) * rad * 0.72), from: new THREE.Vector3((r() - 0.5) * 18, (r() - 0.5) * 12, (r() - 0.5) * 12), ph: r() * 6.28 }); } });
-  let base = 0; layers.forEach((n, li) => { if (li < layers.length - 1) for (let a = 0; a < n; a++) for (let b = 0; b < layers[li + 1]; b++) edges.push([base + a, base + n + b]); base += n; }); }
-const OUT = nodes.length - 2; // the neuron we enter and return to
-const nodeGeo = new THREE.SphereGeometry(0.13, 20, 20);
-const nodeMeshes = nodes.map(() => { const m = new THREE.Mesh(nodeGeo, new THREE.MeshBasicMaterial({ transparent: true, opacity: 1 })); net.add(m); return m; });
-nodeMeshes[OUT].visible = false; // the ball stands in for it
-const ePos = new Float32Array(edges.length * 6); const eGeo = new THREE.BufferGeometry(); eGeo.setAttribute('position', new THREE.BufferAttribute(ePos, 3));
-const eLines = new THREE.LineSegments(eGeo, new THREE.LineBasicMaterial({ transparent: true, opacity: 0 })); eLines.frustumCulled = false; net.add(eLines);
-const NPULSE = Math.min(edges.length, 170); const pGeo = new THREE.BufferGeometry(); const pPos = new Float32Array(NPULSE * 3); pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-const pulse = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.09, transparent: true, opacity: 0, depthWrite: false })); pulse.frustumCulled = false; net.add(pulse);
-const pEdge = (() => { const r = rng(9); return Array.from({ length: NPULSE }, () => Math.floor(r() * edges.length)); })();
-const netCenterLocal = new THREE.Vector3(0, 0, 0);
-function anchorNet(worldPoint) { net.position.copy(worldPoint).sub(nodes[OUT].target); }
-function layoutNet(assemble, lit, t, fromBall) {
-  nodes.forEach((n, i) => { const m = nodeMeshes[i]; m.position.copy(fromBall ? nodes[OUT].target : n.from).lerp(n.target, assemble); m.position.y += Math.sin(t * 2 + n.ph) * 0.025; const l = lit(n.li); m.material.color.copy(C.net).lerp(C.net2, l); m.scale.setScalar(0.65 + 0.35 * assemble + 0.5 * l); });
-  edges.forEach(([i, j], e) => { const p = nodeMeshes[i].position, q = nodeMeshes[j].position; ePos[e * 6] = p.x; ePos[e * 6 + 1] = p.y; ePos[e * 6 + 2] = p.z; ePos[e * 6 + 3] = q.x; ePos[e * 6 + 4] = q.y; ePos[e * 6 + 5] = q.z; });
-  eGeo.attributes.position.needsUpdate = true;
+// ───────── layout ─────────
+const LAYERS = (window.LAYERS && window.LAYERS.length) ? window.LAYERS : [3, 3, 3, 3, 3, 3, 2];
+const NL = LAYERS.length;
+const GAP = 2.3, SPREAD = 1.25;
+function slotOf(k, i, n) { // k = layer index (NL = output)
+  if (narrow()) { const y = (3 - k) * 1.9; return new THREE.Vector3(k === NL ? 0 : (i - (n - 1) / 2) * 1.15, y, 0); }
+  return new THREE.Vector3((k - 3) * GAP, k === NL ? 0 : (i - (n - 1) / 2) * SPREAD, 0);
 }
-function netAlpha(a) { nodeMeshes.forEach(m => m.material.opacity = a); eLines.material.opacity = 0.35 * a; net.visible = a > 0.005; }
+const nodes = []; // { k, i, slot, mesh, from, off, vel, ph }
+const r0 = rng(7);
+LAYERS.forEach((n, k) => { for (let i = 0; i < n; i++) nodes.push({ k, i, n, ph: r0() * 6.28, seed: r0() }); });
+nodes.push({ k: NL, i: 0, n: 1, ph: r0() * 6.28, seed: r0(), out: true });
+const OUT = nodes.length - 1;
+const edges = []; { let base = 0; for (let k = 0; k < NL; k++) { const n = LAYERS[k]; const m = k < NL - 1 ? LAYERS[k + 1] : 1; for (let a = 0; a < n; a++) for (let b = 0; b < m; b++) edges.push({ a: base + a, b: base + n + b, k: k + 1 }); base += n; } }
+function relayout() { nodes.forEach(nd => { nd.slot = slotOf(nd.k, nd.i, nd.n); }); }
+relayout();
+const center = () => { const c = new THREE.Vector3(); nodes.forEach(n => c.add(n.slot)); return c.multiplyScalar(1 / nodes.length); };
+
+// ───────── meshes ─────────
+const net = new THREE.Group(); scene.add(net);
+const nodeGeo = new THREE.SphereGeometry(0.17, 28, 28);
+const spotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 256); const r = rng(5); g.fillStyle = 'rgba(0,0,0,0.18)'; for (let i = 0; i < 12; i++) { g.beginPath(); g.arc(r() * 256, r() * 256, 12 + r() * 18, 0, 6.28); g.fill(); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
+nodes.forEach(nd => { nd.mesh = new THREE.Mesh(nodeGeo, new THREE.MeshBasicMaterial({ transparent: true, opacity: 1, map: nd.out ? spotTex : null })); nd.off = new THREE.Vector3(); nd.vel = new THREE.Vector3(); net.add(nd.mesh); });
+const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.3)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, opacity: 0, depthWrite: false })); glow.scale.setScalar(1.6); net.add(glow);
+const ePos = new Float32Array(edges.length * 6), eCol = new Float32Array(edges.length * 6);
+const eGeo = new THREE.BufferGeometry(); eGeo.setAttribute('position', new THREE.BufferAttribute(ePos, 3)); eGeo.setAttribute('color', new THREE.BufferAttribute(eCol, 3));
+const eLines = new THREE.LineSegments(eGeo, new THREE.LineBasicMaterial({ vertexColors: true })); eLines.frustumCulled = false; net.add(eLines);
+const NP = Math.min(edges.length, 140); const pGeo = new THREE.BufferGeometry(); const pPos = new Float32Array(NP * 3); pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const pulse = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.09, transparent: true, opacity: 0, depthWrite: false })); pulse.frustumCulled = false; net.add(pulse);
+const pEdge = (() => { const r = rng(9); return Array.from({ length: NP }, () => Math.floor(r() * edges.length)); })();
+
+// ───────── the bowl (loss surface) ─────────
+const bowl = new THREE.Group(); scene.add(bowl); bowl.visible = false;
+const BR = 1.9, BA = 0.42; const bowlH = (u, v) => BA * (u * u + v * v);
+{ const rings = 14, segs = 56, verts = [], cols = [];
+  for (let i = 1; i <= rings; i++) { const r = BR * i / rings; for (let j = 0; j < segs; j++) { const a0 = j / segs * 6.2832, a1 = (j + 1) / segs * 6.2832; verts.push(r * Math.cos(a0), bowlH(r, 0), r * Math.sin(a0), r * Math.cos(a1), bowlH(r, 0), r * Math.sin(a1)); } }
+  for (let j = 0; j < segs; j += 2) { const a = j / segs * 6.2832; for (let i = 0; i < rings; i++) { const r1 = BR * i / rings, r2 = BR * (i + 1) / rings; verts.push(r1 * Math.cos(a), bowlH(r1, 0), r1 * Math.sin(a), r2 * Math.cos(a), bowlH(r2, 0), r2 * Math.sin(a)); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  bowl.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ transparent: true, opacity: 0.35 })));
+  const surf = new THREE.BufferGeometry(); const sv = [], si = []; const R2 = 20, S2 = 40;
+  for (let i = 0; i <= R2; i++) for (let j = 0; j <= S2; j++) { const r = BR * i / R2, a = j / S2 * 6.2832; sv.push(r * Math.cos(a), bowlH(r, 0), r * Math.sin(a)); }
+  for (let i = 0; i < R2; i++) for (let j = 0; j < S2; j++) { const p = i * (S2 + 1) + j; si.push(p, p + S2 + 1, p + 1, p + 1, p + S2 + 1, p + S2 + 2); }
+  surf.setAttribute('position', new THREE.Float32BufferAttribute(sv, 3)); surf.setIndex(si); surf.computeVertexNormals();
+  bowl.add(new THREE.Mesh(surf, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false })));
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(BR, 0.012, 8, 96), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.6 })); rim.rotation.x = Math.PI / 2; rim.position.y = bowlH(BR, 0); bowl.add(rim);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.3, 32), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.12, depthWrite: false })); shadow.rotation.x = -Math.PI / 2; shadow.name = 'shadow'; bowl.add(shadow);
+}
+const marble = { u: 0, v: 0, du: 0, dv: 0 }; // fidget offset on top of the scroll-driven path
 
 // ───────── colours ─────────
-const C = { lo: new THREE.Color(), hi: new THREE.Color(), ball: new THREE.Color(), net: new THREE.Color('#57068c'), net2: new THREE.Color('#8900e1') };
+const C = { node: new THREE.Color(), node2: new THREE.Color(), bg: new THREE.Color(), edge: new THREE.Color() };
 function theme() {
-  const cs = getComputedStyle(document.documentElement);
   const dark = (window.currentTheme ? window.currentTheme() : 'light') === 'dark';
-  C.lo.set('#57068c'); C.hi.set(dark ? '#cba4ff' : '#b388ff');
-  if (!dark) { C.lo.lerp(new THREE.Color('#ffffff'), 0.15); C.hi.lerp(new THREE.Color('#ffffff'), 0.2); }
-  const tmp = new THREE.Color();
-  for (let i = 0; i < pos.count; i++) { const u = (zs[i] - zmin) / (zmax - zmin || 1); tmp.copy(C.lo).lerp(C.hi, Math.pow(u, 0.8)); col.setXYZ(i, tmp.r, tmp.g, tmp.b); }
-  col.needsUpdate = true;
-  C.ball.set(cs.getPropertyValue('--ball').trim() || '#8900e1');
-  ballMat.color.copy(C.ball); glow.material.color.copy(C.ball); pathLine.material.color.copy(C.ball); pulse.material.color.copy(C.net2); eLines.material.color.copy(C.net);
-  stopRings.forEach(r => r.material.color.copy(C.ball));
-  C.net.set(dark ? '#b388ff' : '#57068c'); C.net2.set(dark ? '#e2cfff' : '#8900e1'); eLines.material.color.copy(C.net);
-  wire.material.opacity = dark ? 0.4 : 0.32; dots.material.opacity = dark ? 0.85 : 0.75;
+  C.node.set(dark ? '#b388ff' : '#57068c'); C.node2.set(dark ? '#e8d9ff' : '#8900e1'); C.bg.set(dark ? '#0e0a15' : '#fafafc'); C.edge.set(dark ? '#a98be0' : '#6b3fa0');
+  glow.material.color.copy(C.node2); pulse.material.color.copy(C.node2);
+  bowl.children.forEach(ch => { if (ch.name !== 'shadow') ch.material.color.copy(dark ? new THREE.Color('#b388ff') : new THREE.Color('#6b3fa0')); });
 }
 window.addEventListener('themechange', theme);
 
 // ───────── camera poses ─────────
-const _d = new THREE.Vector3(), _r = new THREE.Vector3(), _p = new THREE.Vector3(), _t = new THREE.Vector3();
-function poseAt(ballP, kind, out) {
-  const b = pathPoint(ballP, _p), d = pathDir(ballP, _d); const r = _r.set(-d.z, 0, d.x); const nr = narrow();
-  const P = out.pos, T = out.target;
-  if (kind === 'hero') {
-    if (nr) { P.copy(b).addScaledVector(d, -6.4).addScaledVector(UP, 4.6); T.copy(b).addScaledVector(d, 1.0).addScaledVector(UP, 1.8); }
-    else { P.copy(b).addScaledVector(d, -6.6).addScaledVector(UP, 4.3).addScaledVector(r, -0.6); T.copy(b).addScaledVector(d, 2.2).addScaledVector(r, -2.3); }
-  } else if (kind === 'travel') {
-    if (nr) { P.copy(b).addScaledVector(d, -5.6).addScaledVector(UP, 4.2); T.copy(b).addScaledVector(d, 1.2).addScaledVector(UP, -0.9); }
-    else { P.copy(b).addScaledVector(d, -5.2).addScaledVector(UP, 3.3).addScaledVector(r, -0.3); T.copy(b).addScaledVector(d, 1.4).addScaledVector(r, -1.3); }
-  } else { // content
-    if (nr) { P.copy(b).addScaledVector(d, -4.8).addScaledVector(UP, 3.5); T.copy(b).addScaledVector(d, 0.4).addScaledVector(UP, -1.7); }
-    else { P.copy(b).addScaledVector(d, -3.7).addScaledVector(UP, 2.25).addScaledVector(r, -0.5); T.copy(b).addScaledVector(d, 0.5).addScaledVector(r, 1.75); }
-  }
+const want = { pos: new THREE.Vector3(), target: new THREE.Vector3() }, camPos = new THREE.Vector3(), camTarget = new THREE.Vector3();
+const _a = new THREE.Vector3(), _b = new THREE.Vector3();
+function layerCenter(k) { const c = new THREE.Vector3(); let n = 0; nodes.forEach(nd => { if (nd.k === k) { c.add(nd.slot); n++; } }); return c.multiplyScalar(1 / Math.max(1, n)); }
+function poseHero(out) { const c = center(); if (narrow()) { out.pos.set(c.x, c.y + 5.6, 34); out.target.set(c.x, c.y + 4.8, 0); } else { out.pos.set(c.x - 11.2, 0.6, 36); out.target.set(c.x - 11.2, -0.2, 0); } return out; }
+function poseIntro(out) { const c = center(); if (narrow()) { out.pos.set(c.x, c.y, 22); out.target.set(c.x, c.y, 0); } else { out.pos.set(c.x, 0.2, 17.5); out.target.set(c.x, 0, 0); } return out; }
+function poseLayer(out, kf, wide) { // kf continuous layer index; wide pulls back to show the layers wiring up
+  wide = wide || 0; const k0 = Math.floor(clamp(kf, 0, NL - 1)), k1 = Math.min(NL - 1, k0 + 1), f = clamp(kf - k0);
+  const c = layerCenter(k0).lerp(layerCenter(k1), f);
+  if (narrow()) { out.pos.set(c.x, c.y - 2.0 + 1.2 * wide, 9.2 + 5 * wide); out.target.set(c.x, c.y - 2.6 + 1.2 * wide, 0); }
+  else { const ox = 4.1 - 2.6 * wide; out.pos.set(c.x + ox, c.y - 0.15, 11.2 + 6.5 * wide); out.target.set(c.x + ox, c.y - 0.35, 0); }
   return out;
 }
-function mlpPose(out, angle, shiftRight, R, focusOut, upOff) {
-  const c = _t.copy(netCenterLocal).add(net.position); const nr = narrow();
-  R = R || (nr ? 19 : 10); if (nr && !focusOut) angle = 1.05;
-  out.pos.set(c.x + Math.sin(angle) * R, c.y + 2.6, c.z + Math.cos(angle) * R);
-  const anchor = focusOut ? _p.copy(nodes[OUT].target).add(net.position) : c;
-  const fwd = _d.subVectors(anchor, out.pos).normalize(); const right = _r.crossVectors(fwd, UP).normalize();
-  out.target.copy(anchor).addScaledVector(right, shiftRight || 0).addScaledVector(UP, upOff || 0);
+function poseFinal(out) {
+  const cb = bowl.position;
+  if (narrow()) { out.pos.set(cb.x, cb.y + 4.8, cb.z + 8.2); out.target.set(cb.x, cb.y - 1.35, cb.z); }
+  else { out.pos.set(cb.x + 1.5, cb.y + 4.3, 8.2); out.target.set(cb.x + 2.0, cb.y + 0.75, 0); }
   return out;
 }
-const want = { pos: new THREE.Vector3(), target: new THREE.Vector3() }, alt = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
-const camPos = new THREE.Vector3(), camTarget = new THREE.Vector3();
-let camInit = false;
+function screenToWorldZ0(sx, sy) { const v = new THREE.Vector3((sx / window.innerWidth) * 2 - 1, -(sy / window.innerHeight) * 2 + 1, 0.5).unproject(camera); const d = v.sub(camera.position).normalize(); const t = -camera.position.z / d.z; return camera.position.clone().addScaledVector(d, t); }
 
-// ───────── intro (time) + journey (scroll) ─────────
-const T = () => window.T || { ballP: 0, kind: 'hero', finalU: 0, stops: 7, visited: 0 };
+// ───────── intro state ─────────
 let introT0 = null, introDone = false, introSkipped = false;
-const ui = document.getElementById('intro-ui'), cap = document.getElementById('intro-cap');
+const ui = document.getElementById('intro-ui'), capEl = document.getElementById('intro-cap');
+const CAPS = ['Initialising weights…', 'Warming up the neurons…', 'Propagating…'];
 function finishIntro() { if (introDone) return; introDone = true; document.documentElement.classList.remove('intro'); document.documentElement.classList.add('ready'); if (ui) { ui.classList.add('out'); setTimeout(() => ui.remove(), 700); } window.dispatchEvent(new CustomEvent('introdone')); }
 window.introSkip = () => { introSkipped = true; finishIntro(); };
 document.getElementById('intro-skip')?.addEventListener('click', window.introSkip);
-let lastBall = new THREE.Vector3(), rollAxis = new THREE.Vector3(1, 0, 0), ballQuat = new THREE.Quaternion();
+{ const r = rng(31); nodes.forEach(nd => { nd.from = new THREE.Vector3((r() - 0.5) * 14, (r() - 0.5) * 9, 18 + r() * 22); nd.stagger = r() * 0.9; }); }
 
-let lastNow = 0;
+// ───────── fidget (pointer) ─────────
+const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2(); let ptrDown = false, lastPtr = null;
+function pointerWorld(e) { ptr.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); ray.setFromCamera(ptr, camera); return ray; }
+function nudge(e, strength) {
+  if (!window.FIDGET) return;
+  const rc = pointerWorld(e); const hits = rc.intersectObjects(nodes.map(n => n.mesh).filter(m => m.visible), false);
+  if (hits.length) { const nd = nodes.find(n => n.mesh === hits[0].object); if (nd) { if (nd.out && bowl.visible) { const dir = _a.copy(hits[0].point).sub(nd.mesh.position); marble.du += dir.x * -2.2 * strength; marble.dv += dir.z * -2.2 * strength; marble.du += (Math.random() - 0.5) * 0.6 * strength; } else { const dir = _a.copy(hits[0].point).sub(nd.mesh.position).normalize(); nd.vel.addScaledVector(dir, -1.6 * strength); nd.vel.y += 0.6 * strength; } } return; }
+  // near an edge? wiggle both ends
+  const sx = e.clientX, sy = e.clientY; let best = null;
+  edges.forEach(ed => { const A = nodes[ed.a].mesh, B = nodes[ed.b].mesh; if (!A.visible || !B.visible) return; const pa = A.position.clone().project(camera), pb = B.position.clone().project(camera); const ax = (pa.x + 1) / 2 * window.innerWidth, ay = (1 - pa.y) / 2 * window.innerHeight, bx = (pb.x + 1) / 2 * window.innerWidth, by = (1 - pb.y) / 2 * window.innerHeight; const vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy || 1; const t = clamp(((sx - ax) * vx + (sy - ay) * vy) / L2); const dx = ax + vx * t - sx, dy = ay + vy * t - sy; const d = Math.hypot(dx, dy); if (d < 14 && (!best || d < best.d)) best = { ed, d, t }; });
+  if (best) { const A = nodes[best.ed.a], B = nodes[best.ed.b]; const jolt = (Math.random() - 0.5) * 1.2 * strength; A.vel.y += jolt * (1 - best.t); B.vel.y += jolt * best.t; A.vel.x += (Math.random() - 0.5) * 0.5 * strength; B.vel.x += (Math.random() - 0.5) * 0.5 * strength; }
+}
+canvas.addEventListener('pointermove', (e) => { if (!window.FIDGET) return; if (!lastPtr || Math.hypot(e.clientX - lastPtr.x, e.clientY - lastPtr.y) > 6) { nudge(e, ptrDown ? 0.9 : 0.35); lastPtr = { x: e.clientX, y: e.clientY }; } });
+canvas.addEventListener('pointerdown', (e) => { ptrDown = true; nudge(e, 1.6); });
+window.addEventListener('pointerup', () => { ptrDown = false; });
+
+// ───────── per-frame ─────────
+const T = () => window.T || { phase: 'hero', k: -1, local: 0, finalU: 0 };
+let lastNow = 0, camInit = false, ghostK = 0, bowlK = 0, lastW = 0;
+const tmpC = new THREE.Color();
 function update(now) {
-  const tj = T(); const t = now / 1000; const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 1 / 60; lastNow = now;
-  if (tj.stops !== stopRings.length) { buildStops(tj.stops); theme(); }
-  // ── timeline values ──
-  let ballP = tj.ballP, kind = tj.kind, finalU = tj.finalU || 0;
-  let landScale = 1, landAlpha = 1, netA = 0, assemble = 1, lit = () => 0, pulseA = 0, pivot = START, camKind = kind, mlpMix = 0, mlpAngle = 0.38, nodeAlphaOthers = 1;
+  const t = now / 1000, dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 1 / 60; lastNow = now;
+  if (window.innerWidth !== lastW) { lastW = window.innerWidth; relayout(); }
+  const tj = T(), NODES = window.NODES || [], EDGES = window.EDGES || [];
+  // ── decide targets ──
+  let assemble = 1, ghost = 1, edgeK = (k) => 1, pulseA = 0, lit = () => 0, outK = 0, fin = 0;
   if (!introDone) {
     if (introT0 === null) introT0 = t; const it = reduced || introSkipped ? 99 : t - introT0;
-    pivot = START; anchorNet(START);
-    assemble = ease3((it - 0.3) / 1.25);
-    const pu = clamp((it - 1.45) / 1.1); lit = (li) => pu > 0 && pu < 1 ? Math.max(0, 1 - Math.abs(pu * (layers.length + 0.6) - li - 0.5) * 1.3) : 0; pulseA = pu > 0 && pu < 1 ? 0.9 : 0;
-    const dive = ease3((it - 2.45) / 1.0);               // camera dives into the output neuron
-    const enter = smooth((it - 3.05) / 0.85);            // inside: the landscape unfolds, the network fades
-    landScale = 0.02 + 0.98 * enter; landAlpha = enter; netA = 1 - smooth((it - 2.9) / 0.55); mlpAngle = 0.38 + Math.sin(it * 0.45) * 0.22;
-    ballP = 0; camKind = 'hero'; mlpMix = 1 - enter;
-    // camera: mlp orbit → dive pose → hero pose
-    mlpPose(want, mlpAngle, 0, undefined, false, narrow() ? -0.8 : 0); const outW = _t.copy(START);
-    const divePos = alt.pos.copy(want.pos).sub(outW).normalize().multiplyScalar(0.55).add(outW);
-    want.pos.lerp(divePos, dive); want.target.lerp(outW, dive);
-    poseAt(0, 'hero', alt); want.pos.lerp(alt.pos, enter); want.target.lerp(alt.target, enter);
-    if (cap) cap.textContent = it < 1.45 ? 'assembling…' : it < 2.45 ? 'forward pass' : it < 3.05 ? 'into a neuron' : '';
-    if (it >= 3.2 && !document.documentElement.classList.contains('ready')) document.documentElement.classList.add('ready');
-    if (it >= 3.9) finishIntro();
+    nodes.forEach(nd => { nd.fly = easeOut((it - 0.1 - nd.stagger) / 1.35); });
+    assemble = 1; const ek = clamp((it - 1.75) / 0.6); edgeK = () => ek;
+    const pu = clamp((it - 2.25) / 0.95); lit = (k) => pu > 0 && pu < 1 ? Math.max(0, 1 - Math.abs(pu * (NL + 1.6) - k - 0.5) * 1.2) : 0; pulseA = pu > 0 && pu < 1 ? 0.9 : 0;
+    const go = smooth((it - 3.1) / 0.9); ghost = go; outK = 1;
+    poseIntro(want); const h = { pos: new THREE.Vector3(), target: new THREE.Vector3() }; poseHero(h); want.pos.lerp(h.pos, go); want.target.lerp(h.target, go);
+    if (capEl) { const c = CAPS[Math.min(CAPS.length - 1, Math.floor(it / 1.15))]; if (capEl.textContent !== c) capEl.textContent = c; }
+    if (it >= 3.25 && !document.documentElement.classList.contains('ready')) document.documentElement.classList.add('ready');
+    if (it >= 4.0) finishIntro();
     if (!camInit) { camPos.copy(want.pos); camTarget.copy(want.target); camInit = true; }
-    const ki = 1 - Math.exp(-dt * 26); camPos.lerp(want.pos, ki); camTarget.lerp(want.target, ki);
+    const ki = 1 - Math.exp(-dt * 22); camPos.lerp(want.pos, ki); camTarget.lerp(want.target, ki);
   } else {
-    poseAt(ballP, camKind === 'final' ? 'content' : camKind, want);
-    if (kind === 'final') {
-      pivot = END; anchorNet(END);
-      const fold = smooth((finalU - 0.08) / 0.5);         // landscape folds back into the ball
-      landScale = 1 - 0.98 * fold; landAlpha = 1 - fold;
-      assemble = ease3((finalU - 0.3) / 0.5); netA = smooth((finalU - 0.22) / 0.3);
-      mlpMix = smooth((finalU - 0.12) / 0.6); mlpAngle = 0.38 + Math.sin(t * 0.25) * 0.12;
-      if (narrow()) mlpPose(alt, 1.4, 0, 10, true, -1.3); else mlpPose(alt, 0.95 + Math.sin(t * 0.25) * 0.06, 2.1, 13.5, true, 0.2);
-      want.pos.lerp(alt.pos, mlpMix); want.target.lerp(alt.target, mlpMix);
-    }
-    // idle drift so the camera never feels locked
-    want.pos.x += Math.sin(t * 0.37) * 0.06; want.pos.y += Math.sin(t * 0.29) * 0.04; want.pos.z += Math.cos(t * 0.31) * 0.05;
-    const k = reduced ? 1 : 1 - Math.exp(-dt * 4.5);
+    nodes.forEach(nd => { nd.fly = 1; });
+    ghost = 1; outK = 0;
+    if (tj.phase === 'hero') poseHero(want);
+    else if (tj.phase === 'sec') { const kf = tj.local < 0 ? tj.k - 1 + (tj.local + 0.6) / 0.6 : tj.k; poseLayer(want, Math.max(0, kf), tj.wide || 0); }
+    else { fin = tj.finalU; outK = smooth(fin / 0.22); const lk = { pos: new THREE.Vector3(), target: new THREE.Vector3() }; poseLayer(lk, NL - 1); poseFinal(want); const mix = smooth((fin - 0.14) / 0.3); want.pos.lerp(lk.pos, 1 - mix); want.target.lerp(lk.target, 1 - mix); }
     if (!camInit) { camPos.copy(want.pos); camTarget.copy(want.target); camInit = true; }
-    camPos.lerp(want.pos, k); camTarget.lerp(want.target, k);
+    const k = reduced ? 1 : 1 - Math.exp(-dt * 5.5); camPos.lerp(want.pos, k); camTarget.lerp(want.target, k);
   }
-  // ── apply land scale about the pivot ──
-  land.scale.setScalar(landScale); land.position.copy(pivot).multiplyScalar(1 - landScale);
-  wire.material.opacity = (window.currentTheme && window.currentTheme() === 'dark' ? 0.4 : 0.32) * landAlpha; dots.material.opacity = 0.78 * landAlpha; pathLine.material.opacity = 0.85 * landAlpha; shadow.material.opacity = 0.16 * landAlpha;
-  stopRings.forEach((r, i) => { const visited = i < (tj.visited || 0); r.material.opacity = (visited ? 0.6 : 0.22) * landAlpha; });
-  land.visible = landAlpha > 0.003;
-  // ── ball ──
-  const bl = pathPoint(ballP, _p); const bw = land.localToWorld(bl.clone()); bw.y += 0.14 * landScale + 0.145;
-  ballG.position.copy(bw);
-  shadow.position.set(bl.x, bl.y + 0.012, bl.z);
-  const step = bw.distanceTo(lastBall); if (step > 1e-5 && step < 1) { const dir = _d.subVectors(bw, lastBall).normalize(); rollAxis.crossVectors(UP, dir).normalize(); const q = new THREE.Quaternion().setFromAxisAngle(rollAxis, step / 0.14); ballQuat.premultiply(q); ball.quaternion.copy(ballQuat); } lastBall.copy(bw);
-  ball.scale.setScalar(1 + 0.03 * Math.sin(t * 2.1)); glow.material.opacity = 0.45 + 0.12 * Math.sin(t * 1.7);
-  // ── network ──
-  netAlpha(netA); if (netA > 0.005) { layoutNet(assemble, lit, t, introDone); const ob = nodeMeshes[OUT]; ob.position.copy(nodes[OUT].target); }
-  if (pulseA > 0) { for (let i = 0; i < NPULSE; i++) { const [a, b] = edges[pEdge[i]]; const s = clamp(clamp((t - introT0 - 1.45) / 1.1) * layers.length - nodes[a].li - (i % 7) * 0.04); const p = nodeMeshes[a].position, q = nodeMeshes[b].position; pPos[i * 3] = p.x + (q.x - p.x) * s; pPos[i * 3 + 1] = p.y + (q.y - p.y) * s; pPos[i * 3 + 2] = p.z + (q.z - p.z) * s; } pGeo.attributes.position.needsUpdate = true; }
+  camera.position.copy(camPos); camera.lookAt(camTarget); camera.updateMatrixWorld();
+  // ── bowl placement: rim point coincides with the output slot ──
+  const outNd = nodes[OUT]; const rimU = 0.82 * BR;
+  if (narrow()) bowl.position.set(outNd.slot.x, outNd.slot.y - 2.1, outNd.slot.z - rimU); else bowl.position.set(outNd.slot.x - rimU + 0.2, outNd.slot.y - 2.1, outNd.slot.z + 0.4);
+  bowlK += (((introDone && tj.phase === 'final') ? smooth((fin - 0.2) / 0.25) : 0) - bowlK) * (1 - Math.exp(-dt * 8));
+  bowl.visible = bowlK > 0.003; bowl.scale.setScalar(0.3 + 0.7 * bowlK); bowl.children.forEach(ch => { if (ch.name === 'shadow') return; ch.material.opacity = (ch.geometry.type === 'TorusGeometry' ? 0.6 : ch.type === 'Mesh' ? 0.07 : 0.35) * bowlK; });
+  // marble path (scroll-driven, reversible) + fidget physics
+  const rollT = clamp((fin - 0.47) / 0.45) * 3.4; const decay = Math.exp(-1.15 * rollT);
+  let mu = rimU * decay * Math.cos(2.7 * rollT), mv = 0.45 * rimU * decay * Math.sin(2.7 * rollT);
+  if (fin < 0.47) { mu = rimU; mv = 0; }
+  if (narrow()) { const t2 = mu; mu = mv; mv = t2; } // phones: enter the bowl from the near rim so the drop stays on screen
+  const drop = smooth((fin - 0.36) / 0.11);
+  if (bowlK > 0.01) { const gacc = 2 * BA * 9.0; marble.du += (-gacc * marble.u - 1.6 * marble.du) * dt; marble.dv += (-gacc * marble.v - 1.6 * marble.dv) * dt; marble.u += marble.du * dt; marble.v += marble.dv * dt; const rr = Math.hypot(marble.u + mu, marble.v + mv); if (rr > BR * 0.95) { const s = BR * 0.95 / rr; marble.u = (marble.u + mu) * s - mu; marble.v = (marble.v + mv) * s - mv; marble.du *= -0.4; marble.dv *= -0.4; } } else { marble.u = marble.v = marble.du = marble.dv = 0; }
+  const tu = mu + marble.u, tv = mv + marble.v;
+  // ── nodes ──
+  const ghostScale = 0.42, ghostA = 0.22;
+  nodes.forEach((nd, idx) => {
+    const m = nd.mesh; let built = 1, p = _a.copy(nd.slot);
+    if (!introDone) { p.lerpVectors(nd.from, nd.slot, nd.fly); built = 1; }
+    else if (nd.out) { built = outK; }
+    else { const rec = (NODES[nd.k] || [])[nd.i]; built = rec ? rec.b : 0; if (rec && built > 0 && built < 1) { const w = screenToWorldZ0(rec.sx, rec.sy); const e = smooth(built); p.lerpVectors(w, nd.slot, e); p.y += Math.sin(e * Math.PI) * 0.6; } }
+    // ghost vs built blend; during the intro everything is "built" then fades to ghost
+    const g = introDone ? (1 - built) : ghost;
+    const heroBoost = (introDone && tj.phase === 'hero') ? (narrow() ? 1 : 1.7) : 1; const heroFade = (introDone && tj.phase === 'hero' && narrow()) ? 0.5 : 1;
+    let sc = (1 - (1 - ghostScale) * g) * (g > 0.5 ? heroBoost : 1); let al = (1 - (1 - ghostA) * g) * (g > 0.5 ? heroFade : 1);
+    if (nd.out) { if (!introDone) { sc = 1 - (1 - ghostScale) * ghost; al = 1 - (1 - ghostA) * ghost; } else { sc = 0.2 + 0.8 * outK; al = outK; } }
+    // marble: the output neuron rolls in the bowl
+    if (nd.out && bowlK > 0.01) { const bp = new THREE.Vector3(tu, bowlH(tu, tv) + 0.27 * bowl.scale.x, tv).multiplyScalar(bowl.scale.x).add(bowl.position); const arc = Math.sin(drop * Math.PI) * 0.5; p.lerp(bp, drop); p.y += arc; sc = 1 + 0.7 * drop; const sh = bowl.getObjectByName('shadow'); sh.position.set(tu, bowlH(tu, tv) + 0.015, tv); sh.material.opacity = 0.12 * bowlK; }
+    // fidget spring
+    if (nd.vel.lengthSq() > 1e-8 || nd.off.lengthSq() > 1e-8) { nd.vel.addScaledVector(nd.off, -28 * dt); nd.vel.multiplyScalar(Math.exp(-dt * 3.2)); nd.off.addScaledVector(nd.vel, dt); if (nd.off.lengthSq() < 1e-6 && nd.vel.lengthSq() < 1e-6) { nd.off.set(0, 0, 0); nd.vel.set(0, 0, 0); } }
+    m.position.copy(p).add(nd.off); m.position.y += Math.sin(t * 1.3 + nd.ph) * 0.03 * (1 - g);
+    const l = lit(nd.k); m.material.color.copy(C.node).lerp(C.node2, l); m.scale.setScalar(sc * (1 + 0.55 * l)); m.material.opacity = al; m.visible = al > 0.01;
+    if (nd.out) { m.rotation.y += (marble.du + 0.4) * dt * 2; m.rotation.x += marble.dv * dt * 2; }
+  });
+  glow.position.copy(nodes[OUT].mesh.position); glow.material.opacity = (introDone ? outK : 0.6 * (1 - ghost)) * 0.5 * (1 + 0.5 * bowlK); glow.scale.setScalar((introDone ? 1.2 : 1.6) + 0.9 * bowlK);
+  // ── edges: grow from source to target by the layer's connect progress; ghost otherwise ──
+  edges.forEach((ed, e) => {
+    const A = nodes[ed.a].mesh.position, B = nodes[ed.b].mesh.position;
+    let kk = introDone ? (EDGES[ed.k] || 0) : edgeK(ed.k); const bA = nodes[ed.a].mesh.visible && nodes[ed.b].mesh.visible;
+    const gl = introDone ? 0.05 : 0.0; // ghost alpha after the intro
+    const grow = bA ? Math.max(kk, 0) : 0; const alpha = (introDone ? (gl + (0.42 - gl) * kk) : 0.42 * kk * (1 - 0.88 * ghost));
+    const len = introDone && kk < 1 && kk > 0 ? kk : (kk > 0 || !introDone ? 1 : 1);
+    _b.lerpVectors(A, B, introDone ? (kk > 0 ? kk : 1) : 1);
+    ePos[e * 6] = A.x; ePos[e * 6 + 1] = A.y; ePos[e * 6 + 2] = A.z; ePos[e * 6 + 3] = _b.x; ePos[e * 6 + 4] = _b.y; ePos[e * 6 + 5] = _b.z;
+    tmpC.copy(C.bg).lerp(C.edge, alpha * (bA ? 1 : 0)); eCol[e * 6] = eCol[e * 6 + 3] = tmpC.r; eCol[e * 6 + 1] = eCol[e * 6 + 4] = tmpC.g; eCol[e * 6 + 2] = eCol[e * 6 + 5] = tmpC.b;
+  });
+  eGeo.attributes.position.needsUpdate = true; eGeo.attributes.color.needsUpdate = true;
+  // pulses (intro forward pass)
+  if (pulseA > 0) { const pu = clamp((t - introT0 - 2.25) / 0.95); for (let i = 0; i < NP; i++) { const ed = edges[pEdge[i]]; const s = clamp(pu * (NL + 1.6) - ed.k + 1 - (i % 7) * 0.05); const p = nodes[ed.a].mesh.position, q = nodes[ed.b].mesh.position; pPos[i * 3] = p.x + (q.x - p.x) * s; pPos[i * 3 + 1] = p.y + (q.y - p.y) * s; pPos[i * 3 + 2] = p.z + (q.z - p.z) * s; } pGeo.attributes.position.needsUpdate = true; }
   pulse.material.opacity = pulseA;
-  // ── camera ──
-  camera.position.copy(camPos); camera.lookAt(camTarget);
   renderer.render(scene, camera);
-  // expose ball screen position for the DOM
-  window.__ball = bw.clone().project(camera); const v = window.__ball; document.documentElement.style.setProperty('--bx', ((v.x + 1) / 2 * window.innerWidth).toFixed(0) + 'px'); document.documentElement.style.setProperty('--by', ((1 - v.y) / 2 * window.innerHeight).toFixed(0) + 'px');
+  window.__ball = nodes[OUT].mesh.position.clone().project(camera);
+  window.__nodeOff = nodes.map(n => +n.off.length().toFixed(3)); window.__marble = { u: +marble.u.toFixed(3), v: +marble.v.toFixed(3) };
+  window.__screen = (i) => { const v = nodes[i].mesh.position.clone().project(camera); return { x: (v.x + 1) / 2 * window.innerWidth, y: (1 - v.y) / 2 * window.innerHeight, vis: nodes[i].mesh.visible }; };
 }
-function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); relayout(); }
 window.addEventListener('resize', resize);
-buildStops(T().stops); theme(); resize();
+theme(); resize();
 let running = true;
 document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) requestAnimationFrame(loop); });
 function loop(now) { if (!running) return; update(now); requestAnimationFrame(loop); }
