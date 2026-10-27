@@ -10,40 +10,71 @@
   function setTheme(t) { root.setAttribute('data-theme', t); try { localStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
 
-  // ── Journey: one viewport of scroll per section; panels crossfade as the ball rolls ──
-  const journey = $('journey'), panels = Array.from(document.querySelectorAll('#panels .panel')), N = panels.length;
-  const dots = $('dots');
-  journey.style.height = `calc(${N} * 100vh + 40vh)`;
-  panels.forEach((p, i) => { const b = document.createElement('button'); b.setAttribute('aria-label', p.dataset.title); b.innerHTML = `<span>${p.dataset.title}</span>`; b.addEventListener('click', () => goTo(i)); dots.appendChild(b); });
-  function vh() { return window.innerHeight; }
-  function journeyTop() { return journey.getBoundingClientRect().top + window.scrollY; }
-  function goTo(i) { window.scrollTo({ top: journeyTop() + i * vh() + 2, behavior: reduced ? 'instant' : 'smooth' }); }
-  document.querySelectorAll('[data-go]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); goTo(+a.dataset.go); }));
-  let progress = 0, active = -1;
-  function journeyProgress() { return progress; }
-  window.journeyProgress = journeyProgress;
-  function layout() {
-    const top = journeyTop(), y = window.scrollY - top, span = journey.offsetHeight - vh();
-    const t = Math.max(0, Math.min(N - 1, y / vh()));            // continuous section index
-    progress = Math.max(0, Math.min(1, y / span));                 // 0 → 1 across the whole journey
-    // before the journey starts the ball sits at the top; the overview page is scrolled past first
-    if (y < 0) progress = 0;
-    panels.forEach((p, i) => {
-      const d = Math.abs(t - i);
-      const o = Math.max(0, 1 - d * 1.5);
-      p.style.opacity = o.toFixed(3);
-      p.style.transform = `translate(-50%, calc(-50% + ${((t - i) * -36).toFixed(1)}px)) scale(${(1 - Math.min(0.06, d * 0.06)).toFixed(3)})`;
-      p.style.filter = reduced ? 'none' : `blur(${Math.min(14, d * 14).toFixed(1)}px)`;
-      p.classList.toggle('active', d < 0.5);
-    });
-    const a = Math.round(t);
-    if (a !== active) { active = a; dots.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-current', i === a ? 'true' : 'false')); }
+  // ── Intro: an MLP assembles on white, pulses, then dissolves into the page ──
+  (function intro() {
+    const box = $('intro'), cv = $('intro-canvas'); if (!box || !cv) return;
+    const skip = () => finish(true);
+    $('intro-skip').addEventListener('click', skip);
+    let finished = false;
+    function finish() { if (finished) return; finished = true; box.classList.add('out'); document.body.classList.add('ready'); setTimeout(() => box.remove(), 800); }
+    if (reduced) { finish(); return; }
+    const ctx = cv.getContext('2d'); let W, H, dpr;
+    function size() { dpr = Math.min(2, window.devicePixelRatio || 1); W = cv.width = Math.floor(innerWidth * dpr); H = cv.height = Math.floor(innerHeight * dpr); }
+    size(); window.addEventListener('resize', size);
+    const layers = [4, 6, 7, 6, 3], nodes = [], edges = [], r = rng(99);
+    const lx = (i) => (0.5 + (i - (layers.length - 1) / 2) * 0.16);
+    layers.forEach((n, li) => { for (let k = 0; k < n; k++) nodes.push({ li, tx: lx(li), ty: 0.5 + (k - (n - 1) / 2) * 0.1, sx: 0.1 + r() * 0.8, sy: 0.1 + r() * 0.8, vx: (r() - 0.5) * 0.004, vy: (r() - 0.5) * 0.004, ph: r() * 6.28 }); });
+    let base = 0; layers.forEach((n, li) => { if (li < layers.length - 1) { for (let a = 0; a < n; a++) for (let b = 0; b < layers[li + 1]; b++) edges.push([base + a, base + n + b, 0.3 + r() * 0.7]); } base += n; });
+    const t0 = performance.now(); const ease = (t) => 1 - Math.pow(1 - t, 3);
+    function frame(now) {
+      if (finished) return;
+      const t = (now - t0) / 1000;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.scale(dpr, dpr);
+      const w = innerWidth, h = innerHeight, cx = w / 2, cy = h / 2, S = Math.min(w, h) * 0.9;
+      const a = Math.max(0, Math.min(1, (t - 0.5) / 1.1)), ea = ease(a);           // scattered → assembled
+      const d = Math.max(0, Math.min(1, (t - 2.35) / 0.7)), ed = ease(d);          // assembled → dissolve
+      const pos = nodes.map(n => { const jx = Math.sin(t * 3 + n.ph) * 0.012, jy = Math.cos(t * 2.3 + n.ph) * 0.012; const sx = n.sx + n.vx * t * 60 + jx, sy = n.sy + n.vy * t * 60 + jy; let x = sx + (n.tx - sx) * ea, y = sy + (n.ty - sy) * ea; x = cx + (x - 0.5) * S * (1 + ed * 1.6); y = cy + (y - 0.5) * S * (1 + ed * 1.6); return [x, y]; });
+      ctx.lineWidth = 1;
+      edges.forEach(([i, j, wgt]) => { const p = pos[i], q = pos[j]; const al = ea * (1 - ed) * 0.55 * wgt; if (al < 0.01) return; ctx.strokeStyle = `rgba(87,6,140,${al.toFixed(3)})`; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+        // signal pulses sweeping left → right once assembled
+        if (ea > 0.95 && ed < 1) { const s = ((t - 1.6) * 0.9 - nodes[i].li * 0.25) % 1; if (s > 0 && s < 1) { const x = p[0] + (q[0] - p[0]) * s, y = p[1] + (q[1] - p[1]) * s; ctx.fillStyle = `rgba(137,0,225,${(0.9 * (1 - ed)).toFixed(3)})`; ctx.beginPath(); ctx.arc(x, y, 2.2, 0, 6.28); ctx.fill(); } } });
+      pos.forEach((p, i) => { const n = nodes[i]; const rr = 5 + 2 * Math.sin(t * 4 + n.ph) * (1 - ea) + 2 * ea; ctx.fillStyle = `rgba(87,6,140,${(1 - ed).toFixed(3)})`; ctx.beginPath(); ctx.arc(p[0], p[1], rr, 0, 6.28); ctx.fill(); ctx.strokeStyle = `rgba(255,255,255,${(1 - ed).toFixed(3)})`; ctx.lineWidth = 1.5; ctx.stroke(); });
+      const cap = box.querySelector('.cap'); if (cap) cap.textContent = t < 1.6 ? 'assembling…' : t < 2.35 ? 'forward pass' : '';
+      if (t > 2.95) finish(); else requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+    window.addEventListener('wheel', skip, { once: true, passive: true }); window.addEventListener('touchstart', skip, { once: true, passive: true }); window.addEventListener('keydown', skip, { once: true });
+  })();
+
+  // ── Frames: the ball rolls to each section's stop; content unfolds out of the ball ──
+  const frames = Array.from(document.querySelectorAll('.frame')), rail = $('rail');
+  const SECS = Array.from(new Set(frames.filter(f => f.dataset.sec !== 'hero').map(f => f.dataset.sec)));
+  const stopOf = (sec) => sec === 'hero' ? 0 : (SECS.indexOf(sec) + 1) / SECS.length;
+  let ballTarget = 0, viewMode = 'hero', active = null;
+  window.ballTarget = () => ballTarget;
+  window.ballView = () => viewMode;    // hero | travel | sub
+  // chapter titles: split into words that assemble from random offsets
+  document.querySelectorAll('[data-split]').forEach(h => { const words = h.textContent.split(' '); h.innerHTML = words.map((w, i) => `<span class="w" style="--jx:${((Math.random() - 0.5) * 120).toFixed(0)}px;--jy:${(20 + Math.random() * 60).toFixed(0)}px;--jr:${((Math.random() - 0.5) * 16).toFixed(1)}deg;transition-delay:${(i * 0.06).toFixed(2)}s">${w}${i < words.length - 1 ? ' ' : ''}</span>`).join(''); });
+  // rail dots: one per section (links to its chapter frame)
+  SECS.forEach(sec => { const f = frames.find(x => x.dataset.sec === sec && x.classList.contains('travel')); const a = document.createElement('a'); a.href = '#' + f.id; a.innerHTML = `<span>${f.querySelector('h2').textContent}</span>`; a.setAttribute('aria-label', f.querySelector('h2').textContent); rail.appendChild(a); });
+  const railLinks = Array.from(rail.children);
+  function activate(f) {
+    if (f === active) return;
+    const prev = active; active = f;
+    if (prev) { prev.classList.add('leaving'); prev.classList.remove('active'); setTimeout(() => prev.classList.remove('leaving'), 700); }
+    const sec = f.dataset.sec; ballTarget = stopOf(sec);
+    viewMode = sec === 'hero' ? 'hero' : f.classList.contains('travel') ? 'travel' : 'sub';
+    const panel = f.querySelector('.panel');
+    if (panel) { const b = window.ballScreen ? window.ballScreen() : null; const r = panel.getBoundingClientRect(); const cx = b ? b.x - r.left : r.width * 0.5, cy = b ? b.y - r.top : r.height * 0.5; panel.style.setProperty('--cx', cx.toFixed(0) + 'px'); panel.style.setProperty('--cy', cy.toFixed(0) + 'px'); }
+    requestAnimationFrame(() => f.classList.add('active'));
+    const si = SECS.indexOf(sec); railLinks.forEach((a, i) => { a.classList.toggle('on', i === si); a.classList.toggle('done', i < si); });
+    if (f.dataset.auto && window.AUTO && window.AUTO[f.dataset.auto]) { const badge = f.querySelector('[data-auto-badge]'); if (badge) { badge.textContent = 'auto-running'; badge.classList.remove('done'); } setTimeout(() => { if (active === f) window.AUTO[f.dataset.auto](() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }); }, 650); }
     window.dispatchEvent(new CustomEvent('journeychange'));
   }
-  let tick = false;
-  window.addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(() => { layout(); tick = false; }); } }, { passive: true });
-  window.addEventListener('resize', layout);
-  layout();
+  const fio = new IntersectionObserver(es => { let best = null; es.forEach(e => { if (e.isIntersecting && (!best || e.intersectionRatio > best.intersectionRatio)) best = e; }); if (best && best.intersectionRatio >= 0.5) activate(best.target); }, { threshold: [0.5, 0.75, 1] });
+  frames.forEach(f => fio.observe(f));
+  activate(frames[0]);
+  document.querySelectorAll('header.top a[href^="#"], .rail a').forEach(a => a.addEventListener('click', e => { const t = document.querySelector(a.getAttribute('href')); if (t) { e.preventDefault(); t.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'start' }); } }));
 
   // ── "What are you hiring for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe', 'lead'];
@@ -60,6 +91,9 @@
     note.textContent = `Highlighting the ${kept} lines most relevant to ${NAMES[f]}. Everything else steps back.`;
   }
   document.querySelectorAll('#focus-chips .chip').forEach(c => c.addEventListener('click', () => { document.querySelectorAll('#focus-chips .chip').forEach(x => x.setAttribute('aria-pressed', 'false')); c.setAttribute('aria-pressed', 'true'); applyFocus(c.dataset.f); }));
+
+  window.AUTO = {};
+  const tween = (from, to, ms, step, done) => { const t0 = performance.now(); (function f(now) { const k = Math.min(1, (now - t0) / ms); step(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); else if (done) done(); })(t0); };
 
   // ── helpers ──
   const css = (n) => getComputedStyle(root).getPropertyValue(n).trim();
@@ -97,6 +131,7 @@
       $('jepa-out').innerHTML = prog < 0.05 ? 'Untrained: the hidden blocks are guesses.' : prog < 0.85 ? 'Learning what the hidden anatomy <b>should</b> look like from its surroundings.' : 'Trained: hidden blocks are predicted from context. On real scans this is done in 3D and in a learned feature space, so the model captures anatomy rather than noise.';
     }
     $('jepa-prog').addEventListener('input', e => { prog = +e.target.value; draw(); });
+    window.AUTO.jepa = (done) => { prog = 0; draw(); tween(0, 0.92, 1800, v => { prog = v; $('jepa-prog').value = v.toFixed(2); draw(); }, done); };
     draw(); redraw.push(draw);
   })();
 
@@ -120,6 +155,7 @@
       $('vol-out').innerHTML = `Minute-level heart rate alone is <b>${fmtN(raw)}</b> rows a year for ${n.toLocaleString()} patients. The archive keeps every reading as delivered; the derivation step turns them into one value per patient, metric and day for approved types only, which is the only route into the OMOP record.`;
     }
     $('vol-n').addEventListener('input', e => { n = Math.round(Math.pow(10, +e.target.value) / 10) * 10; draw(); });
+    window.AUTO.vol = (done) => tween(2, 4.3, 1800, v => { n = Math.round(Math.pow(10, v) / 10) * 10; $('vol-n').value = v.toFixed(2); draw(); }, done);
     draw(); redraw.push(draw);
   })();
 
@@ -146,6 +182,7 @@
     }
     document.querySelectorAll('#bandit-ok input').forEach(c => c.addEventListener('change', e => { approved[+e.target.dataset.i] = e.target.checked; draw(); }));
     $('bandit-play').addEventListener('click', () => play(40)); $('bandit-reset').addEventListener('click', reset);
+    window.AUTO.bandit = (done) => { reset(); let i = 0; const go = () => { play(5); if (++i < 8) setTimeout(go, 160); else if (done) done(); }; setTimeout(go, 200); };
     reset(); redraw.push(draw);
   })();
 
@@ -169,6 +206,7 @@
       $('metrics-out').innerHTML = tpr < 0.2 ? `Accuracy looks fine at <b>${(acc * 100).toFixed(0)}%</b>, yet only <span class="bad">${(tpr * 100).toFixed(0)}%</span> of depressed patients are found. The model is mostly saying "not depressed" to everyone.` : `Now <span class="good">${(tpr * 100).toFixed(0)}%</span> of depressed patients are found and accuracy barely moved. That is why we report per-class recall, not accuracy alone.`;
     }
     $('m-thr').addEventListener('input', e => { thr = +e.target.value; draw(); });
+    window.AUTO.metrics = (done) => { thr = 0.5; draw(); tween(0.5, 0.8, 1700, v => { thr = v; $('m-thr').value = v.toFixed(2); draw(); }, done); };
     draw(); redraw.push(draw);
   })();
 
@@ -193,7 +231,9 @@
       $('drift-checks').innerHTML = checks.map(([l, ok, v]) => `<div class="${ok ? 'pass' : 'fail'}"><span class="ic">${ok ? '✓' : '✕'}</span>${l}<span class="v">${ok ? 'pass' : 'fail'}</span></div>`).join('');
       $('drift-out').innerHTML = mode === 'none' ? 'A healthy day: every check passes.' : mode === 'unit' ? 'Someone upstream changed units. Nothing crashed and nothing is missing, so only the range and distribution checks notice. This is the kind of silent corruption my validation frameworks catch before release.' : mode === 'null' ? 'A spike of missing values: caught by the simplest check, before it reaches a report or a model.' : 'The values quietly drifted upward. Only the distribution check fires, and a model trained on last month would now be wrong without anyone noticing.';
     }
-    document.querySelectorAll('#drift-mode button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('#drift-mode button').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); mode = b.dataset.v; draw(); }));
+    const setMode = (m) => { document.querySelectorAll('#drift-mode button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === m ? 'true' : 'false')); mode = m; draw(); };
+    document.querySelectorAll('#drift-mode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.v)));
+    window.AUTO.drift = (done) => { setMode('none'); setTimeout(() => setMode('unit'), 900); setTimeout(() => { if (done) done(); }, 1500); };
     draw(); redraw.push(draw);
   })();
 })();

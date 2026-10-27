@@ -60,26 +60,38 @@ let shown = 0;
 const camOff = new THREE.Vector3(0, 5.4, 7.2), look = new THREE.Vector3(), camTarget = new THREE.Vector3();
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const lossV = document.getElementById('loss-v'), lossBar = document.getElementById('loss-bar');
-function target() { return window.journeyProgress ? window.journeyProgress() : 0; }
+function target() { return window.ballTarget ? window.ballTarget() : 0; }
+let shownShift = 0, shownLift = 0;
+const v3 = new THREE.Vector3();
+window.ballScreen = () => { v3.copy(ball.position); group.localToWorld(v3); v3.project(camera); return { x: (v3.x + 1) / 2 * window.innerWidth, y: (1 - v3.y) / 2 * window.innerHeight }; };
 function update() {
   const p = target();
-  shown += (p - shown) * (reduced ? 1 : 0.1); if (Math.abs(p - shown) < 1e-4) shown = p;
+  shown += (p - shown) * (reduced ? 1 : 0.045); if (Math.abs(p - shown) < 1e-4) shown = p;
+  const W = window.innerWidth, Hh = window.innerHeight, narrow = W < 900;
+  const mode = window.ballView ? window.ballView() : 'hero';
+  const sh = narrow ? 0 : (mode === 'hero' ? -0.4 : mode === 'travel' ? -0.62 : 0.5);
+  const lift = narrow ? (mode === 'hero' ? -0.25 : 0.12) : (mode === 'travel' ? -0.1 : 0.02);
+  shownShift += (sh - shownShift) * (reduced ? 1 : 0.08); if (Math.abs(sh - shownShift) < 1e-4) shownShift = sh;
+  shownLift += (lift - shownLift) * (reduced ? 1 : 0.08); if (Math.abs(lift - shownLift) < 1e-4) shownLift = lift;
+  camera.setViewOffset(W, Hh, shownShift * W * 0.5, shownLift * Hh, W, Hh);
   const k = shown * (NP - 1), i = Math.floor(k), u = k - i, p0 = path[i], p1 = path[Math.min(NP - 1, i + 1)];
   const x = p0[0] + u * (p1[0] - p0[0]), y = p0[1] + u * (p1[1] - p0[1]), z = f(x, y) * ZS + 0.13;
   ball.position.set(x, z, y); halo.position.set(x, z - 0.11, y);
   look.set(x, z, y); camTarget.copy(look).add(camOff);
   camera.position.lerp(camTarget, reduced ? 1 : 0.1); camera.lookAt(look.x, look.y - 0.6, look.z);
   group.rotation.y = -0.25 + 0.35 * shown;
+  halo.scale.setScalar(1 + 0.12 * Math.sin(performance.now() / 300));
   const lossNorm = Math.max(0, (f(x, y) - fEnd) / (fStart - fEnd));
   if (lossV) lossV.textContent = lossNorm.toFixed(2);
   if (lossBar) lossBar.style.transform = `scaleX(${lossNorm})`;
   renderer.render(scene, camera);
-  return Math.abs(p - shown) > 1e-4;
+  const b = window.ballScreen(); document.documentElement.style.setProperty('--bx', b.x.toFixed(0) + 'px'); document.documentElement.style.setProperty('--by', b.y.toFixed(0) + 'px');
+  return Math.abs(p - shown) > 1e-4 || Math.abs(sh - shownShift) > 1e-4 || Math.abs(lift - shownLift) > 1e-4;
 }
 function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); camOff.set(0, w < 720 ? 6.5 : 5.4, w < 720 ? 9.5 : 7.2); update(); }
 window.addEventListener('resize', resize);
 let raf = 0, idle = 0;
-function loop() { const moving = update(); idle = moving ? 0 : idle + 1; if (idle < 20 && !document.hidden) raf = requestAnimationFrame(loop); else raf = 0; }
+function loop() { const moving = update(); idle = moving ? 0 : idle + 1; if (idle < 90 && !document.hidden) raf = requestAnimationFrame(loop); else raf = 0; }
 function kick() { idle = 0; if (!raf) raf = requestAnimationFrame(loop); }
 window.addEventListener('scroll', kick, { passive: true });
 document.addEventListener('visibilitychange', kick);
