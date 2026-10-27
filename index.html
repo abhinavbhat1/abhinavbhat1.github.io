@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Abhinav Bhat — CV</title>
 <meta name="description" content="Abhinav Bhat. Master's of Computer Science at the Courant Institute of Mathematical Sciences, NYU. Machine learning, healthcare AI, JEPA, world models. Seeking Summer 2027 internships.">
 <meta name="author" content="Abhinav Bhat">
@@ -23,7 +23,7 @@
 </script>
 </head>
 <body>
-<div id="intro" aria-hidden="true"><canvas id="intro-canvas"></canvas><div class="cap">assembling…</div><button class="skip" id="intro-skip">Skip</button></div>
+<div id="intro" aria-hidden="true"><canvas id="intro-canvas"></canvas><div class="cap">assembling…</div><button class="skip" id="intro-skip" onclick="window.introSkip && window.introSkip()">Skip</button></div>
 <canvas id="landscape" aria-hidden="true"></canvas>
 
 <header class="top">
@@ -341,7 +341,7 @@
       <div class="chapter">
         <div class="num">08 · Contact</div>
         <h2 data-split>Converged.</h2>
-        <p class="sub">Loss ≈ 0. Everything there is to read, read. Let's talk about Summer 2027.</p>
+        <p class="sub">Every stop visited. This is where it all comes together: let's talk about Summer 2027.</p>
         <div class="go"><i></i>Scroll to open</div>
       </div>
     </div>
@@ -349,7 +349,7 @@
   <section class="frame sub" data-sec="contact">
     <div class="frame-inner"><div></div>
       <article class="panel">
-      <div class="eyebrow"><span>Contact</span><span class="status">Converged</span></div>
+      <div class="eyebrow"><span>Contact</span></div>
       <h2>Let's talk about Summer 2027.</h2>
       <p class="org">Machine learning, applied AI, data engineering or software engineering internships, and research collaborations in healthcare AI.</p>
       <div class="contact-list">
@@ -371,11 +371,12 @@
 </div>
 
 <nav class="rail" id="rail" aria-label="Sections"></nav>
-<div class="loss" title="How much of the CV is left to read">Loss <b id="loss-v">1.00</b><span class="bar"><i id="loss-bar"></i></span><small>what's left</small></div>
+<div class="prog" id="prog" aria-live="polite"><div class="pl"><b id="prog-lbl">Start</b><small id="prog-sub">scroll to begin</small></div><span class="bar"><i id="prog-bar"></i></span></div>
 <div class="keys">↑ ↓ or scroll · one frame at a time</div>
 <footer>© 2026 Abhinav Bhat</footer>
 
 <script src="assets/js/main.js" defer></script>
+<script type="module" src="assets/js/intro3d.js"></script>
 <script type="module" src="assets/js/landscape.js"></script>
 </body>
 </html>
