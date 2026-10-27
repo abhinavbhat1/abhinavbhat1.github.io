@@ -1,5 +1,5 @@
 /* Abhinav Bhat — CV. Light blue palette, system (SF) type.
-   Normal vertical scroll; inside each topic the cards travel sideways in a sticky viewport. */
+   Normal vertical scroll; inside each topic the cards travel sideways in a sticky viewport while the network builds behind them. */
 :root {
   color-scheme: light;
   --bg: #fafbfd; --surface: #ffffff; --surface-2: #eef3fb;
@@ -33,9 +33,30 @@ strong { color: var(--text); font-weight: 600; }
 button { font: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
 
-#landscape { position: fixed; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; }
-html.fidget #landscape { pointer-events: auto; cursor: grab; }
-html.fidget #landscape:active { cursor: grabbing; }
+#landscape { position: fixed; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: auto; touch-action: pan-y; }
+
+/* layer names under the network */
+#llabels { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+.llabel { position: absolute; left: 0; top: 0; font-size: .7rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); white-space: nowrap; opacity: 0; user-select: none; -webkit-user-select: none; transition: color .3s; will-change: transform, opacity; }
+.llabel.on { color: var(--accent); }
+
+/* the cursor: a liquid-glass dot; over a link it widens into "Check it out" */
+html.cur, html.cur * { cursor: none !important; }
+#cursor { position: fixed; left: 0; top: 0; z-index: 100; width: 22px; height: 22px; border-radius: 999px; pointer-events: none; opacity: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; will-change: transform, width, height;
+  background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.9), rgba(255,255,255,.28) 55%, rgba(43,104,220,.12) 100%);
+  border: 1px solid rgba(43,104,220,.34);
+  box-shadow: inset 0 -5px 8px rgba(43,104,220,.16), inset 0 3px 5px rgba(255,255,255,.7), 0 3px 12px rgba(20,40,90,.16);
+  backdrop-filter: blur(5px) saturate(170%); -webkit-backdrop-filter: blur(5px) saturate(170%);
+  transition: width .38s cubic-bezier(.22,1,.36,1), height .38s cubic-bezier(.22,1,.36,1), opacity .25s, background .3s, border-color .3s, box-shadow .3s; }
+#cursor.show { opacity: 1; }
+#cursor span { font-size: .76rem; font-weight: 600; letter-spacing: .01em; color: var(--ink); white-space: nowrap; opacity: 0; transform: translateY(5px); transition: opacity .2s, transform .3s; }
+#cursor.link { width: 134px; height: 42px; background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.95), rgba(255,255,255,.5) 60%, rgba(43,104,220,.14) 100%); }
+#cursor.link span { opacity: 1; transform: none; transition-delay: .1s; }
+#cursor.ui { width: 36px; height: 36px; }
+#cursor.net { width: 40px; height: 40px; background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.9), rgba(110,164,255,.35) 60%, rgba(43,104,220,.22) 100%); border-color: rgba(43,104,220,.5); }
+:root[data-theme="dark"] #cursor { background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.45), rgba(255,255,255,.1) 55%, rgba(138,184,255,.12) 100%); border-color: rgba(255,255,255,.4); box-shadow: inset 0 -5px 8px rgba(138,184,255,.18), inset 0 3px 5px rgba(255,255,255,.35), 0 3px 14px rgba(0,0,0,.35); }
+:root[data-theme="dark"] #cursor.link { background: radial-gradient(circle at 30% 20%, rgba(30,40,70,.9), rgba(20,26,46,.75) 60%, rgba(138,184,255,.2) 100%); }
+:root[data-theme="dark"] #cursor.net { background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.5), rgba(138,184,255,.3) 60%, rgba(138,184,255,.2) 100%); }
 
 /* ── Intro chrome ── */
 #intro-ui { position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: 1; transition: opacity .6s; }
@@ -59,7 +80,6 @@ html.ready header.top { opacity: 1; transform: none; }
 #theme-toggle .sun, #theme-toggle .moon { display: none; }
 :root[data-theme="dark"] #theme-toggle .sun { display: block; }
 :root[data-theme="light"] #theme-toggle .moon { display: block; }
-#fidget-toggle[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .focus-inner { max-width: var(--maxw); margin: 0 auto; padding: 0 1.5rem .5rem; display: flex; align-items: center; gap: .45rem; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .focus-inner::-webkit-scrollbar { display: none; }
 .focus-inner .q { font-size: .78rem; color: var(--dim); font-weight: 500; white-space: nowrap; margin-right: .2rem; }
@@ -218,15 +238,16 @@ footer { display: none; }
   .hero-copy .seek { font-size: .95rem; margin-bottom: 1.1rem; }
   .hero-copy .links { margin-bottom: 1.2rem; }
   .track { top: auto; bottom: calc(1rem + env(safe-area-inset-bottom)); transform: none; align-items: flex-end; gap: 14px; padding-left: 1rem; }
-  .card, .card.wide, .card.title { width: calc(100vw - 2rem); max-height: 58dvh; padding: 1.1rem 1.1rem; border-radius: 18px; }
+  .card, .card.wide, .card.title { width: calc(100vw - 2rem); max-height: 54dvh; padding: 1.1rem 1.1rem; border-radius: 18px; }
   .card.title { padding: 0 .3rem .4rem; }
   .card.title h2 { font-size: 2rem; }
-  .sec.final .card.contact { left: .8rem; right: .8rem; width: auto; top: auto; bottom: calc(.9rem + env(safe-area-inset-bottom)); transform: none; max-height: 58dvh; }
+  .sec.final .card.contact { left: .8rem; right: .8rem; width: auto; top: auto; bottom: calc(.9rem + env(safe-area-inset-bottom)); transform: none; max-height: 56dvh; }
   .edu .e, .skills .g { grid-template-columns: 1fr; gap: .4rem; }
   .contact-list { grid-template-columns: 1fr; }
   .two { grid-template-columns: 1fr; }
   .logo { width: 130px; height: 40px; }
   .card .eyebrow .date { margin-left: 0; width: 100%; }
+  .llabel { font-size: .56rem; letter-spacing: .1em; }
   .rail { right: .45rem; top: auto; bottom: calc(50% + 8vh); transform: none; gap: .45rem; }
   .rail a { width: 7px; height: 7px; } .rail a span { display: none; }
   .pill { display: none; }
