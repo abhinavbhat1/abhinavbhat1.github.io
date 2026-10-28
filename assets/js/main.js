@@ -1,23 +1,33 @@
-/* Theme, the scroll journey (which builds the network), the "what are you looking for?" re-weighting, and the small experiments. */
+/* Console header, binary separators, contrast, the scroll journey that drives the line-art scenes, the pixel-melt home
+   transition, the "what are you looking for?" re-weighting, and the small experiments. */
 (function () {
   'use strict';
   const root = document.documentElement, $ = (id) => document.getElementById(id);
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-  // ── Theme ──
-  function currentTheme() { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
-  window.currentTheme = currentTheme;
-  function setTheme(t) { root.setAttribute('data-theme', t); try { localStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
-  $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
+  // ── Contrast: swap the two colours ──
+  window.currentTheme = () => root.classList.contains('theme-contrast') ? 'dark' : 'light';
+  $('contrast').addEventListener('click', () => { const on = !root.classList.contains('theme-contrast'); root.classList.toggle('theme-contrast', on); try { localStorage.setItem('contrast', on ? '1' : '0'); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange')); con.say(on ? 'Contrast: ink on black' : 'Contrast: ink on blue'); });
 
-  // ── Scroll: a normal document; inside each topic the cards travel sideways in a sticky viewport ──
-  document.documentElement.classList.add('intro');
+  // ── Console: one line that types itself ──
+  const con = { el: $('console'), msg: '', timer: null, say(m) { if (m === this.msg) return; this.msg = m; clearTimeout(this.timer); let i = 0; const el = this.el; el.textContent = ''; const step = () => { i++; el.textContent = m.slice(0, i); if (i < m.length) this.timer = setTimeout(step, 18 + Math.random() * 26); }; step(); } };
+  window.consoleSay = (m) => con.say(m);
+  con.say('Loading…');
+
+  // ── Binary separators ──
+  const seps = Array.from(document.querySelectorAll('[data-sep]'));
+  seps.forEach((s, si) => { const r = rng(17 + si); const groups = 4 + (si % 2); let html = '<span class="tri">▶</span>'; for (let g = 0; g < groups; g++) { let bits = ''; const n = 10 + Math.floor(r() * 10); for (let i = 0; i < n; i++) bits += r() < 0.55 ? '1' : '0'; html += `<span class="bits">${bits}</span>` + (g < groups - 1 ? '<span class="st"></span>' : ''); } html += '<span class="tri">◀</span>'; s.innerHTML = html; });
+  if (!reduced) setInterval(() => { seps.forEach(s => { const b = s.querySelectorAll('.bits'); if (!b.length) return; const el = b[Math.floor(Math.random() * b.length)]; const t = el.textContent, k = Math.floor(Math.random() * t.length); el.textContent = t.slice(0, k) + (t[k] === '1' ? '0' : '1') + t.slice(k + 1); }); }, 110);
+
+  // ── Scroll: a normal document; inside each chapter the panels travel sideways in a sticky viewport ──
+  root.classList.add('intro');
   let introDone = false;
-  const rail = $('rail'), heroCopy = $('hero-copy'), pill = $('pill');
+  const rail = $('rail'), heroCopy = $('hero-copy'), pill = $('pill'), foot = $('foot');
   const secs = Array.from(document.querySelectorAll('.sec')).filter(s => !s.classList.contains('final'));
   const finalSec = document.querySelector('.sec.final'), contactCard = finalSec.querySelector('.card.contact');
-  const tracks = secs.map(sec => { const cards = Array.from(sec.querySelectorAll('.card')); return { sec, el: sec.querySelector('.track'), cards, subs: cards.filter(c => !c.classList.contains('title')), centers: [], entering: 0, leaving: 0, local: 0 }; });
-  const NS = secs.length; window.LAYERS = [4].concat(tracks.map(t => t.subs.length)); window.LAYER_NAMES = ['About'].concat(tracks.map(t => t.sec.dataset.short), ['Output']);
+  const tracks = secs.map(sec => { const cards = Array.from(sec.querySelectorAll('.card')); return { sec, el: sec.querySelector('.track'), cards, walls: Array.from(sec.querySelectorAll('.wall span')), centers: [], entering: 0, leaving: 0, local: 0, p: 0 }; });
+  const NS = secs.length; window.LAYERS = [4].concat(tracks.map(t => t.cards.filter(c => !c.classList.contains('title')).length)); window.LAYER_NAMES = ['About'].concat(tracks.map(t => t.sec.dataset.short), ['Output']);
   const STEP = 0.62; const vh = () => window.innerHeight; const narrowQ = () => window.innerWidth < 900;
   function layoutHeights() { tracks.forEach(t => { t.sec.style.height = Math.round(vh() * (1 + STEP * Math.max(1, t.cards.length - 1))) + 'px'; t.centers = t.cards.map(c => c.offsetLeft + c.offsetWidth / 2); }); finalSec.style.height = Math.round(vh() * 2.6) + 'px'; }
   layoutHeights(); window.addEventListener('resize', layoutHeights); window.addEventListener('load', layoutHeights);
@@ -26,15 +36,14 @@
   tracks.forEach((t, k) => { const a = document.createElement('a'); a.href = '#' + t.sec.dataset.sec; a.innerHTML = `<span>${t.sec.dataset.short}</span>`; a.setAttribute('aria-label', t.sec.dataset.short); a.addEventListener('click', e => { e.preventDefault(); goTo(firstY(k)); }); rail.appendChild(a); });
   { const a = document.createElement('a'); a.href = '#contact'; a.innerHTML = '<span>Contact</span>'; a.setAttribute('aria-label', 'Contact'); a.addEventListener('click', e => { e.preventDefault(); goTo(pois().find(p => p.contact).y); }); rail.appendChild(a); }
   const railLinks = Array.from(rail.children);
-  document.querySelectorAll('header.top a[href^="#"]').forEach(a => a.addEventListener('click', e => { const id = a.getAttribute('href').slice(1); const k = tracks.findIndex(t => t.sec.dataset.sec === id); if (k >= 0) { e.preventDefault(); goTo(firstY(k)); } else if (id === 'contact') { e.preventDefault(); goTo(pois().find(p => p.contact).y); } else if (id === 'top') { e.preventDefault(); goTo(0); } }));
-  // smooth programmatic scroll, and a soft settle onto the nearest card once the wheel stops (never backwards)
+  document.querySelectorAll('.h-nav a[href^="#"]').forEach(a => a.addEventListener('click', e => { const id = a.getAttribute('href').slice(1); const k = tracks.findIndex(t => t.sec.dataset.sec === id); if (k >= 0) { e.preventDefault(); goTo(firstY(k)); } else if (id === 'contact') { e.preventDefault(); goTo(pois().find(p => p.contact).y); } }));
   let scrollTw = null;
   function goTo(to, ms) { const from = window.scrollY; if (scrollTw) cancelAnimationFrame(scrollTw.raf); if (reduced) { window.scrollTo(0, to); return; } const d = ms || Math.min(900, 260 + Math.abs(to - from) * 0.35); const t0 = performance.now(); const step = (now) => { const k = Math.max(0, Math.min(1, (now - t0) / d)); const e = 1 - Math.pow(1 - k, 3); window.scrollTo(0, from + (to - from) * e); if (k < 1) scrollTw.raf = requestAnimationFrame(step); else scrollTw = null; }; scrollTw = { raf: requestAnimationFrame(step) }; }
   let settleTimer = null, touching = false, lastY = 0, dir = 1;
   window.addEventListener('scroll', () => { const y = window.scrollY; if (y !== lastY) dir = y > lastY ? 1 : -1; lastY = y; }, { passive: true });
   function cancelTween() { if (scrollTw) { cancelAnimationFrame(scrollTw.raf); scrollTw = null; } }
   function scheduleSettle() { clearTimeout(settleTimer); settleTimer = setTimeout(() => {
-    if (touching || !introDone) return; const s = window.scrollY, P = pois();
+    if (touching || !introDone || melting) return; const s = window.scrollY, P = pois();
     const ahead = dir > 0 ? P.find(p => p.y > s + 6) : [...P].reverse().find(p => p.y < s - 6);
     const behind = dir > 0 ? [...P].reverse().find(p => p.y <= s + 6) : P.find(p => p.y >= s - 6);
     if (!ahead || !behind) return; const span = Math.abs(ahead.y - behind.y) || 1, frac = Math.abs(s - behind.y) / span;
@@ -50,70 +59,79 @@
     if (['ArrowUp', 'PageUp'].includes(e.key)) { const prev = [...P].reverse().find(p => p.y < s - 8); e.preventDefault(); goTo(prev ? prev.y : 0); }
     if (e.key === 'Home') { e.preventDefault(); goTo(0); } if (e.key === 'End') { e.preventDefault(); goTo(P[P.length - 1].y); }
   });
-  window.addEventListener('introdone', () => { introDone = true; window.scrollTo(0, 0); layoutHeights(); });
+  window.addEventListener('introdone', () => { introDone = true; window.scrollTo(0, 0); layoutHeights(); con.say('Welcome. Machine learning for healthcare.'); });
   const skipOnInput = () => { if (!introDone && window.introSkip) window.introSkip(); };
   window.addEventListener('wheel', skipOnInput, { passive: true }); window.addEventListener('touchstart', skipOnInput, { passive: true }); window.addEventListener('keydown', skipOnInput);
 
   const clamp01 = (v) => Math.max(0, Math.min(1, v));
   const ss = (v) => { v = clamp01(v); return v * v * (3 - 2 * v); };
-  window.T = { phase: 'hero', kf: 0, wide: 0, camWide: 1, finalU: 0, heroK: 1, scaf: 0, curK: -1 };
-  // layer 0 is the profile (input layer); layers 1.. are the topics; each record carries its neuron's build progress and where on screen it is born
-  window.NODES = [Array.from({ length: 4 }, () => ({ b: 0, sx: 0, sy: 0 }))].concat(tracks.map(t => t.subs.map(() => ({ b: 0, sx: 0, sy: 0 }))));
+  window.T = { phase: 'hero', curK: -1, heroK: 1, finalU: 0, footK: 0, secs: tracks.map(() => ({ p: 0, entering: 0, leaving: 0, local: 0, n: 1 })) };
   const played = new Set();
   function setCard(card, k, scale) { const vis = k > 0.002; card.style.opacity = k.toFixed(3); card.style.visibility = vis ? 'visible' : 'hidden'; card.style.transform = `scale(${scale.toFixed(3)})`; }
-  let sv = 0, lastNow = 0, lastPill = '';
+  const CHAP = { research: 'Chapter 01 · Research — healthcare AI, 3D imaging, adherence', experience: 'Chapter 02 · Experience — pipelines, validation, release readiness', education: 'Chapter 03 · Education — NYU Courant, Manipal, and the boards', skills: 'Chapter 04 · Skills — the toolkit' };
+  let sv = 0, lastNow = 0, lastPill = '', lastK = -2;
   function frame(now) {
     const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 1 / 60; lastNow = now;
     const s = introDone ? window.scrollY : 0;
     sv += (s - sv) * (reduced ? 1 : 1 - Math.exp(-dt * 12)); if (Math.abs(s - sv) < 0.4) sv = s; window.__sv = sv;
-    const H = vh(), vw = window.innerWidth, bandCenter = narrowQ() ? vw / 2 : vw * 0.63;
-    // hero → first layer
+    const H = vh(), vw = window.innerWidth, bandCenter = narrowQ() ? vw / 2 : vw * 0.64;
     const enter0 = clamp01((H - (tracks[0].sec.offsetTop - sv)) / H); const heroK = 1 - ss(enter0);
-    heroCopy.style.opacity = (1 - ss((enter0 - 0.2) / 0.55)).toFixed(3);
-    // the profile is the input layer: its neurons rise out of the home-page text as it gives way
-    { const hr = heroCopy.getBoundingClientRect(); window.NODES[0].forEach((nd, i) => { nd.b = ss((enter0 - 0.1 - 0.1 * i) / 0.42); if (nd.b > 0 && nd.b < 1) { nd.sx = hr.left + hr.width * (0.2 + 0.18 * i); nd.sy = hr.top + hr.height * (0.12 + 0.76 * i / 3); } }); }
-    let scaf = ss((enter0 - 0.04) / 0.5);
-    // sections
+    heroCopy.style.opacity = introDone ? (1 - ss((enter0 - 0.25) / 0.55)).toFixed(3) : '';
     tracks.forEach((t, k) => {
       const top = t.sec.offsetTop, span = Math.max(1, t.sec.offsetHeight - H), relTop = top - sv, n = t.cards.length;
-      const p = clamp01(-relTop / span); t.entering = clamp01((H - relTop) / H); t.leaving = clamp01(-(relTop + span) / H);
+      const p = clamp01(-relTop / span); t.entering = clamp01((H - relTop) / H); t.leaving = clamp01(-(relTop + span) / H); t.p = p;
       const local = p * (n - 1) + t.leaving; t.local = local;
       const onScreen = t.entering > 0 && t.leaving < 1;
       const q = Math.min(n - 1, local); const i0 = Math.floor(Math.min(Math.max(n - 1.0001, 0), Math.max(0, q))); const f = q - i0;
       const cx = (n > 1 && i0 < n - 1) ? t.centers[i0] + (t.centers[i0 + 1] - t.centers[i0]) * f : t.centers[Math.min(i0, n - 1)];
       t.el.style.visibility = onScreen ? 'visible' : 'hidden';
-      if (onScreen) t.el.style.transform = `translate3d(${(bandCenter - cx - t.el.offsetLeft).toFixed(1)}px, ${narrowQ() ? '0px' : '-50%'}, 0)`;
+      if (onScreen) { t.el.style.transform = `translate3d(${(bandCenter - cx - t.el.offsetLeft).toFixed(1)}px, ${narrowQ() ? '0px' : '-50%'}, 0)`; t.walls.forEach((w, r) => { w.style.transform = `translate3d(${(((r % 2) ? 1 : -1) * (p * 0.18 + 0.02 * r) * vw - (r % 2 ? vw * 0.35 : 0)).toFixed(1)}px, 0, 0)`; }); }
       t.cards.forEach((card, i) => {
         const d = Math.abs(local - i); const detach = ss((local - i - 0.12) / 0.55);
-        const focus = 1 - 0.4 * clamp01(d); const scale = (1 - 0.06 * clamp01(d)) * (1 - 0.45 * detach);
+        const focus = 1 - 0.4 * clamp01(d); const scale = (1 - 0.06 * clamp01(d)) * (1 - 0.3 * detach);
         setCard(card, onScreen ? focus * (1 - detach) : 0, scale);
-        const ni = t.subs.indexOf(card); const nd = ni >= 0 ? window.NODES[k + 1][ni] : null;
-        if (nd) { nd.b = detach; if (onScreen && detach > 0 && detach < 1) { const r = card.getBoundingClientRect(); nd.sx = r.left + r.width / 2; nd.sy = r.top + r.height / 2; } }
         if (onScreen && detach === 0 && d < 0.4 && card.dataset.auto && !played.has(card) && window.AUTO && window.AUTO[card.dataset.auto]) { played.add(card); const badge = card.querySelector('[data-auto-badge]'); setTimeout(() => window.AUTO[card.dataset.auto](() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 250); }
       });
+      const S = window.T.secs[k]; S.p = p; S.entering = t.entering; S.leaving = t.leaving; S.local = local; S.n = n;
     });
-    // camera: which layer, and how far between layers
-    let kf = 0, wide = 0, curK = -1, phase = 'hero';
+    let curK = -1, phase = 'hero';
     const trans = tracks.findIndex(t => t.leaving > 0 && t.leaving < 1);
-    if (trans >= 0) { const lv = tracks[trans].leaving; kf = trans + ss(lv); wide = Math.sin(Math.PI * lv); curK = lv < 0.5 ? trans : Math.min(NS - 1, trans + 1); phase = 'sec'; }
-    else { const pinned = tracks.findIndex(t => t.entering > 0 && t.leaving === 0); if (pinned >= 0) { kf = pinned; curK = pinned; phase = 'sec'; } }
-    // final: output neuron, descent, contact card
+    if (trans >= 0) { curK = tracks[trans].leaving < 0.5 ? trans : Math.min(NS - 1, trans + 1); phase = 'sec'; }
+    else { const pinned = tracks.findIndex(t => t.entering > 0 && t.leaving === 0); if (pinned >= 0) { curK = pinned; phase = 'sec'; } }
     const fTop = finalSec.offsetTop, fSpan = Math.max(1, finalSec.offsetHeight - H);
     const finalU = clamp01((sv - (fTop - H)) / (fSpan + H));
-    if (finalU > 0) { phase = 'final'; curK = NS; } // the network stays fully lit while it winds into the helix
-    // camera: zoomed on the active layer while reading, pulled back to the whole network between layers and while the About layer lights up
-    const camWide = phase === 'sec' ? Math.max(0.92 * wide, 1 - ss((tracks[0].entering - 0.1) / 0.8)) : 1;
+    if (finalU > 0) { phase = 'final'; curK = NS; }
+    const footK = clamp01((H - (foot.offsetTop - sv)) / H);
     const ck = ss((finalU - 0.5) / 0.2); contactCard.style.opacity = ck.toFixed(3); contactCard.style.visibility = ck > 0.002 ? 'visible' : 'hidden'; contactCard.style.transform = `${narrowQ() ? '' : 'translateY(-50%) '}translateY(${((1 - ck) * 36).toFixed(1)}px)`;
-    window.T = { phase, kf, wide, camWide, finalU, heroK: phase === 'final' ? 0 : heroK, curK, scaf };
-    // rail + pill
+    window.T.phase = phase; window.T.curK = curK; window.T.heroK = phase === 'final' ? 0 : heroK; window.T.finalU = finalU; window.T.footK = footK;
     railLinks.forEach((a, i) => { a.classList.toggle('on', i === curK); a.classList.toggle('done', i < curK); });
     const pad = (n) => String(n).padStart(2, '0'); const name = curK < 0 ? 'Welcome' : curK >= NS ? 'Contact' : tracks[curK].sec.dataset.short;
     const txt = `<b>${pad(curK < 0 ? 0 : curK >= NS ? NS + 1 : curK + 1)}</b><span><small>Chapter</small>${name}</span>`;
     if (txt !== lastPill) { lastPill = txt; pill.innerHTML = txt; } pill.classList.toggle('show', introDone);
+    if (introDone && curK !== lastK) { lastK = curK; if (curK >= 0 && curK < NS) con.say(CHAP[tracks[curK].sec.dataset.sec] || tracks[curK].sec.dataset.short); else if (curK >= NS) con.say('Chapter 05 · Contact — the output neuron finds the global minimum'); else con.say('Welcome. Machine learning for healthcare.'); }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
+  // ── Home: the page melts away pixel by pixel into black, then un-melts onto the top of the page ──
+  let melting = false;
+  const melt = (() => {
+    const host = $('melt'), c = host.querySelector('canvas'), g = c.getContext('2d'); let cols = 0, rows = 0, cells = null; const S = 14;
+    function setup() { const dpr = Math.min(window.devicePixelRatio || 1, 2); c.width = Math.ceil(window.innerWidth * dpr); c.height = Math.ceil(window.innerHeight * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0); cols = Math.ceil(window.innerWidth / S); rows = Math.ceil(window.innerHeight / S); const r = rng((Date.now() & 0xffff) + 7); cells = new Float32Array(cols * rows); const drip = Array.from({ length: cols }, () => r()); for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) cells[j * cols + i] = 0.1 * (j / rows) + 0.55 * r() + 0.3 * drip[i]; }
+    function draw(u) { const W = window.innerWidth, H = window.innerHeight; g.clearRect(0, 0, W, H); g.fillStyle = '#06040f';
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) { const k = (u * 1.3 - cells[j * cols + i]) / 0.3; if (k <= 0) continue; const e = Math.min(1, k); g.fillRect(i * S, j * S - 1, S + 1, S * e + e * S * 2.2); }
+      const fade = Math.max(0, (u - 0.82) / 0.18); if (fade > 0) { g.globalAlpha = fade; g.fillRect(0, 0, W, H); g.globalAlpha = 1; } }
+    return function run(mid) { if (melting) return; melting = true; host.classList.add('on'); setup(); const t0 = performance.now(); const OUT = 820, HOLD = 160, IN = 780;
+      function step(now) { const el = now - t0;
+        if (el < OUT) { const u = el / OUT; draw(u * u * (3 - 2 * u)); }
+        else if (el < OUT + HOLD) { if (!step.mid) { step.mid = true; draw(1); mid(); } }
+        else if (el < OUT + HOLD + IN) { const u = 1 - (el - OUT - HOLD) / IN; draw(u * u * (3 - 2 * u)); }
+        else { host.classList.remove('on'); g.clearRect(0, 0, window.innerWidth, window.innerHeight); melting = false; return; }
+        requestAnimationFrame(step); }
+      requestAnimationFrame(step); };
+  })();
+  $('brand').addEventListener('click', (e) => { e.preventDefault(); if (!introDone) return; cancelTween(); con.say('Melting…'); melt(() => { window.scrollTo(0, 0); sv = 0; lastY = 0; con.say('Welcome back.'); }); });
+  window.meltHome = () => $('brand').click();
 
   // ── "What are you looking for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe'];
@@ -122,12 +140,12 @@
   lines.forEach(li => { li._w = li.dataset.w.split(',').map(Number); });
   const note = $('focus-note');
   function applyFocus(f) {
-    if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = 'Pick a focus and the site re-weights to it.'; return; }
+    if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = 'Pick a focus and the site re-weights to it.'; con.say('Everything. No re-weighting.'); return; }
     const k = TOPICS.indexOf(f); const scores = lines.map(li => li._w[k]);
     const mx = Math.max(...scores); const ex = scores.map(s => Math.exp(6 * (s - mx))); const Z = ex.reduce((a, b) => a + b, 0); const att = ex.map(e => e / Z); const amax = Math.max(...att);
     let kept = 0;
     lines.forEach((li, i) => { const rel = att[i] / amax; li.classList.toggle('hi', rel > 0.55); li.classList.toggle('lo', rel < 0.2); li.style.opacity = rel < 0.2 ? '' : (0.55 + 0.45 * rel).toFixed(2); if (rel > 0.55) kept++; });
-    note.textContent = `Re-weighted for ${NAMES[f]}: ${kept} points highlighted.`;
+    note.textContent = `Re-weighted for ${NAMES[f]}: ${kept} points highlighted.`; con.say(`Re-weighted for ${NAMES[f]}: ${kept} points highlighted.`);
   }
   document.querySelectorAll('#focus-chips .chip').forEach(c => c.addEventListener('click', () => { document.querySelectorAll('#focus-chips .chip').forEach(x => x.setAttribute('aria-pressed', 'false')); c.setAttribute('aria-pressed', 'true'); applyFocus(c.dataset.f); }));
 
