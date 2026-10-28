@@ -60,8 +60,9 @@
   const NAMES = { ml: 'machine learning', health: 'healthcare AI', data: 'data engineering', swe: 'software engineering' };
   const lines = Array.from(document.querySelectorAll('.lines li[data-w]'));
   lines.forEach(li => { li._w = li.dataset.w.split(',').map(Number); });
-  const note = $('focus-q');
+  const note = $('focus-q'); const skills = Array.from(document.querySelectorAll('.tags span[data-f]'));
   function applyFocus(f) {
+    skills.forEach(sp => { const on = f !== 'all' && sp.dataset.f.split(' ').includes(f); sp.classList.toggle('on', on); sp.classList.toggle('off', f !== 'all' && !on); });
     if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = 'What are you looking for?'; note.classList.remove('set'); return; }
     const k = TOPICS.indexOf(f); const scores = lines.map(li => li._w[k]);
     const mx = Math.max(...scores); const ex = scores.map(s => Math.exp(6 * (s - mx))); const Z = ex.reduce((a, b) => a + b, 0); const att = ex.map(e => e / Z); const amax = Math.max(...att);
