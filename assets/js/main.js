@@ -1,4 +1,4 @@
-/* Theme, the scroll journey (which builds the network), the liquid-glass cursor, the "what are you looking for?" re-weighting, and the small experiments. */
+/* Theme, the scroll journey (which builds the network), the "what are you looking for?" re-weighting, and the small experiments. */
 (function () {
   'use strict';
   const root = document.documentElement, $ = (id) => document.getElementById(id);
@@ -17,7 +17,7 @@
   const secs = Array.from(document.querySelectorAll('.sec')).filter(s => !s.classList.contains('final'));
   const finalSec = document.querySelector('.sec.final'), contactCard = finalSec.querySelector('.card.contact');
   const tracks = secs.map(sec => ({ sec, el: sec.querySelector('.track'), cards: Array.from(sec.querySelectorAll('.card')), centers: [], entering: 0, leaving: 0, local: 0 }));
-  const NS = secs.length; window.LAYERS = [4].concat(tracks.map(t => t.cards.length)); window.LAYER_NAMES = ['Input'].concat(tracks.map(t => t.sec.dataset.short), ['Output']);
+  const NS = secs.length; window.LAYERS = [4].concat(tracks.map(t => t.cards.length)); window.LAYER_NAMES = ['About'].concat(tracks.map(t => t.sec.dataset.short), ['Output']);
   const STEP = 0.62; const vh = () => window.innerHeight; const narrowQ = () => window.innerWidth < 900;
   function layoutHeights() { tracks.forEach(t => { t.sec.style.height = Math.round(vh() * (1 + STEP * Math.max(1, t.cards.length - 1))) + 'px'; t.centers = t.cards.map(c => c.offsetLeft + c.offsetWidth / 2); }); finalSec.style.height = Math.round(vh() * 2.6) + 'px'; }
   layoutHeights(); window.addEventListener('resize', layoutHeights); window.addEventListener('load', layoutHeights);
@@ -56,7 +56,7 @@
 
   const clamp01 = (v) => Math.max(0, Math.min(1, v));
   const ss = (v) => { v = clamp01(v); return v * v * (3 - 2 * v); };
-  window.T = { phase: 'hero', kf: 0, finalU: 0, heroK: 1, scaf: 0, curK: -1 };
+  window.T = { phase: 'hero', kf: 0, wide: 0, camWide: 1, finalU: 0, heroK: 1, scaf: 0, curK: -1 };
   // layer 0 is the profile (input layer); layers 1.. are the topics; each record carries its neuron's build progress and where on screen it is born
   window.NODES = [Array.from({ length: 4 }, () => ({ b: 0, sx: 0, sy: 0 }))].concat(tracks.map(t => t.cards.map(() => ({ b: 0, sx: 0, sy: 0 }))));
   const played = new Set();
@@ -93,16 +93,18 @@
       });
     });
     // camera: which layer, and how far between layers
-    let kf = 0, curK = -1, phase = 'hero';
+    let kf = 0, wide = 0, curK = -1, phase = 'hero';
     const trans = tracks.findIndex(t => t.leaving > 0 && t.leaving < 1);
-    if (trans >= 0) { const lv = tracks[trans].leaving; kf = trans + ss(lv); curK = lv < 0.5 ? trans : Math.min(NS - 1, trans + 1); phase = 'sec'; }
+    if (trans >= 0) { const lv = tracks[trans].leaving; kf = trans + ss(lv); wide = Math.sin(Math.PI * lv); curK = lv < 0.5 ? trans : Math.min(NS - 1, trans + 1); phase = 'sec'; }
     else { const pinned = tracks.findIndex(t => t.entering > 0 && t.leaving === 0); if (pinned >= 0) { kf = pinned; curK = pinned; phase = 'sec'; } }
     // final: output neuron, descent, contact card
     const fTop = finalSec.offsetTop, fSpan = Math.max(1, finalSec.offsetHeight - H);
     const finalU = clamp01((sv - (fTop - H)) / (fSpan + H));
-    if (finalU > 0) { phase = 'final'; curK = NS; scaf *= 1 - ss(finalU / 0.26); }
+    if (finalU > 0) { phase = 'final'; curK = NS; scaf *= 1 - 0.55 * ss(finalU / 0.26); }
+    // camera: zoomed on the active layer while reading, pulled back to the whole network between layers and while the About layer lights up
+    const camWide = phase === 'sec' ? Math.max(0.92 * wide, 1 - ss((tracks[0].entering - 0.1) / 0.8)) : 1;
     const ck = ss((finalU - 0.5) / 0.2); contactCard.style.opacity = ck.toFixed(3); contactCard.style.visibility = ck > 0.002 ? 'visible' : 'hidden'; contactCard.style.transform = `${narrowQ() ? '' : 'translateY(-50%) '}translateY(${((1 - ck) * 36).toFixed(1)}px)`;
-    window.T = { phase, kf, finalU, heroK: phase === 'final' ? 0 : heroK, curK, scaf };
+    window.T = { phase, kf, wide, camWide, finalU, heroK: phase === 'final' ? 0 : heroK, curK, scaf };
     // rail + pill
     railLinks.forEach((a, i) => { a.classList.toggle('on', i === curK); a.classList.toggle('done', i < curK); });
     const txt = curK < 0 ? '' : curK >= NS ? '<b>Output</b>Contact' : `<b>Layer ${curK + 1} / ${NS}</b>${tracks[curK].sec.dataset.short}`;
@@ -111,33 +113,6 @@
   }
   requestAnimationFrame(frame);
 
-  // ── Cursor: a liquid-glass dot that follows the pointer; over a link it widens into "Check it out" ──
-  (function () {
-    const el = $('cursor'); if (!el) return;
-    const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-    if (!fine || reduced) { el.remove(); return; }
-    root.classList.add('cur');
-    let x = -100, y = -100, tx = -100, ty = -100, shown = false, mode = '', down = false, last = 0;
-    const setMode = (m) => { if (m === mode) return; mode = m; el.classList.toggle('link', m === 'link'); el.classList.toggle('ui', m === 'ui'); };
-    window.addEventListener('pointermove', (e) => { if (e.pointerType === 'touch') return; tx = e.clientX; ty = e.clientY; if (!shown) { x = tx; y = ty; shown = true; el.classList.add('show'); } }, { passive: true });
-    document.documentElement.addEventListener('mouseleave', () => { shown = false; el.classList.remove('show'); });
-    window.addEventListener('pointerover', (e) => { const t = e.target; if (!t || !t.closest) return; setMode(t.closest('a[href]') ? 'link' : t.closest('button, .chip, input, label, select, .llabel, [role=slider]') ? 'ui' : ''); });
-    window.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') { down = true; el.classList.add('down'); } });
-    window.addEventListener('pointerup', () => { down = false; el.classList.remove('down'); });
-    function tick(now) {
-      const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60; last = now;
-      const k = 1 - Math.exp(-dt * 22); const px = x, py = y; x += (tx - x) * k; y += (ty - y) * k;
-      const vx = (x - px) / dt, vy = (y - py) / dt, sp = Math.hypot(vx, vy);
-      let cx = x, cy = y; if (mode === 'link') { cx = Math.max(74, Math.min(window.innerWidth - 74, x)); cy = Math.max(26, Math.min(window.innerHeight - 26, y)); }
-      const net = !!window.__hoverNet && mode === '';
-      el.classList.toggle('net', net);
-      let tf = `translate3d(${cx.toFixed(1)}px, ${cy.toFixed(1)}px, 0) translate(-50%, -50%)`;
-      if (mode === '' && !net && sp > 60) { const s = Math.min(0.42, sp / 5000); tf += ` rotate(${(Math.atan2(vy, vx) * 180 / Math.PI).toFixed(1)}deg) scale(${(1 + s).toFixed(3)}, ${(1 - s * 0.55).toFixed(3)})`; }
-      if (down) tf += ' scale(0.88)';
-      el.style.transform = tf; requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  })();
 
   // ── "What are you looking for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe'];
