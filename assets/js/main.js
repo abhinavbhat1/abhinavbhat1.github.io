@@ -107,8 +107,9 @@
     window.T = { phase, kf, wide, camWide, finalU, heroK: phase === 'final' ? 0 : heroK, curK, scaf };
     // rail + pill
     railLinks.forEach((a, i) => { a.classList.toggle('on', i === curK); a.classList.toggle('done', i < curK); });
-    const txt = curK < 0 ? '' : curK >= NS ? '<b>Output</b>Contact' : `<b>Layer ${curK + 1} / ${NS}</b>${tracks[curK].sec.dataset.short}`;
-    if (txt !== lastPill) { lastPill = txt; pill.innerHTML = txt; pill.classList.toggle('show', !!txt); }
+    const pad = (n) => String(n).padStart(2, '0'); const name = curK < 0 ? 'Welcome' : curK >= NS ? 'Contact' : tracks[curK].sec.dataset.short;
+    const txt = `<b>${pad(curK < 0 ? 0 : curK >= NS ? NS + 1 : curK + 1)}</b><span><small>Chapter</small>${name}</span>`;
+    if (txt !== lastPill) { lastPill = txt; pill.innerHTML = txt; } pill.classList.toggle('show', introDone);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -134,7 +135,8 @@
   const tween = (from, to, ms, step, done) => { const t0 = performance.now(); (function f(now) { const k = Math.max(0, Math.min(1, (now - t0) / ms)); step(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); else if (done) done(); })(t0); };
 
   // ── helpers ──
-  const css = (n) => getComputedStyle(root).getPropertyValue(n).trim();
+  const cssProbe = document.querySelector('.card.wide') || root; // cards carry their own (paper) palette
+  const css = (n) => getComputedStyle(cssProbe).getPropertyValue(n).trim();
   const redraw = []; window.addEventListener('themechange', () => redraw.forEach(fn => fn()));
   function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function gauss(r) { let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
