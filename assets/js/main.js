@@ -16,8 +16,8 @@
   const rail = $('rail'), heroCopy = $('hero-copy'), pill = $('pill');
   const secs = Array.from(document.querySelectorAll('.sec')).filter(s => !s.classList.contains('final'));
   const finalSec = document.querySelector('.sec.final'), contactCard = finalSec.querySelector('.card.contact');
-  const tracks = secs.map(sec => ({ sec, el: sec.querySelector('.track'), cards: Array.from(sec.querySelectorAll('.card')), centers: [], entering: 0, leaving: 0, local: 0 }));
-  const NS = secs.length; window.LAYERS = [4].concat(tracks.map(t => t.cards.length)); window.LAYER_NAMES = ['About'].concat(tracks.map(t => t.sec.dataset.short), ['Output']);
+  const tracks = secs.map(sec => { const cards = Array.from(sec.querySelectorAll('.card')); return { sec, el: sec.querySelector('.track'), cards, subs: cards.filter(c => !c.classList.contains('title')), centers: [], entering: 0, leaving: 0, local: 0 }; });
+  const NS = secs.length; window.LAYERS = [4].concat(tracks.map(t => t.subs.length)); window.LAYER_NAMES = ['About'].concat(tracks.map(t => t.sec.dataset.short), ['Output']);
   const STEP = 0.62; const vh = () => window.innerHeight; const narrowQ = () => window.innerWidth < 900;
   function layoutHeights() { tracks.forEach(t => { t.sec.style.height = Math.round(vh() * (1 + STEP * Math.max(1, t.cards.length - 1))) + 'px'; t.centers = t.cards.map(c => c.offsetLeft + c.offsetWidth / 2); }); finalSec.style.height = Math.round(vh() * 2.6) + 'px'; }
   layoutHeights(); window.addEventListener('resize', layoutHeights); window.addEventListener('load', layoutHeights);
@@ -58,7 +58,7 @@
   const ss = (v) => { v = clamp01(v); return v * v * (3 - 2 * v); };
   window.T = { phase: 'hero', kf: 0, wide: 0, camWide: 1, finalU: 0, heroK: 1, scaf: 0, curK: -1 };
   // layer 0 is the profile (input layer); layers 1.. are the topics; each record carries its neuron's build progress and where on screen it is born
-  window.NODES = [Array.from({ length: 4 }, () => ({ b: 0, sx: 0, sy: 0 }))].concat(tracks.map(t => t.cards.map(() => ({ b: 0, sx: 0, sy: 0 }))));
+  window.NODES = [Array.from({ length: 4 }, () => ({ b: 0, sx: 0, sy: 0 }))].concat(tracks.map(t => t.subs.map(() => ({ b: 0, sx: 0, sy: 0 }))));
   const played = new Set();
   function setCard(card, k, scale) { const vis = k > 0.002; card.style.opacity = k.toFixed(3); card.style.visibility = vis ? 'visible' : 'hidden'; card.style.transform = `scale(${scale.toFixed(3)})`; }
   let sv = 0, lastNow = 0, lastPill = '';
@@ -87,8 +87,8 @@
         const d = Math.abs(local - i); const detach = ss((local - i - 0.12) / 0.55);
         const focus = 1 - 0.4 * clamp01(d); const scale = (1 - 0.06 * clamp01(d)) * (1 - 0.45 * detach);
         setCard(card, onScreen ? focus * (1 - detach) : 0, scale);
-        const nd = window.NODES[k + 1][i]; nd.b = detach;
-        if (onScreen && detach > 0 && detach < 1) { const r = card.getBoundingClientRect(); nd.sx = r.left + r.width / 2; nd.sy = r.top + r.height / 2; }
+        const ni = t.subs.indexOf(card); const nd = ni >= 0 ? window.NODES[k + 1][ni] : null;
+        if (nd) { nd.b = detach; if (onScreen && detach > 0 && detach < 1) { const r = card.getBoundingClientRect(); nd.sx = r.left + r.width / 2; nd.sy = r.top + r.height / 2; } }
         if (onScreen && detach === 0 && d < 0.4 && card.dataset.auto && !played.has(card) && window.AUTO && window.AUTO[card.dataset.auto]) { played.add(card); const badge = card.querySelector('[data-auto-badge]'); setTimeout(() => window.AUTO[card.dataset.auto](() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 250); }
       });
     });
