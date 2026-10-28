@@ -100,7 +100,7 @@
     // final: output neuron, descent, contact card
     const fTop = finalSec.offsetTop, fSpan = Math.max(1, finalSec.offsetHeight - H);
     const finalU = clamp01((sv - (fTop - H)) / (fSpan + H));
-    if (finalU > 0) { phase = 'final'; curK = NS; scaf *= 1 - 0.55 * ss(finalU / 0.26); }
+    if (finalU > 0) { phase = 'final'; curK = NS; } // the network stays fully lit while it winds into the helix
     // camera: zoomed on the active layer while reading, pulled back to the whole network between layers and while the About layer lights up
     const camWide = phase === 'sec' ? Math.max(0.92 * wide, 1 - ss((tracks[0].entering - 0.1) / 0.8)) : 1;
     const ck = ss((finalU - 0.5) / 0.2); contactCard.style.opacity = ck.toFixed(3); contactCard.style.visibility = ck > 0.002 ? 'visible' : 'hidden'; contactCard.style.transform = `${narrowQ() ? '' : 'translateY(-50%) '}translateY(${((1 - ck) * 36).toFixed(1)}px)`;
