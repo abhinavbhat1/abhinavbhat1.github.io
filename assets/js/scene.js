@@ -31,7 +31,7 @@
   const LAYERS = [{ id: 'input', name: 'Input', cards: [] }].concat(SECS);
   const counts = LAYERS.map((L, k) => k === 0 ? 4 : Math.max(1, L.cards.length)); const NLy = counts.length, Lmax = NLy - 1;
   const r0 = rng(21); const nodes = [], byL = [];
-  counts.forEach((n, k) => { const row = []; for (let i = 0; i < n; i++) { const nd = { k, i, n, x: k + (r0() - 0.5) * 0.06, y: (i - (n - 1) / 2) * 0.5 + (n > 1 ? (r0() - 0.5) * 0.05 : 0), z: (r0() - 0.5) * 0.3, ox: 0, oy: 0, vx: 0, vy: 0, out: k === Lmax, short: k ? LAYERS[k].cards[i].short : '', bPrev: 0, act: 0, hov: 0, vis: 0, vr: 0, p: { x: 0, y: 0, s: 1, z: 0 } }; nodes.push(nd); row.push(nd); } byL.push(row); });
+  counts.forEach((n, k) => { const row = []; for (let i = 0; i < n; i++) { const nd = { k, i, n, x: k + (r0() - 0.5) * 0.06, y: (i - (n - 1) / 2) * 0.5 + (n > 1 ? (r0() - 0.5) * 0.05 : 0), z: (r0() - 0.5) * 0.3, ox: 0, oy: 0, vx: 0, vy: 0, out: k === Lmax, short: k ? LAYERS[k].cards[i].short : '', bPrev: 0, act: 0, hov: 0, vis: 0, vr: 0, doneT: -1, p: { x: 0, y: 0, s: 1, z: 0 } }; nodes.push(nd); row.push(nd); } byL.push(row); });
   const edges = []; { const r = rng(99); for (let k = 0; k < Lmax; k++) byL[k].forEach(A => byL[k + 1].forEach(B => edges.push({ A, B, k: k + 1, w: (r() - 0.5) * 2, amp: 0, t0: -9, ph: r() * 6.28 }))); }
   const adj = new Map(); nodes.forEach(nd => adj.set(nd, [])); edges.forEach(e => { adj.get(e.A).push(e); adj.get(e.B).push(e); });
   const spanK = (k) => (counts[k] - 1) * 0.5; const maxSpan = Math.max(...counts.map((_, k) => spanK(k)));
@@ -51,13 +51,13 @@
   function poseNeuron(k, i) { const p = poseLayer(k); p.fy = 0.7 * byL[k][i].y; return p; }
   function poseClose(k, i, mul) { const p = poseLayer(k), nd = byL[k][i]; p.fx = nd.x; p.fy = nd.y; p.s *= mul; return p; }
   const lerpPose = (a, b, f) => ({ fx: mix(a.fx, b.fx, f), fy: mix(a.fy, b.fy, f), ax: mix(a.ax, b.ax, f), ay: mix(a.ay, b.ay, f), s: Math.exp(mix(Math.log(a.s), Math.log(b.s), f)), th: mix(a.th, b.th, f), ph: mix(a.ph || 0, b.ph || 0, f) });
-  // the shots between layers, picked at random on every visit: swivel (half turn either way), flip (vertical half turn), arc (a swivel
-  // that lifts over the top), ride (zoom into the last neuron, follow the new string, zoom out at the next one). The first shot leaves the
-  // home page, so no ride there.
+  // the shots between layers, picked at random on every visit: swivel (half turn either way), loop (a full vertical turn, so every layer
+  // stays upright with its first neuron on top), arc (a swivel that lifts over the top), ride (zoom into the last neuron, follow the new
+  // string, zoom out at the next one). The first shot leaves the home page, so no ride there.
   { const pick = (arr, avoid) => { let v; do { v = arr[Math.floor(Math.random() * arr.length)]; } while (v === avoid && arr.length > 1); return v; };
-    shots[1] = pick(['swivel', 'swivel-', 'flip'], null); for (let k = 2; k < NLy; k++) shots[k] = pick(['swivel', 'swivel-', 'flip', 'arc', 'ride'], shots[k - 1]);
+    shots[1] = pick(['swivel', 'swivel-', 'loop'], null); for (let k = 2; k < NLy; k++) shots[k] = pick(['swivel', 'swivel-', 'loop', 'arc', 'ride'], shots[k - 1]);
     if (NLy > 2 && !shots.includes('ride')) shots[2 + Math.floor(Math.random() * (NLy - 2))] = 'ride';
-    for (let k = 1; k < NLy; k++) { const sh = shots[k]; thL[k] = thL[k - 1] + (sh === 'swivel' || sh === 'arc' ? Math.PI : sh === 'swivel-' ? -Math.PI : 0); phL[k] = phL[k - 1] + (sh === 'flip' ? Math.PI : 0); } }
+    for (let k = 1; k < NLy; k++) { const sh = shots[k]; thL[k] = thL[k - 1] + (sh === 'swivel' || sh === 'arc' ? Math.PI : sh === 'swivel-' ? -Math.PI : 0); phL[k] = phL[k - 1] + (sh === 'loop' ? 2 * Math.PI : 0); } }
   // keyframes along the scroll, in beats. Leaving home: the network retracts, the first research neuron is created, then the shot.
   // In a layer: each next neuron is created while the camera holds on the previous one, then the camera moves to it and it bursts.
   // Between layers: the card closes, the next layer's first neuron is created (strings from the whole previous layer), then the shot.
@@ -164,7 +164,7 @@
       nd.vx += fx * dt; nd.vy += fy * dt; nd.ox += nd.vx * dt; nd.oy += nd.vy * dt;
       const hv = d < 90 ? 1 - d / 90 : 0; nd.hov += (hv - nd.hov) * (1 - Math.exp(-dt * 8));
       let a = 0; if (pass.on) { const reach = clamp(pt - nd.k); a = pass.acts[nd.k][nd.i] * smooth(reach) * (1 - fadeP); } nd.act += (a * heroK - nd.act) * (1 - Math.exp(-dt * 10));
-      nd.c = mix(journeyC(nd, u), clamp((lb[nd.k] - stag(nd) * 0.9) / 0.5), hw); nd.vr = clamp((nd.c - 0.25) / 0.75); nd.vis = pop(nd.vr);
+      nd.c = mix(journeyC(nd, u), clamp((lb[nd.k] - stag(nd) * 0.9) / 0.5), hw); nd.vr = clamp((nd.c - 0.25) / 0.75); nd.vis = pop(nd.vr); if (nd.c >= 0.99) { if (nd.doneT < 0) nd.doneT = t; } else nd.doneT = -1;
       proj(nd.x + nd.ox, nd.y + nd.oy, nd.z, nd.p); });
     g.clearRect(0, 0, W, H); g.lineWidth = 1;
     // strings
@@ -181,10 +181,11 @@
       if (sig > 0.08 && pt > e.k - 1 && pt < e.k + 0.4) { const s = clamp(pt - (e.k - 1)); g.globalAlpha = sig; g.fillStyle = col.accent; g.beginPath(); g.arc(mix(A.x, B.x, s), mix(A.y, B.y, s), 1.6 + 1.8 * sig, 0, 6.2832); g.fill(); }
       if (zoomK > 0.05 && lw[e.k] > 0.05) { g.fillStyle = col.accent; for (let j = 0; j < 2; j++) { const s = (t * 0.22 + j * 0.5 + e.ph * 0.1) % 1; g.globalAlpha = 0.45 * lw[e.k] * zoomK * Math.sin(Math.PI * s); g.beginPath(); g.arc(mix(A.x, B.x, s), mix(A.y, B.y, s), 1.6, 0, 6.2832); g.fill(); } } });
     g.lineWidth = 1;
-    // a faint dashed trace from the neuron being built (or in focus) to where the next one will appear, a hint that there is more to scroll
+    // a faint dashed trace to where the next neuron will appear, a hint that there is more to scroll: the moment a neuron is created it
+    // draws itself out over half a second and ends in a ghost ring; it fades once the next neuron is created
     if (zoomK > 0.02) { g.setLineDash([3, 6]); g.strokeStyle = col.ink;
-      for (let k = 1; k < NLy; k++) { const w = lw[k] * zoomK; if (w < 0.02) continue; byL[k].forEach((nd, i) => { const nx = i + 1 < counts[k] ? byL[k][i + 1] : (k < Lmax ? byL[k + 1][0] : null); if (!nx) return; const a = 0.3 * w * smooth(nd.c * 2) * (1 - smooth(nx.c * 2)); if (a < 0.01) return;
-        const A = nd.p, B = nx.p; g.globalAlpha = a; g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(B.x, B.y); g.stroke(); g.beginPath(); g.arc(B.x, B.y, clamp(0.045 * B.s, 3, 24) * 0.9, 0, 6.2832); g.stroke(); }); }
+      for (let k = 1; k < NLy; k++) { const w = lw[k] * zoomK; if (w < 0.02) continue; byL[k].forEach((nd, i) => { const nx = i + 1 < counts[k] ? byL[k][i + 1] : (k < Lmax ? byL[k + 1][0] : null); if (!nx || nd.doneT < 0) return; const tp = reduced ? 1 : clamp((t - nd.doneT) / 0.5), te = 1 - Math.pow(1 - tp, 3); const a = 0.3 * w * (1 - smooth(nx.c * 2)); if (a < 0.01) return;
+        const A = nd.p, B = nx.p; g.globalAlpha = a; g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(mix(A.x, B.x, te), mix(A.y, B.y, te)); g.stroke(); const ra = clamp((tp - 0.7) / 0.3); if (ra > 0.01) { g.globalAlpha = a * ra; g.beginPath(); g.arc(B.x, B.y, clamp(0.045 * B.s, 3, 24) * (0.5 + 0.4 * ra), 0, 6.2832); g.stroke(); } }); }
       g.setLineDash([]); }
     // beads (far first), bursts, names
     const Rb = Math.min(W, H) * 0.14; const bursts = []; g.textBaseline = 'middle';
@@ -215,7 +216,7 @@
       const tx = (s.x - (left + cw / 2)) * (1 - bb), ty = (s.y - (top + ch / 2)) * (1 - bb);
       el.style.left = left.toFixed(1) + 'px'; el.style.top = top.toFixed(1) + 'px'; el.style.opacity = smooth(bb * 1.3).toFixed(3); el.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${(0.5 + 0.5 * b).toFixed(3)})`; }));
     if (jlabel) { let txt = ''; if (activeK > 0 && zoomK > 0.5) { const L = LAYERS[activeK]; let ni = -1, nb = 0; byL[activeK].forEach((nd, i) => { const b = burstOf(activeK, i, u); if (b > nb) { nb = b; ni = i; } }); txt = `<b>${String(activeK).padStart(2, '0')}</b>${L.name}` + (nb > 0.3 ? ` · ${ni + 1} / ${counts[activeK]}` : ''); } if (txt !== lastJ) { lastJ = txt; jlabel.innerHTML = txt; } jlabel.classList.toggle('show', !!txt); }
-    window.__J = { u: +u.toFixed(2), activeK, zoomK: +zoomK.toFixed(2), heroK: +heroK.toFixed(2), bursts: bursts.map(x => [x.nd.k, x.nd.i, +x.b.toFixed(2)]), cam: { fx: +cam.fx.toFixed(2), fy: +cam.fy.toFixed(2), s: Math.round(cam.s), th: +cam.th.toFixed(2), ph: +cam.ph.toFixed(2) }, pass: pass.on ? { pt: +pt.toFixed(2), y: +pass.y.toFixed(2) } : null, dragging: !!dragNode, maxAmp: +Math.max(0, ...edges.map(e => e.amp * Math.exp(-2.2 * (t - e.t0)))).toFixed(3), maxOff: +Math.max(...nodes.map(n => Math.hypot(n.ox, n.oy))).toFixed(3), total: +total.toFixed(2), beat: Math.round(BEAT()), pois, ls: layerStart, nav: navOn, lb: lb.map(v => +v.toFixed(2)), built: counts.map((_, k) => byL[k].filter(nd => nd.vr > 0.99).length), partial: nodes.filter(nd => nd.c > 0.01 && nd.c < 0.99).map(nd => [nd.k, nd.i, +nd.c.toFixed(2)]), shots, cycle: { t: +ct.toFixed(2), pending: build.pending, dis: build.dis }, gadgets: gadgets.length, zspread: +(Math.max(...nodes.map(n => n.p.z)) - Math.min(...nodes.map(n => n.p.z))).toFixed(2) };
+    window.__J = { u: +u.toFixed(2), activeK, zoomK: +zoomK.toFixed(2), heroK: +heroK.toFixed(2), bursts: bursts.map(x => [x.nd.k, x.nd.i, +x.b.toFixed(2)]), cam: { fx: +cam.fx.toFixed(2), fy: +cam.fy.toFixed(2), s: Math.round(cam.s), th: +cam.th.toFixed(2), ph: +cam.ph.toFixed(2) }, pass: pass.on ? { pt: +pt.toFixed(2), y: +pass.y.toFixed(2) } : null, dragging: !!dragNode, maxAmp: +Math.max(0, ...edges.map(e => e.amp * Math.exp(-2.2 * (t - e.t0)))).toFixed(3), maxOff: +Math.max(...nodes.map(n => Math.hypot(n.ox, n.oy))).toFixed(3), total: +total.toFixed(2), beat: Math.round(BEAT()), pois, ls: layerStart, nav: navOn, lb: lb.map(v => +v.toFixed(2)), built: counts.map((_, k) => byL[k].filter(nd => nd.vr > 0.99).length), partial: nodes.filter(nd => nd.c > 0.01 && nd.c < 0.99).map(nd => [nd.k, nd.i, +nd.c.toFixed(2)]), traces: nodes.filter(nd => nd.doneT >= 0 && nd.k > 0).map(nd => [nd.k, nd.i, +Math.min(9, t - nd.doneT).toFixed(2)]), shots, cycle: { t: +ct.toFixed(2), pending: build.pending, dis: build.dis }, gadgets: gadgets.length, zspread: +(Math.max(...nodes.map(n => n.p.z)) - Math.min(...nodes.map(n => n.p.z))).toFixed(2) };
     window.__nodeScreen = (k, i) => ({ x: byL[k][i].p.x, y: byL[k][i].p.y });
   }
 
