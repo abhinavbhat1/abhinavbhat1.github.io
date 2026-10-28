@@ -23,7 +23,7 @@
   function currentMode() { return root.getAttribute('data-mode') === 'boring' ? 'boring' : 'journey'; }
   window.currentMode = currentMode;
   function placeEntries(mode) { LAYERS.forEach(L => L.cards.forEach(c => { if (mode === 'journey') { if (c.entry.parentElement !== c.el) c.el.appendChild(c.entry); } else if (c.entry.parentElement !== c.home) { c.home.insertBefore(c.entry, c.next && c.next.parentElement === c.home ? c.next : null); } })); }
-  function setMode(m, keepScroll) { root.setAttribute('data-mode', m); try { localStorage.setItem('mode', m); } catch (e) {} placeEntries(m); if (!keepScroll) window.scrollTo(0, 0); window.dispatchEvent(new CustomEvent('modechange', { detail: { mode: m } })); }
+  function setMode(m, keepScroll) { root.setAttribute('data-mode', m); try { localStorage.setItem('mode', m); } catch (e) {} placeEntries(m); const hc = $('hero-copy'); if (hc) hc.removeAttribute('style'); LAYERS.forEach(L => L.cards.forEach(c => { c.el.classList.remove('on'); c.el.style.opacity = '0'; })); if (!keepScroll) window.scrollTo(0, 0); if (m === 'journey' && window.resetJourney) window.resetJourney(); window.dispatchEvent(new CustomEvent('modechange', { detail: { mode: m } })); }
   placeEntries(currentMode());
   $('mode-toggle').addEventListener('click', () => setMode(currentMode() === 'journey' ? 'boring' : 'journey'));
   window.setMode = setMode;
@@ -60,14 +60,14 @@
   const NAMES = { ml: 'machine learning', health: 'healthcare AI', data: 'data engineering', swe: 'software engineering' };
   const lines = Array.from(document.querySelectorAll('.lines li[data-w]'));
   lines.forEach(li => { li._w = li.dataset.w.split(',').map(Number); });
-  const note = $('focus-note');
+  const note = $('focus-q');
   function applyFocus(f) {
-    if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = 'Pick a focus and the page re-weights to it.'; return; }
+    if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = 'What are you looking for?'; note.classList.remove('set'); return; }
     const k = TOPICS.indexOf(f); const scores = lines.map(li => li._w[k]);
     const mx = Math.max(...scores); const ex = scores.map(s => Math.exp(6 * (s - mx))); const Z = ex.reduce((a, b) => a + b, 0); const att = ex.map(e => e / Z); const amax = Math.max(...att);
     let kept = 0;
     lines.forEach((li, i) => { const rel = att[i] / amax; li.classList.toggle('hi', rel > 0.55); li.classList.toggle('lo', rel < 0.2); li.style.opacity = rel < 0.2 ? '' : (0.55 + 0.45 * rel).toFixed(2); if (rel > 0.55) kept++; });
-    note.textContent = `Re-weighted for ${NAMES[f]}: ${kept} points highlighted.`;
+    note.textContent = `${kept} points for ${NAMES[f]} ·`; note.classList.add('set');
   }
   document.querySelectorAll('#focus-chips .chip').forEach(c => c.addEventListener('click', () => { document.querySelectorAll('#focus-chips .chip').forEach(x => x.setAttribute('aria-pressed', 'false')); c.setAttribute('aria-pressed', 'true'); applyFocus(c.dataset.f); }));
 
