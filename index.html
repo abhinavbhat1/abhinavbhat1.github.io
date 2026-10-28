@@ -59,44 +59,13 @@
   </section>
 
   <div class="focus" id="focus-chips" role="group" aria-label="Focus the CV on a topic">
-    <span class="q">What are you looking for?</span>
+    <span class="q" id="focus-q">What are you looking for?</span>
     <button class="chip" data-f="all" aria-pressed="true">Everything</button>
     <button class="chip" data-f="ml" aria-pressed="false">Machine learning</button>
     <button class="chip" data-f="health" aria-pressed="false">Healthcare AI</button>
     <button class="chip" data-f="data" aria-pressed="false">Data engineering</button>
     <button class="chip" data-f="swe" aria-pressed="false">Software engineering</button>
-    <span class="note" id="focus-note">Pick a focus and the page re-weights to it.</span>
   </div>
-
-  <section class="sec" id="about" data-layer="About" data-where="journey">
-    <div class="sec-head"><span class="num">00</span><h2>About</h2></div>
-    <div class="sec-body">
-      <article class="entry" data-short="Machine learning">
-        <div class="meta"><span class="date">Interest</span></div>
-        <div class="body">
-<h3>Machine learning</h3><p class="org">Representation learning first: models that learn structure from data before they are asked to predict anything.</p>
-        </div>
-      </article>
-      <article class="entry" data-short="Healthcare AI">
-        <div class="meta"><span class="date">Interest</span></div>
-        <div class="body">
-<h3>Healthcare AI</h3><p class="org">Imaging, wearables and adherence, built with clinicians and validated honestly, so the result is a tool someone can use.</p>
-        </div>
-      </article>
-      <article class="entry" data-short="JEPA">
-        <div class="meta"><span class="date">Interest</span></div>
-        <div class="body">
-<h3>JEPA</h3><p class="org">Joint-embedding predictive architectures: predict what is hidden in a learned feature space, not in pixels. My current research direction for 3D MRI.</p>
-        </div>
-      </article>
-      <article class="entry" data-short="World models">
-        <div class="meta"><span class="date">Interest</span></div>
-        <div class="body">
-<h3>World models</h3><p class="org">Models that learn how a system evolves, so they can plan and reason rather than only classify.</p>
-        </div>
-      </article>
-    </div>
-  </section>
 
   <section class="sec" id="research" data-layer="Research" data-where="both">
     <div class="sec-head"><span class="num">01</span><h2>Research</h2></div>
@@ -125,7 +94,7 @@
         <div class="body">
           <h3>LUMINA Wearables: the archive layer of an AI-ready patient record</h3>
           <p class="org">Research Collaborator · <b>DCI Network</b>, Beth Israel Deaconess Medical Center / Harvard Medical School · with <b>HealthKey</b></p>
-          <div class="logos"><span class="logo"><img src="assets/logos/dci-network.png" alt="DCI Network"></span><span class="logo"><img src="assets/logos/bidmc.svg" alt="Beth Israel Deaconess Medical Center"></span><span class="logo text">HealthKey<small>open-source patient record</small></span></div>
+          <div class="logos"><span class="logo"><img src="assets/logos/dci-network.png" alt="DCI Network"></span><span class="logo"><img src="assets/logos/bidmc.svg" alt="Beth Israel Deaconess Medical Center"></span><span class="logo hms"><img src="assets/logos/hms.png" alt="Harvard Medical School"><span>Harvard<br>Medical School</span></span><span class="logo text">HealthKey<small>open-source patient record</small></span></div>
 <ul class="lines">
         <li data-w="0.5,1,1,0.8,0.3">Own work package 3 of LUMINA, the DCI Network's reference architecture for a longitudinal, multimodal patient record: a raw-readings archive, device sync and daily derivation into OMOP, delivered as pull requests to <strong>PRomop</strong>, HealthKey's open-source patient record.</li>
         <li data-w="0.8,1,0.6,0.2,0.3">Found five concept-mapping issues for the OMOP work package, including the heart-rate-variability mix-up (SDNN vs RMSSD) that became my semantic-drift research question.</li>
