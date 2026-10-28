@@ -1,4 +1,5 @@
-/* Theme, focus re-weighting, reveal-on-scroll, the pixel-melt home transition, and the small experiments. */
+/* Theme, the two modes (journey / boring), the cards that neurons burst into, the pixel-melt home transition,
+   focus re-weighting, and the small experiments. The drawing and the scroll journey live in scene.js. */
 (function () {
   'use strict';
   const root = document.documentElement, $ = (id) => document.getElementById(id);
@@ -12,9 +13,23 @@
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
 
-  // ── Reveal on scroll ──
-  const io = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  // ── Layers and cards: every entry in the document is one neuron; in journey mode it lives in a card ──
+  const cardsHost = $('cards');
+  const LAYERS = Array.from(document.querySelectorAll('.sec[data-layer]')).map(sec => ({
+    id: sec.id, name: sec.dataset.layer, sec,
+    cards: Array.from(sec.querySelectorAll('.entry')).map(entry => { const el = document.createElement('div'); el.className = 'jcard'; cardsHost.appendChild(el); return { el, entry, short: entry.dataset.short || '', home: entry.parentElement, next: entry.nextElementSibling }; })
+  }));
+  window.LAYERS = LAYERS;
+  function currentMode() { return root.getAttribute('data-mode') === 'boring' ? 'boring' : 'journey'; }
+  window.currentMode = currentMode;
+  function placeEntries(mode) { LAYERS.forEach(L => L.cards.forEach(c => { if (mode === 'journey') { if (c.entry.parentElement !== c.el) c.el.appendChild(c.entry); } else if (c.entry.parentElement !== c.home) { c.home.insertBefore(c.entry, c.next && c.next.parentElement === c.home ? c.next : null); } })); }
+  function setMode(m, keepScroll) { root.setAttribute('data-mode', m); try { localStorage.setItem('mode', m); } catch (e) {} placeEntries(m); if (!keepScroll) window.scrollTo(0, 0); window.dispatchEvent(new CustomEvent('modechange', { detail: { mode: m } })); }
+  placeEntries(currentMode());
+  $('mode-toggle').addEventListener('click', () => setMode(currentMode() === 'journey' ? 'boring' : 'journey'));
+  window.setMode = setMode;
+
+  // ── Nav: in journey mode a link jumps to that layer; in boring mode it scrolls to the section ──
+  document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); if (currentMode() === 'journey' && window.jumpToLayer) { e.preventDefault(); window.jumpToLayer(id); } else { const el = $(id); if (el) { e.preventDefault(); window.scrollTo({ top: el.offsetTop - 70, behavior: reduced ? 'auto' : 'smooth' }); } } }));
 
   // ── Experiments run once when their panel is opened ──
   document.querySelectorAll('details.try[data-auto]').forEach(d => { d.addEventListener('toggle', () => { if (!d.open || d.dataset.played) return; d.dataset.played = '1'; const fn = window.AUTO && window.AUTO[d.dataset.auto]; const badge = d.querySelector('[data-auto-badge]'); if (fn) setTimeout(() => fn(() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 200); }); });
@@ -36,7 +51,7 @@
         requestAnimationFrame(step); }
       requestAnimationFrame(step); };
   })();
-  const goHome = (e) => { e.preventDefault(); if (reduced) { window.scrollTo(0, 0); return; } melt(() => { window.scrollTo(0, 0); }); };
+  const goHome = (e) => { e.preventDefault(); if (reduced) { window.scrollTo(0, 0); return; } melt(() => { window.scrollTo(0, 0); if (window.resetJourney) window.resetJourney(); }); };
   $('brand').addEventListener('click', goHome); $('to-top').addEventListener('click', goHome);
   window.meltHome = () => $('brand').click();
 
