@@ -1,12 +1,14 @@
 /* The drawing. Journey mode: the network (Input → Research → Experience → Education → Skills → Contact) sits beside the
    name; on the home page it draws itself in (neurons pop, strings draw, layer by layer) and then runs a forward pass,
-   on its own every few seconds or when clicked. Scrolling retracts it to the input column, then centres each layer in
-   turn and snaps to it: the layer's neurons and strings are drawn in as the camera arrives, and every neuron explodes
-   into its card and sucks back in before the next. Between layers the network twists in 3D and the camera passes
-   through it, coming out on the other side at the next layer. Whatever is out of focus stays as beads on strings: drag
-   a bead, let go, and the strings ring. Boring mode: the document, with a drifting population of faded architecture
-   diagrams behind it (MLP, LSTM, Transformer, CNN, RNN, GNN); hover to wiggle, drag to move, click to break: the
-   pieces knock the others about, fall off the screen, and new ones drift in. */
+   on its own every few seconds or when clicked. Scrolling retracts it entirely and then builds it back one neuron at a
+   time, starting from the research layer: each neuron's strings grow out of the previous layer and the neuron pops in,
+   the camera moves to it, and it explodes into its card and sucks back in before the next. Between layers the camera
+   takes a shot picked at random on each visit: a swivel either way, a vertical flip, a tumble, or a ride that zooms
+   into the last neuron, follows the new string and zooms back out at the next one. Whatever is out of focus stays as
+   beads on strings: drag a bead, let go, and the strings ring. Boring mode: the document, with a drifting population
+   of faded architecture diagrams behind it (MLP, LSTM, Transformer, CNN, RNN, GNN) that wander about and every so
+   often rearrange themselves into another architecture; hover to wiggle, drag to move, click to break: the pieces
+   knock the others about, fall off the screen, and new ones drift in. */
 (function () {
   'use strict';
   const root = document.documentElement; const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -35,31 +37,52 @@
   const spanK = (k) => (counts[k] - 1) * 0.5; const maxSpan = Math.max(...counts.map((_, k) => spanK(k)));
 
   // ───────── camera: a focus point in the world, where it sits on screen, a zoom, and a yaw about the vertical axis ─────────
-  const cam = { fx: 0, fy: 0, ax: 0, ay: 0, s: 100, th: 0 }; let camInit = false; const PERSP = 3.2; let tilt = 0;
-  function proj(x, y, z, out) { const dx = x - cam.fx, dy = y - cam.fy; const th = cam.th + tilt; const c = Math.cos(th), sn = Math.sin(th); const xr = dx * c + z * sn, zr = -dx * sn + z * c; const k = PERSP / Math.max(0.25, PERSP + zr); const sc = cam.s * k; out.x = cam.ax + xr * sc; out.y = cam.ay + dy * sc; out.s = sc; out.z = zr; return out; }
+  const cam = { fx: 0, fy: 0, ax: 0, ay: 0, s: 100, th: 0, ph: 0 }; let camInit = false; const PERSP = 3.2; let tilt = 0;
+  function proj(x, y, z, out) { // yaw about the vertical axis through the focus, then pitch about the horizontal one, then perspective
+    const dx = x - cam.fx, dy = y - cam.fy; const th = cam.th + tilt; const c = Math.cos(th), sn = Math.sin(th); const xr = dx * c + z * sn; let zr = -dx * sn + z * c;
+    const cp = Math.cos(cam.ph), sp = Math.sin(cam.ph); const yr = dy * cp - zr * sp; zr = dy * sp + zr * cp;
+    const k = PERSP / Math.max(0.25, PERSP + zr); const sc = cam.s * k; out.x = cam.ax + xr * sc; out.y = cam.ay + yr * sc; out.s = sc; out.z = zr; return out; }
   const _p = { x: 0, y: 0, s: 1, z: 0 }, _q = { x: 0, y: 0, s: 1, z: 0 };
   const toScreen = (x, y, z) => { const o = { x: 0, y: 0, s: 1, z: 0 }; return proj(x, y, z || 0, o); };
-  function poseHero() { const m = narrow(); if (m) { const copy = document.getElementById('hero-copy'); const top = HEAD() + 16, bot = copy ? Math.max(top + 120, copy.getBoundingClientRect().top - 28) : H * 0.42; const s = Math.min(W * 0.9 / Lmax, (bot - top - 22) / (2 * maxSpan + 0.7)); return { fx: Lmax / 2, fy: 0, ax: W / 2, ay: (top + bot) / 2 - 4, s, th: 0 }; } const s = Math.min(W * 0.42 / Lmax, H * 0.6 / (maxSpan + 0.35)); return { fx: Lmax / 2, fy: 0, ax: W * 0.745, ay: H * 0.52, s, th: 0 }; }
-  function poseLayer(k) { const m = narrow(); const s = m ? Math.min(W * 0.5, H * 0.3 / (spanK(k) + 0.4)) : Math.min(W * 0.36, H * 0.58 / (spanK(k) + 0.45)); return { fx: k, fy: 0, ax: W / 2, ay: m ? H * 0.27 : H * 0.5, s, th: k * Math.PI }; }
+  function poseHero() { const m = narrow(); if (m) { const copy = document.getElementById('hero-copy'); const top = HEAD() + 16, bot = copy ? Math.max(top + 120, copy.getBoundingClientRect().top - 28) : H * 0.42; const s = Math.min(W * 0.9 / Lmax, (bot - top - 22) / (2 * maxSpan + 0.7)); return { fx: Lmax / 2, fy: 0, ax: W / 2, ay: (top + bot) / 2 - 4, s, th: 0, ph: 0 }; } const s = Math.min(W * 0.42 / Lmax, H * 0.6 / (maxSpan + 0.35)); return { fx: Lmax / 2, fy: 0, ax: W * 0.745, ay: H * 0.52, s, th: 0, ph: 0 }; }
+  // each layer is viewed head-on, but the yaw and pitch it is reached at depend on the shots taken on the way (multiples of π)
+  const thL = [0], phL = [0], shots = [null];
+  function poseLayer(k) { const m = narrow(); const s = m ? Math.min(W * 0.5, H * 0.3 / (spanK(k) + 0.4)) : Math.min(W * 0.36, H * 0.58 / (spanK(k) + 0.45)); return { fx: k, fy: 0, ax: W / 2, ay: m ? H * 0.27 : H * 0.5, s, th: thL[k], ph: phL[k] }; }
   function poseNeuron(k, i) { const p = poseLayer(k); p.fy = 0.7 * byL[k][i].y; return p; }
-  const lerpPose = (a, b, f) => ({ fx: mix(a.fx, b.fx, f), fy: mix(a.fy, b.fy, f), ax: mix(a.ax, b.ax, f), ay: mix(a.ay, b.ay, f), s: Math.exp(mix(Math.log(a.s), Math.log(b.s), f)), th: mix(a.th, b.th, f) });
-  // keyframes along the scroll, in beats; between two layers a wide mid-frame so the twist reads
-  const kfs = [], layerStart = [], pois = [0]; let total = 0;
-  { let u = 1; kfs.push({ u: 0, f: poseHero }); kfs.push({ u: 1, f: poseHero });
-    for (let k = 1; k < NLy; k++) { const n = counts[k]; const uE = u + 0.5; layerStart[k] = uE; const prev = kfs[kfs.length - 1];
-      const mid = { u: (prev.u + uE) / 2, f: ((pf, kk) => () => { const a = pf(), b = poseLayer(kk); const m = lerpPose(a, b, 0.5); m.s *= 0.42; return m; })(prev.f, k) }; kfs.push(mid);
+  function poseClose(k, i, mul) { const p = poseLayer(k), nd = byL[k][i]; p.fx = nd.x; p.fy = nd.y; p.s *= mul; return p; }
+  const lerpPose = (a, b, f) => ({ fx: mix(a.fx, b.fx, f), fy: mix(a.fy, b.fy, f), ax: mix(a.ax, b.ax, f), ay: mix(a.ay, b.ay, f), s: Math.exp(mix(Math.log(a.s), Math.log(b.s), f)), th: mix(a.th, b.th, f), ph: mix(a.ph || 0, b.ph || 0, f) });
+  // the shots between layers, picked at random on every visit: swivel (half turn either way), flip (vertical half turn), arc (a swivel
+  // that lifts over the top), ride (zoom into the last neuron, follow the new string, zoom out at the next one). The first shot leaves the
+  // home page, so no ride there.
+  { const pick = (arr, avoid) => { let v; do { v = arr[Math.floor(Math.random() * arr.length)]; } while (v === avoid && arr.length > 1); return v; };
+    shots[1] = pick(['swivel', 'swivel-', 'flip'], null); for (let k = 2; k < NLy; k++) shots[k] = pick(['swivel', 'swivel-', 'flip', 'arc', 'ride'], shots[k - 1]);
+    if (NLy > 2 && !shots.includes('ride')) shots[2 + Math.floor(Math.random() * (NLy - 2))] = 'ride';
+    for (let k = 1; k < NLy; k++) { const sh = shots[k]; thL[k] = thL[k - 1] + (sh === 'swivel' || sh === 'arc' ? Math.PI : sh === 'swivel-' ? -Math.PI : 0); phL[k] = phL[k - 1] + (sh === 'flip' ? Math.PI : 0); } }
+  // keyframes along the scroll, in beats. Leaving home: the network retracts, the first research neuron is created, then the shot.
+  // In a layer: each next neuron is created while the camera holds on the previous one, then the camera moves to it and it bursts.
+  // Between layers: the card closes, the next layer's first neuron is created (strings from the whole previous layer), then the shot.
+  const kfs = [], layerStart = [], pois = [0]; let total = 0; const HOLD = 1.25, SHOT = 0.9;
+  { kfs.push({ u: 0, f: poseHero }); kfs.push({ u: HOLD, f: poseHero }); let S0 = HOLD, prevF = poseHero;
+    for (let k = 1; k < NLy; k++) { const n = counts[k]; const uE = S0 + SHOT; layerStart[k] = uE; const sh = shots[k];
+      if (sh === 'ride') { const A = byL[k - 1][counts[k - 1] - 1], B = byL[k][0]; const kk = k;
+        kfs.push({ u: S0 + 0.2 * SHOT, f: () => poseClose(kk - 1, A.i, 3) });
+        kfs.push({ u: S0 + 0.55 * SHOT, f: () => { const p = poseLayer(kk); p.fx = kk - 0.5; p.fy = (A.y + B.y) / 2; p.s *= 1.7; p.th = thL[kk - 1] + 0.6; p.ph = phL[kk - 1]; return p; } });
+        kfs.push({ u: S0 + 0.82 * SHOT, f: () => poseClose(kk, 0, 3) }); }
+      else kfs.push({ u: S0 + SHOT / 2, f: ((pf, kk, arc) => () => { const m = lerpPose(pf(), poseLayer(kk), 0.5); m.s *= arc ? 0.38 : 0.42; if (arc) m.ph += 0.75; return m; })(prevF, k, sh === 'arc') });
       kfs.push({ u: uE, f: ((kk) => () => poseLayer(kk))(k) });
-      for (let i = 0; i < n; i++) { kfs.push({ u: uE + i + 0.5, f: ((kk, ii) => () => poseNeuron(kk, ii))(k, i) }); pois.push(uE + i + 0.5); }
-      u = uE + n; }
-    total = u + 0.4; kfs.push({ u: total, f: () => poseNeuron(Lmax, 0) }); pois.push(total); }
+      for (let i = 0; i < n; i++) { if (i > 0) kfs.push({ u: uE + i, f: ((kk, ii) => () => poseNeuron(kk, ii))(k, i - 1) }); kfs.push({ u: uE + i + 0.5, f: ((kk, ii) => () => poseNeuron(kk, ii))(k, i) }); pois.push(uE + i + 0.5);
+        byL[k][i].c0 = i > 0 ? uE + i - 0.45 : (k === 1 ? HOLD - 0.45 : S0 - 0.45); }
+      const B = uE + n - 0.5; prevF = ((kk, ii) => () => poseNeuron(kk, ii))(k, n - 1);
+      if (k < Lmax) { S0 = B + 0.75; kfs.push({ u: S0, f: prevF }); } else { total = B + 0.9; kfs.push({ u: total, f: prevF }); pois.push(total); } } }
   const BEAT = () => H * 0.8;
   const spacer = document.getElementById('spacer');
   function layoutSpacer() { if (spacer) spacer.style.height = Math.round(total * BEAT() + H) + 'px'; }
   function poseAt(u) { if (u <= kfs[0].u) return kfs[0].f(); for (let j = 1; j < kfs.length; j++) { if (u <= kfs[j].u) { const a = kfs[j - 1], b = kfs[j]; const f = smooth((u - a.u) / Math.max(1e-6, b.u - a.u)); return lerpPose(a.f(), b.f(), f); } } return kfs[kfs.length - 1].f(); }
   const burstOf = (k, i, u) => { if (k === 0) return 0; const local = u - (layerStart[k] + i); if (local < 0) return 0; if (k === Lmax) return backOut(local / 0.32); if (local >= 1) return 0; return backOut(local / 0.32) * (1 - smooth((local - 0.7) / 0.3)); };
-  const layerWeight = (k, u) => k === 0 ? 0 : smooth((u - (layerStart[k] - 0.55)) / 0.4) * (k === Lmax ? 1 : 1 - smooth((u - (layerStart[k] + counts[k] - 0.05)) / 0.45));
+  const layerWeight = (k, u) => k === 0 ? 0 : smooth((u - (layerStart[k] - 1.0)) / 0.5) * (k === Lmax ? 1 : 1 - smooth((u - (layerStart[k] + counts[k] + 0.2)) / 0.45));
   window.jumpToLayer = (id) => { const k = LAYERS.findIndex(L => L.id === id); if (k < 1) return; goTo(Math.round((layerStart[k] + 0.5) * BEAT()), 700); };
   window.resetJourney = () => { sv = 0; const p = poseHero(); Object.assign(cam, p); camInit = true; };
+  window.__shots = shots;
   // snapping: after the wheel stops, settle onto the nearest beat (forward-biased)
   let scrollTw = null, settleTimer = null, touching = false, lastY = 0, dir = 1;
   function goTo(to, ms) { const from = window.scrollY; if (scrollTw) cancelAnimationFrame(scrollTw.raf); if (reduced) { window.scrollTo(0, to); return; } const d = ms || Math.min(900, 300 + Math.abs(to - from) * 0.3); const t0 = performance.now(); const step = (now) => { const k = clamp((now - t0) / d); const e = 1 - Math.pow(1 - k, 3); window.scrollTo(0, from + (to - from) * e); if (k < 1) scrollTw.raf = requestAnimationFrame(step); else scrollTw = null; }; scrollTw = { raf: requestAnimationFrame(step) }; }
@@ -78,8 +101,9 @@
   const build = { t0: 1e9, dis: false, pending: false, fromPointer: false, px: 0, py: 0, started: false }; const DIS = 0.5, GAP = 0.2, BUILD = Lmax * GAP + 0.55, REST = 8500;
   const stag = (nd) => (nd.n > 1 ? nd.i / (nd.n - 1) * 0.5 : 0);
   function heroLb(k, t) { if (reduced) return 1; let tb = t; if (build.dis) { if (t < DIS) return 1 - smooth((t - (Lmax - k) * 0.04) / 0.3); tb = t - DIS; } return clamp((tb - k * GAP) / 0.55); }
-  // along the scroll: layers retract right to left while the hero copy fades, and each layer is drawn in as the camera comes round to it
-  function journeyLb(k, u) { if (k === 0 || reduced) return 1; const down = 1 - smooth((u - (0.12 + (Lmax - k) * 0.12)) / 0.22); const up = smooth((u - (layerStart[k] - 0.62)) / 0.55); return Math.max(down, up); }
+  // along the scroll: everything retracts right to left while the hero copy fades (the input column goes last and stays gone),
+  // then each neuron is created at its own moment (nd.c0, set with the keyframes): strings first, then the pop
+  function journeyC(nd, u) { if (reduced) return 1; const down = 1 - smooth((u - (0.12 + (Lmax - nd.k) * 0.11)) / 0.2); if (nd.k === 0) return down; return Math.max(down, clamp((u - nd.c0) / 0.45)); }
   const pass = { on: false, t0: 0, acts: null, path: null, y: 0 }; const STEP = 0.42; let lastFire = performance.now();
   function queuePass(fromPointer) { if (build.pending) return; build.dis = build.started; build.started = true; build.t0 = tNow; build.pending = true; build.fromPointer = !!fromPointer; build.px = ptr.x; build.py = ptr.y; pass.on = false; lastFire = performance.now(); }
   function startPass(fromPointer) {
@@ -123,7 +147,7 @@
   function drawJourney(t, dt) {
     const target = window.scrollY; sv += (target - sv) * (reduced ? 1 : 1 - Math.exp(-dt * 10)); if (Math.abs(target - sv) < 0.3) sv = target;
     const u = sv / BEAT(); const p = poseAt(u);
-    if (!camInit) { Object.assign(cam, p); camInit = true; } else { const k = 1 - Math.exp(-dt * 7); cam.fx += (p.fx - cam.fx) * k; cam.fy += (p.fy - cam.fy) * k; cam.ax += (p.ax - cam.ax) * k; cam.ay += (p.ay - cam.ay) * k; cam.s = Math.exp(Math.log(cam.s) + (Math.log(p.s) - Math.log(cam.s)) * k); cam.th += (p.th - cam.th) * k; }
+    if (!camInit) { Object.assign(cam, p); camInit = true; } else { const k = 1 - Math.exp(-dt * 7); cam.fx += (p.fx - cam.fx) * k; cam.fy += (p.fy - cam.fy) * k; cam.ax += (p.ax - cam.ax) * k; cam.ay += (p.ay - cam.ay) * k; cam.s = Math.exp(Math.log(cam.s) + (Math.log(p.s) - Math.log(cam.s)) * k); cam.th += (p.th - cam.th) * k; cam.ph += (p.ph - cam.ph) * k; }
     const heroK = 1 - smooth((u - 0.1) / 0.7), zoomK = smooth((u - 0.5) / 0.7); heroVis = heroK;
     tilt += (((narrow() || ptr.x < 0) ? 0 : 0.07 * ptr.nx * zoomK) - tilt) * (1 - Math.exp(-dt * 3));
     if (heroCopy) { heroCopy.style.opacity = heroK.toFixed(3); heroCopy.style.transform = `translateY(${(-24 * (1 - heroK)).toFixed(1)}px)`; heroCopy.style.visibility = heroK > 0.01 ? '' : 'hidden'; }
@@ -132,7 +156,7 @@
     if (!build.started) { build.started = true; build.dis = false; build.t0 = t + 0.35; build.pending = true; build.fromPointer = false; lastFire = performance.now(); }
     if (heroK < 0.5) lastFire = performance.now(); else if (!reduced && document.visibilityState === 'visible' && performance.now() - lastFire > REST) queuePass(false);
     const ct = t - build.t0; if (build.pending && ct >= (reduced ? 0 : (build.dis ? DIS : 0) + BUILD - 0.12)) { build.pending = false; startPass(build.fromPointer); }
-    const hw = 1 - smooth((u - 0.02) / 0.1); const lb = counts.map((_, k) => mix(journeyLb(k, u), heroLb(k, ct), hw));
+    const hw = 1 - smooth((u - 0.02) / 0.1); const lb = counts.map((_, k) => heroLb(k, ct));
     const el = pass.on ? (performance.now() - pass.t0) / 1000 : 99, pt = el / STEP; const fadeP = smooth((el - STEP * (NLy + 1) - 1.0) / 1.2); if (pass.on && fadeP >= 1) pass.on = false;
     // physics: beads spring home, the pointer pushes what it passes, strings ring down
     nodes.forEach(nd => { if (nd === dragNode) return; const dx = nd.p.x - ptr.x, dy = nd.p.y - ptr.y, d = Math.hypot(dx, dy); let fx = -30 * nd.ox - 4.5 * nd.vx, fy = -30 * nd.oy - 4.5 * nd.vy;
@@ -140,11 +164,11 @@
       nd.vx += fx * dt; nd.vy += fy * dt; nd.ox += nd.vx * dt; nd.oy += nd.vy * dt;
       const hv = d < 90 ? 1 - d / 90 : 0; nd.hov += (hv - nd.hov) * (1 - Math.exp(-dt * 8));
       let a = 0; if (pass.on) { const reach = clamp(pt - nd.k); a = pass.acts[nd.k][nd.i] * smooth(reach) * (1 - fadeP); } nd.act += (a * heroK - nd.act) * (1 - Math.exp(-dt * 10));
-      nd.vr = clamp((lb[nd.k] - stag(nd) * 0.9) / 0.5); nd.vis = pop(nd.vr);
+      nd.c = mix(journeyC(nd, u), clamp((lb[nd.k] - stag(nd) * 0.9) / 0.5), hw); nd.vr = clamp((nd.c - 0.25) / 0.75); nd.vis = pop(nd.vr);
       proj(nd.x + nd.ox, nd.y + nd.oy, nd.z, nd.p); });
     g.clearRect(0, 0, W, H); g.lineWidth = 1;
     // strings
-    edges.forEach(e => { const ev = clamp((lb[e.k] - stag(e.B) * 0.9 - 0.05) / 0.45); if (ev <= 0.001) return; const A = e.A.p, B = e.B.p; const inFocus = Math.max(lw[e.k - 1] || 0, lw[e.k] || 0); const depth = clamp(1 - (A.z + B.z) * 0.22, 0.3, 1.2);
+    edges.forEach(e => { const ev = Math.min(clamp(e.B.c / 0.85), clamp(e.A.c * 2)); if (ev <= 0.001) return; const A = e.A.p, B = e.B.p; const inFocus = Math.max(lw[e.k - 1] || 0, lw[e.k] || 0); const depth = clamp(1 - (A.z + B.z) * 0.22, 0.3, 1.2);
       if (ev < 0.999) { // being drawn: a line growing out of the previous neuron, with a bright tip
         const ex = mix(A.x, B.x, ev), ey = mix(A.y, B.y, ev); g.strokeStyle = col.ink; g.globalAlpha = (0.1 + 0.1 * Math.abs(e.w)) * depth; g.lineWidth = 1; g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(ex, ey); g.stroke();
         g.fillStyle = col.accent; g.globalAlpha = 0.7 * depth * Math.sin(Math.PI * ev); g.beginPath(); g.arc(ex, ey, 1.8, 0, 6.2832); g.fill(); return; }
@@ -160,7 +184,7 @@
     // beads (far first), bursts, names
     const Rb = Math.min(W, H) * 0.14; const bursts = []; g.textBaseline = 'middle';
     const order = nodes.slice().sort((a, b) => b.p.z - a.p.z);
-    order.forEach(nd => { if (nd.vis < 0.01) return; const s = nd.p; const r0 = clamp(0.045 * s.s, 3, 16) * (nd.out ? 1.5 : 1), r = r0 * nd.vis; const b = burstOf(nd.k, nd.i, u); const focus = lw[nd.k]; const bb = clamp(b);
+    order.forEach(nd => { if (nd.vis < 0.01) return; const s = nd.p; const r0 = clamp(0.045 * s.s * (nd.out ? 1.5 : 1), 3, 24), r = r0 * nd.vis; const b = burstOf(nd.k, nd.i, u); const focus = lw[nd.k]; const bb = clamp(b);
       if (bb > 0.05 && nd.bPrev <= 0.05) pluck(nd, 0.07); nd.bPrev = bb;
       const onPath = pass.on && pass.path[nd.k] === nd.i && pt > nd.k + 0.5 && heroK > 0.5;
       if (bb > 0.002) { bursts.push({ nd, b: bb, s, R: r + b * Rb }); g.fillStyle = col.accent; g.globalAlpha = 0.07 * bb; g.beginPath(); g.arc(s.x, s.y, r + b * Rb, 0, 6.2832); g.fill(); g.strokeStyle = col.accent; g.globalAlpha = 0.55 * bb; g.beginPath(); g.arc(s.x, s.y, r + b * Rb, 0, 6.2832); g.stroke(); }
@@ -186,22 +210,28 @@
       const tx = (s.x - (left + cw / 2)) * (1 - bb), ty = (s.y - (top + ch / 2)) * (1 - bb);
       el.style.left = left.toFixed(1) + 'px'; el.style.top = top.toFixed(1) + 'px'; el.style.opacity = smooth(bb * 1.3).toFixed(3); el.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${(0.5 + 0.5 * b).toFixed(3)})`; }));
     if (jlabel) { let txt = ''; if (activeK > 0 && zoomK > 0.5) { const L = LAYERS[activeK]; let ni = -1, nb = 0; byL[activeK].forEach((nd, i) => { const b = burstOf(activeK, i, u); if (b > nb) { nb = b; ni = i; } }); txt = `<b>${String(activeK).padStart(2, '0')}</b>${L.name}` + (nb > 0.3 ? ` · ${ni + 1} / ${counts[activeK]}` : ''); } if (txt !== lastJ) { lastJ = txt; jlabel.innerHTML = txt; } jlabel.classList.toggle('show', !!txt); }
-    window.__J = { u: +u.toFixed(2), activeK, zoomK: +zoomK.toFixed(2), heroK: +heroK.toFixed(2), bursts: bursts.map(x => [x.nd.k, x.nd.i, +x.b.toFixed(2)]), cam: { fx: +cam.fx.toFixed(2), fy: +cam.fy.toFixed(2), s: Math.round(cam.s), th: +cam.th.toFixed(2) }, pass: pass.on ? { pt: +pt.toFixed(2), y: +pass.y.toFixed(2) } : null, dragging: !!dragNode, maxAmp: +Math.max(0, ...edges.map(e => e.amp * Math.exp(-2.2 * (t - e.t0)))).toFixed(3), maxOff: +Math.max(...nodes.map(n => Math.hypot(n.ox, n.oy))).toFixed(3), total: +total.toFixed(2), beat: Math.round(BEAT()), pois, ls: layerStart, nav: navOn, lb: lb.map(v => +v.toFixed(2)), cycle: { t: +ct.toFixed(2), pending: build.pending, dis: build.dis }, gadgets: gadgets.length, zspread: +(Math.max(...nodes.map(n => n.p.z)) - Math.min(...nodes.map(n => n.p.z))).toFixed(2) };
+    window.__J = { u: +u.toFixed(2), activeK, zoomK: +zoomK.toFixed(2), heroK: +heroK.toFixed(2), bursts: bursts.map(x => [x.nd.k, x.nd.i, +x.b.toFixed(2)]), cam: { fx: +cam.fx.toFixed(2), fy: +cam.fy.toFixed(2), s: Math.round(cam.s), th: +cam.th.toFixed(2), ph: +cam.ph.toFixed(2) }, pass: pass.on ? { pt: +pt.toFixed(2), y: +pass.y.toFixed(2) } : null, dragging: !!dragNode, maxAmp: +Math.max(0, ...edges.map(e => e.amp * Math.exp(-2.2 * (t - e.t0)))).toFixed(3), maxOff: +Math.max(...nodes.map(n => Math.hypot(n.ox, n.oy))).toFixed(3), total: +total.toFixed(2), beat: Math.round(BEAT()), pois, ls: layerStart, nav: navOn, lb: lb.map(v => +v.toFixed(2)), built: counts.map((_, k) => byL[k].filter(nd => nd.vr > 0.99).length), partial: nodes.filter(nd => nd.c > 0.01 && nd.c < 0.99).map(nd => [nd.k, nd.i, +nd.c.toFixed(2)]), shots, cycle: { t: +ct.toFixed(2), pending: build.pending, dis: build.dis }, gadgets: gadgets.length, zspread: +(Math.max(...nodes.map(n => n.p.z)) - Math.min(...nodes.map(n => n.p.z))).toFixed(2) };
     window.__nodeScreen = (k, i) => ({ x: byL[k][i].p.x, y: byL[k][i].p.y });
   }
 
   // ───────── boring mode: a drifting population of architectures ─────────
   let gadgets = []; let lastScroll = 0; const KINDS = ['MLP', 'LSTM cell', 'Transformer block', 'CNN', 'RNN', 'GNN'];
-  function makeGadget(kind, cx, cy, sz, seed) {
-    const parts = [], links = []; const P = (x, y, c) => { parts.push({ rx: x, ry: y, x: cx + x, y: cy + y, vx: 0, vy: 0, c: !!c }); return parts.length - 1; }; const Lk = (a, b) => links.push([a, b]); const box = (x0, y0, x1, y1) => { const b = [P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1)]; Lk(b[0], b[1]); Lk(b[1], b[2]); Lk(b[2], b[3]); Lk(b[3], b[0]); return b; };
+  function shape(kind, sz, seed) { // the parts (relative) and links of one architecture
+    const parts = [], links = []; const P = (x, y, c) => { parts.push({ rx: x, ry: y, c: !!c }); return parts.length - 1; }; const Lk = (a, b) => links.push([a, b]); const box = (x0, y0, x1, y1) => { const b = [P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1)]; Lk(b[0], b[1]); Lk(b[1], b[2]); Lk(b[2], b[3]); Lk(b[3], b[0]); return b; };
     if (kind === 'MLP') { const lay = [3, 4, 2]; const ids = lay.map((n, k) => Array.from({ length: n }, (_, i) => P((k - 1) * sz * 0.95, (i - (n - 1) / 2) * sz * 0.48, true))); for (let k = 0; k < 2; k++) ids[k].forEach(a => ids[k + 1].forEach(b => Lk(a, b))); }
     else if (kind === 'LSTM cell') { const w = sz * 1.3, h = sz * 0.75; box(-w, -h, w, h); const gates = [-0.6, -0.2, 0.2, 0.6].map(f => P(f * w, h * 0.25, true)); const inp = P(-w * 1.4, h * 0.6), out = P(w * 1.4, -h * 0.6); gates.forEach(gt => Lk(inp, gt)); const top = [-0.6, -0.2, 0.2, 0.6].map(f => P(f * w, -h * 0.45)); gates.forEach((gt, j) => { Lk(gt, top[j]); if (j < 3) Lk(top[j], top[j + 1]); }); Lk(top[3], out); }
     else if (kind === 'Transformer block') { const w = sz * 1.05, bh = sz * 0.3; const ys = [sz * 1.0, 0, -sz * 1.0]; ys.forEach(y => box(-w, y - bh, w, y + bh)); for (let j = 0; j < 2; j++) Lk(P(0, ys[j] - bh), P(0, ys[j + 1] + bh)); const hub = P(0, 0, true); for (let j = 0; j < 5; j++) Lk(hub, P((j - 2) * w * 0.42, -bh - sz * 0.02)); }
     else if (kind === 'CNN') { let prev = null; for (let q = 0; q < 3; q++) { const o = q * sz * 0.38, s = sz * (0.95 - q * 0.2); const b = box(-s + o, -s - o, s + o, s - o); if (prev) { Lk(prev[0], b[0]); Lk(prev[2], b[2]); Lk(prev[1], b[1]); } prev = b; } }
     else if (kind === 'RNN') { const c = P(0, 0, true); const n = 11; let prev = null, first = null; for (let j = 0; j < n; j++) { const a = Math.PI * (-0.25 + 1.7 * j / (n - 1)); const p = P(sz * 0.62 * Math.cos(a) + sz * 0.35, -sz * 0.62 * Math.sin(a) - sz * 0.25); if (prev != null) Lk(prev, p); else first = p; prev = p; } Lk(c, first); Lk(prev, c); Lk(P(-sz * 1.3, sz * 0.25), c); Lk(c, P(sz * 1.3, sz * 0.25)); }
     else { const r = rng(seed); const ids = []; for (let j = 0; j < 7; j++) { const a = j / 7 * 6.28 + r() * 0.7, d = sz * (0.45 + 0.65 * r()); ids.push(P(Math.cos(a) * d, Math.sin(a) * d, true)); } for (let j = 0; j < 7; j++) { Lk(ids[j], ids[(j + 1) % 7]); if (r() < 0.6) Lk(ids[j], ids[(j + 3) % 7]); } }
-    return { kind, cx, cy, ax: cx, ay: cy, vx: 0, vy: 0, sz, ph: seed, parts, links, state: 'float', brokeT: 0, drag: false, gx: 0, gy: 0, linkA: 1, born: performance.now() };
+    return { parts, links };
   }
+  function makeGadget(kind, cx, cy, sz, seed) { const sh = shape(kind, sz, seed); return { kind, cx, cy, ax: cx, ay: cy, vx: 0, vy: 0, sz, ph: seed, parts: sh.parts.map(p => ({ rx: p.rx, ry: p.ry, c: p.c, x: cx + p.rx, y: cy + p.ry, vx: 0, vy: 0 })), links: sh.links, state: 'float', brokeT: 0, drag: false, gx: 0, gy: 0, linkA: 1, born: performance.now(), wa: Math.random() * 6.28, nextMorph: tNow + 4 + Math.random() * 10, morphT: -9 }; }
+  // a gadget rearranges itself into another architecture: the new parts start where the old ones are and spring into place
+  function morphGadget(gd) { const kinds = KINDS.filter(k => k !== gd.kind); const kind = kinds[Math.floor(Math.random() * kinds.length)]; const sh = shape(kind, gd.sz, gseed++); const old = gd.parts;
+    gd.parts = sh.parts.map((p, j) => { const o = old[j % old.length]; return { rx: p.rx, ry: p.ry, c: p.c, x: o.x, y: o.y, vx: o.vx + (Math.random() - 0.5) * 60, vy: o.vy + (Math.random() - 0.5) * 60 }; });
+    gd.links = sh.links; gd.kind = kind; gd.morphT = tNow; gd.nextMorph = tNow + 6 + Math.random() * 10; }
+  window.__morphGadget = (j) => morphGadget(gadgets[j]);
   let gseed = 300;
   function spawnGadget(fromEdge) { const r = Math.random; const kind = KINDS[Math.floor(r() * KINDS.length)]; const sz = (narrow() ? 22 : 28) + 24 * r(); let cx = W * (0.06 + 0.88 * r()), cy = H * (0.1 + 0.8 * r()); const gd = makeGadget(kind, cx, cy, sz, gseed++);
     if (fromEdge) { const side = r(); if (side < 0.5) { gd.cy = -sz * 2.5; } else if (side < 0.75) { gd.cx = -sz * 2.5; } else { gd.cx = W + sz * 2.5; } gd.parts.forEach(p => { p.x = gd.cx + p.rx; p.y = gd.cy + p.ry; }); }
@@ -213,7 +243,13 @@
   function stepGadgets(t, dt, drift, faintBase) {
     g.lineWidth = 1; g.font = `500 10px ${MONO}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     const dS = (window.scrollY - lastScroll) * drift; lastScroll = window.scrollY; const wrapH = H + 240;
-    gadgets.forEach(gd => { if (gd.state === 'float') { gd.ay -= dS; gd.cy -= dS; gd.parts.forEach(p => { p.y -= dS; }); if (!gd.drag) { if (gd.ay < -120) { gd.ay += wrapH; gd.cy += wrapH; gd.parts.forEach(p => { p.y += wrapH; }); } else if (gd.ay > H + 120) { gd.ay -= wrapH; gd.cy -= wrapH; gd.parts.forEach(p => { p.y -= wrapH; }); } } } });
+    const wrapW = W + 240;
+    gadgets.forEach(gd => { if (gd.state !== 'float') return; gd.ay -= dS; gd.cy -= dS; gd.parts.forEach(p => { p.y -= dS; }); if (gd.drag) return;
+      // wander: the anchor walks in a slowly turning direction, and wraps round the edges
+      gd.wa += (Math.random() - 0.5) * 2.2 * dt; gd.ax += Math.cos(gd.wa) * 26 * dt; gd.ay += Math.sin(gd.wa) * 26 * dt;
+      let sx = 0, sy = 0; if (gd.ay < -120) sy = wrapH; else if (gd.ay > H + 120) sy = -wrapH; if (gd.ax < -120) sx = wrapW; else if (gd.ax > W + 120) sx = -wrapW;
+      if (sx || sy) { gd.ax += sx; gd.ay += sy; gd.cx += sx; gd.cy += sy; gd.parts.forEach(p => { p.x += sx; p.y += sy; }); }
+      if (t > gd.nextMorph && t - gd.brokeT > 1) morphGadget(gd); });
     // float physics: a soft spring to the drifting anchor, knocks from debris, gentle bumps between neighbours
     gadgets.forEach(gd => { if (gd.state !== 'float' || gd.drag) return; const tx = gd.ax + 18 * Math.sin(t * 0.2 + gd.ph), ty = gd.ay + 12 * Math.cos(t * 0.17 + gd.ph * 1.7); gd.vx += ((tx - gd.cx) * 1.2 - 1.6 * gd.vx) * dt; gd.vy += ((ty - gd.cy) * 1.2 - 1.6 * gd.vy) * dt; gd.cx += gd.vx * dt; gd.cy += gd.vy * dt; });
     for (let a = 0; a < gadgets.length; a++) for (let b = a + 1; b < gadgets.length; b++) { const A = gadgets[a], B = gadgets[b]; if (A.state !== 'float' || B.state !== 'float') continue; const dx = B.cx - A.cx, dy = B.cy - A.cy, d = Math.hypot(dx, dy) || 1, min = (A.sz + B.sz) * 1.15; if (d < min) { const push = (min - d) * 2.2 * dt, nx = dx / d, ny = dy / d; if (!A.drag) { A.cx -= nx * push; A.cy -= ny * push; A.vx -= nx * push * 6; A.vy -= ny * push * 6; } if (!B.drag) { B.cx += nx * push; B.cy += ny * push; B.vx += nx * push * 6; B.vy += ny * push * 6; } } }
@@ -230,11 +266,11 @@
       const faint = faintBase * clamp((performance.now() - gd.born) / 900);
       g.strokeStyle = col.ink; g.globalAlpha = (0.2 * gd.linkA + 0.14 * (hover ? 1 : 0)) * faint; g.beginPath(); gd.links.forEach(([a, b]) => { g.moveTo(gd.parts[a].x, gd.parts[a].y); g.lineTo(gd.parts[b].x, gd.parts[b].y); }); g.stroke();
       gd.parts.forEach(p => { if (p.c) { g.globalAlpha = faint; g.fillStyle = col.bg; g.beginPath(); g.arc(p.x, p.y, 4, 0, 6.2832); g.fill(); g.strokeStyle = col.ink; g.globalAlpha = 0.4 * faint; g.beginPath(); g.arc(p.x, p.y, 4, 0, 6.2832); g.stroke(); } else { g.fillStyle = col.ink; g.globalAlpha = 0.35 * faint; g.beginPath(); g.arc(p.x, p.y, 1.6, 0, 6.2832); g.fill(); } });
-      if (!broken) { let maxY = -1e9; gd.parts.forEach(p => { maxY = Math.max(maxY, gd.cy + p.ry); }); g.fillStyle = col.dim; g.globalAlpha = 0.6 * gd.linkA * faint; g.fillText(gd.kind, gd.cx, maxY + 16); }
+      if (!broken) { let maxY = -1e9; gd.parts.forEach(p => { maxY = Math.max(maxY, gd.cy + p.ry); }); g.fillStyle = col.dim; g.globalAlpha = 0.6 * gd.linkA * faint * clamp((t - gd.morphT - 0.7) / 0.5); g.fillText(gd.kind, gd.cx, maxY + 16); }
     });
     const gone = gadgets.filter(gd => gd.state === 'gone').length; if (gone) { gadgets = gadgets.filter(gd => gd.state !== 'gone'); for (let j = 0; j < gone; j++) spawnGadget(true); window.__gadgets = gadgets; }
     g.globalAlpha = 1;
-    window.__G = gadgets.map(gd => ({ kind: gd.kind, x: Math.round(gd.cx), y: Math.round(gd.cy), state: gd.state, drag: gd.drag, v: Math.round(Math.hypot(gd.vx, gd.vy)), spread: +Math.max(...gd.parts.map(p => Math.hypot(p.x - gd.cx - p.rx, p.y - gd.cy - p.ry))).toFixed(1) }));
+    window.__G = gadgets.map(gd => ({ kind: gd.kind, x: Math.round(gd.cx), y: Math.round(gd.cy), state: gd.state, drag: gd.drag, v: Math.round(Math.hypot(gd.vx, gd.vy)), morphs: +(t - gd.morphT).toFixed(1), parts: gd.parts.length, spread: +Math.max(...gd.parts.map(p => Math.hypot(p.x - gd.cx - p.rx, p.y - gd.cy - p.ry))).toFixed(1) }));
   }
   function drawBoring(t, dt) {
     g.clearRect(0, 0, W, H); stepGadgets(t, dt, 0.3, narrow() ? 0.4 : 0.5);
