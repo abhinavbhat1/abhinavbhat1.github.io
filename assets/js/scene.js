@@ -4,9 +4,9 @@
    turn and snaps to it: the layer's neurons and strings are drawn in as the camera arrives, and every neuron explodes
    into its card and sucks back in before the next. Between layers the network twists in 3D and the camera passes
    through it, coming out on the other side at the next layer. Whatever is out of focus stays as beads on strings: drag
-   a bead, let go, and the strings ring. Behind all of it a few faded architecture diagrams drift. Boring mode: the
-   document, with a bigger drifting population of those diagrams (MLP, LSTM, Transformer, CNN, RNN, GNN); hover to
-   wiggle, drag to move, click to break: the pieces knock the others about, fall off the screen, and new ones drift in. */
+   a bead, let go, and the strings ring. Boring mode: the document, with a drifting population of faded architecture
+   diagrams behind it (MLP, LSTM, Transformer, CNN, RNN, GNN); hover to wiggle, drag to move, click to break: the
+   pieces knock the others about, fall off the screen, and new ones drift in. */
 (function () {
   'use strict';
   const root = document.documentElement; const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -100,7 +100,7 @@
     if (mode() === 'journey') { let best = null, bd = 26; nodes.forEach(nd => { if (nd.vis < 0.5) return; const d = Math.hypot(nd.p.x - e.clientX, nd.p.y - e.clientY); if (d < bd) { bd = d; best = nd; } }); if (best) { dragNode = best; e.preventDefault(); return; } }
     let best = null, bd = 1e9; gadgets.forEach(gd => { if (gd.state !== 'float') return; const d = Math.hypot(gd.cx - e.clientX, gd.cy - e.clientY); if (d < gd.sz * 1.6 && d < bd) { bd = d; best = gd; } }); if (best) { dragGad = best; best.gx = e.clientX - best.cx; best.gy = e.clientY - best.cy; best.drag = true; e.preventDefault(); } });
   window.addEventListener('pointerup', (e) => { ptr.down = false; const moved = Math.hypot(ptr.x - downAt.x, ptr.y - downAt.y), held = performance.now() - downAt.t;
-    if (dragNode) { const sc = dragNode.p.s || cam.s; if (moved < 5 && held < 350) { pluck(dragNode, 0.1); dragNode.vy -= 0.6; } else { dragNode.vx = ptr.vx / sc * 0.6; dragNode.vy = ptr.vy / sc * 0.6; pluck(dragNode, clamp(0.04 + Math.hypot(ptr.vx, ptr.vy) / sc * 0.08, 0.04, 0.22)); } dragNode = null; }
+    if (dragNode) { const sc = dragNode.p.s || cam.s; if (moved < 5 && held < 350) { pluck(dragNode, 0.1); dragNode.vy -= 0.6; if (heroVis > 0.5) queuePass(true); } else { dragNode.vx = ptr.vx / sc * 0.6; dragNode.vy = ptr.vy / sc * 0.6; pluck(dragNode, clamp(0.04 + Math.hypot(ptr.vx, ptr.vy) / sc * 0.08, 0.04, 0.22)); } dragNode = null; }
     else if (dragGad) { dragGad.drag = false; if (moved < 6 && held < 400) breakGadget(dragGad); dragGad = null; }
     else if (mode() === 'journey' && moved < 6 && held < 400 && !interactive(e.target) && heroVis > 0.5) queuePass(true); });
   window.addEventListener('pointercancel', () => { ptr.down = false; dragNode = null; if (dragGad) dragGad.drag = false; dragGad = null; });
@@ -142,7 +142,7 @@
       let a = 0; if (pass.on) { const reach = clamp(pt - nd.k); a = pass.acts[nd.k][nd.i] * smooth(reach) * (1 - fadeP); } nd.act += (a * heroK - nd.act) * (1 - Math.exp(-dt * 10));
       nd.vr = clamp((lb[nd.k] - stag(nd) * 0.9) / 0.5); nd.vis = pop(nd.vr);
       proj(nd.x + nd.ox, nd.y + nd.oy, nd.z, nd.p); });
-    g.clearRect(0, 0, W, H); stepGadgets(t, dt, 0.12, narrow() ? 0.18 : 0.26); g.lineWidth = 1;
+    g.clearRect(0, 0, W, H); g.lineWidth = 1;
     // strings
     edges.forEach(e => { const ev = clamp((lb[e.k] - stag(e.B) * 0.9 - 0.05) / 0.45); if (ev <= 0.001) return; const A = e.A.p, B = e.B.p; const inFocus = Math.max(lw[e.k - 1] || 0, lw[e.k] || 0); const depth = clamp(1 - (A.z + B.z) * 0.22, 0.3, 1.2);
       if (ev < 0.999) { // being drawn: a line growing out of the previous neuron, with a bright tip
@@ -206,10 +206,10 @@
   function spawnGadget(fromEdge) { const r = Math.random; const kind = KINDS[Math.floor(r() * KINDS.length)]; const sz = (narrow() ? 22 : 28) + 24 * r(); let cx = W * (0.06 + 0.88 * r()), cy = H * (0.1 + 0.8 * r()); const gd = makeGadget(kind, cx, cy, sz, gseed++);
     if (fromEdge) { const side = r(); if (side < 0.5) { gd.cy = -sz * 2.5; } else if (side < 0.75) { gd.cx = -sz * 2.5; } else { gd.cx = W + sz * 2.5; } gd.parts.forEach(p => { p.x = gd.cx + p.rx; p.y = gd.cy + p.ry; }); }
     gadgets.push(gd); return gd; }
-  function seedGadgets() { gadgets = []; lastScroll = window.scrollY; const j = mode() === 'journey'; const n = j ? (narrow() ? 3 : 6) : (narrow() ? 7 : 12); for (let q = 0; q < n; q++) spawnGadget(false); window.__gadgets = gadgets; }
+  function seedGadgets() { gadgets = []; lastScroll = window.scrollY; const n = mode() === 'journey' ? 0 : (narrow() ? 8 : 14); for (let q = 0; q < n; q++) spawnGadget(false); window.__gadgets = gadgets; }
   function breakGadget(gd, hard) { if (gd.state !== 'float') return; gd.state = 'broken'; gd.brokeT = tNow; gd.parts.forEach(p => { p.vx += (Math.random() - 0.5) * (hard ? 700 : 520) + gd.vx; p.vy += -140 - Math.random() * 360 + gd.vy; }); }
   window.__breakGadget = (j) => breakGadget(gadgets[j]);
-  // the population, both modes: drifts with the scroll (wrapping), floats on soft springs, bumps apart; debris falls, knocks, chain-breaks, leaves, is replaced
+  // the population (boring mode): drifts with the scroll (wrapping), floats on soft springs, bumps apart; debris falls, knocks, chain-breaks, leaves, is replaced
   function stepGadgets(t, dt, drift, faintBase) {
     g.lineWidth = 1; g.font = `500 10px ${MONO}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     const dS = (window.scrollY - lastScroll) * drift; lastScroll = window.scrollY; const wrapH = H + 240;
