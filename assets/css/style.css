@@ -132,7 +132,10 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
 .lines li.hi::before { background: var(--accent); transform: scale(1.3); }
 .lines li.lo { opacity: .35; }
 .lines li .st { display: inline-block; margin-left: .35rem; font-size: .74rem; font-weight: 500; color: var(--accent); }
-.lines li .st.pub { color: var(--good); }
+.lines li .st.pub, .lines li .st.live { color: var(--good); }
+.blip { display: inline-block; position: relative; width: 8px; height: 8px; margin: 0 .45rem 1px 0; border-radius: 50%; background: var(--good); vertical-align: middle; }
+.blip::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid var(--good); animation: blip 1.7s ease-out infinite; }
+@keyframes blip { 0% { transform: scale(.55); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
 .lines li .st a { color: inherit; }
 .lines li .dt { display: inline-block; margin-left: .35rem; font-size: .76rem; color: var(--dim); white-space: nowrap; }
 .tags { display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -190,7 +193,7 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
 #jepa-svg { max-width: 430px; } #bandit-svg { max-width: 560px; } #vol-svg { max-width: 560px; } #metrics-svg { max-width: 520px; } #drift-svg { max-height: 110px; }
 .btn.sm.primary { background: var(--ink); color: var(--bg); }
 
-@media (prefers-reduced-motion: reduce) { .hero-copy > * { opacity: 1 !important; transform: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .blip::after { animation: none; } .hero-copy > * { opacity: 1 !important; transform: none !important; transition: none !important; } }
 
 /* ── Mobile ── */
 @media (max-width: 900px) {
