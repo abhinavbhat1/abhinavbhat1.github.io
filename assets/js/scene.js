@@ -181,6 +181,11 @@
       if (sig > 0.08 && pt > e.k - 1 && pt < e.k + 0.4) { const s = clamp(pt - (e.k - 1)); g.globalAlpha = sig; g.fillStyle = col.accent; g.beginPath(); g.arc(mix(A.x, B.x, s), mix(A.y, B.y, s), 1.6 + 1.8 * sig, 0, 6.2832); g.fill(); }
       if (zoomK > 0.05 && lw[e.k] > 0.05) { g.fillStyle = col.accent; for (let j = 0; j < 2; j++) { const s = (t * 0.22 + j * 0.5 + e.ph * 0.1) % 1; g.globalAlpha = 0.45 * lw[e.k] * zoomK * Math.sin(Math.PI * s); g.beginPath(); g.arc(mix(A.x, B.x, s), mix(A.y, B.y, s), 1.6, 0, 6.2832); g.fill(); } } });
     g.lineWidth = 1;
+    // a faint dashed trace from the neuron being built (or in focus) to where the next one will appear, a hint that there is more to scroll
+    if (zoomK > 0.02) { g.setLineDash([3, 6]); g.strokeStyle = col.ink;
+      for (let k = 1; k < NLy; k++) { const w = lw[k] * zoomK; if (w < 0.02) continue; byL[k].forEach((nd, i) => { const nx = i + 1 < counts[k] ? byL[k][i + 1] : (k < Lmax ? byL[k + 1][0] : null); if (!nx) return; const a = 0.3 * w * smooth(nd.c * 2) * (1 - smooth(nx.c * 2)); if (a < 0.01) return;
+        const A = nd.p, B = nx.p; g.globalAlpha = a; g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(B.x, B.y); g.stroke(); g.beginPath(); g.arc(B.x, B.y, clamp(0.045 * B.s, 3, 24) * 0.9, 0, 6.2832); g.stroke(); }); }
+      g.setLineDash([]); }
     // beads (far first), bursts, names
     const Rb = Math.min(W, H) * 0.14; const bursts = []; g.textBaseline = 'middle';
     const order = nodes.slice().sort((a, b) => b.p.z - a.p.z);
