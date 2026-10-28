@@ -3,20 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Abhinav Bhat — Machine learning, healthcare AI</title>
+<title>Abhinav Bhat — Machine learning for healthcare</title>
 <meta name="description" content="Abhinav Bhat. Master's of Computer Science at the Courant Institute of Mathematical Sciences, NYU. Machine learning, healthcare AI, JEPA, world models. Seeking Summer 2027 internships.">
 <meta name="author" content="Abhinav Bhat">
 <meta property="og:title" content="Abhinav Bhat">
 <meta property="og:description" content="Master's of Computer Science at NYU Courant. Machine learning, healthcare AI, JEPA, world models. Seeking Summer 2027 internships.">
 <meta property="og:type" content="profile">
 <meta property="og:url" content="https://abhinavbhat1.github.io/">
-<meta name="theme-color" content="#3772ff">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%233772ff'/%3E%3Cpath d='M9 24 L16 7 L23 24 M12 18 H20' stroke='%2306040f' stroke-width='3' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#fbfbf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1012" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%232b5bd7'/%3E%3Ccircle cx='16' cy='16' r='5' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif:ital@0;1&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="stylesheet" href="assets/css/style.css">
-<script>try { if (localStorage.getItem('contrast') === '1') document.documentElement.classList.add('theme-contrast'); } catch (e) {}</script>
+<script>var __t = 'light'; try { var s = localStorage.getItem('theme'); if (s === 'dark' || s === 'light') __t = s; } catch (e) {} document.documentElement.setAttribute('data-theme', __t);</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Person","name":"Abhinav Bhat","url":"https://abhinavbhat1.github.io/","email":"mailto:ab14664@nyu.edu",
  "affiliation":[{"@type":"CollegeOrUniversity","name":"New York University, Courant Institute of Mathematical Sciences"}],
@@ -25,122 +26,104 @@
 </script>
 </head>
 <body>
-<canvas id="scene" aria-hidden="true"></canvas>
-<div class="frame" aria-hidden="true"></div>
 <div id="melt" aria-hidden="true"><canvas></canvas></div>
-<div id="loader" aria-hidden="true"><div class="mark">AB</div><div class="cap" id="intro-cap">Loading…</div><button class="skip" id="intro-skip" type="button">Skip intro</button></div>
 
-<header class="head" id="head">
-  <a class="h-logo" id="brand" href="#top" title="Home"><b>AB</b><span>Abhinav Bhat</span></a>
-  <div class="h-console" role="presentation"><span id="console"></span></div>
-  <nav class="h-nav" aria-label="Chapters">
+<header class="top" id="top">
+  <a class="brand" id="brand" href="#top">Abhinav Bhat</a>
+  <nav class="nav" aria-label="Sections">
     <a href="#research">Research</a><a href="#experience">Experience</a><a href="#education">Education</a><a href="#skills">Skills</a><a href="#contact">Contact</a>
   </nav>
-  <div class="h-social">
-    <a href="https://www.linkedin.com/in/abhinavbhat1/" target="_blank" rel="noopener" title="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.2 8h4.6v14H.2V8zm7.3 0h4.4v1.9h.1c.6-1.1 2.1-2.3 4.3-2.3 4.6 0 5.5 3 5.5 7V22h-4.6v-6.2c0-1.5 0-3.4-2.1-3.4s-2.4 1.6-2.4 3.3V22H7.5V8z"/></svg><span class="sr">LinkedIn</span></a>
-    <a href="https://orcid.org/0009-0009-2148-2209" target="_blank" rel="noopener" title="ORCID"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 8v8M12.5 8h2a4 4 0 0 1 0 8h-2z"/></svg><span class="sr">ORCID</span></a>
-    <a href="https://github.com/abhinavbhat1" target="_blank" rel="noopener" title="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg><span class="sr">GitHub</span></a>
+  <div class="top-right">
+    <a class="btn sm" href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf">Download CV</a>
+    <button class="icon-btn" id="theme-toggle" aria-label="Toggle colour theme" title="Toggle theme">
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
   </div>
-  <button class="h-contrast" id="contrast" type="button" title="Change contrast" aria-label="Change contrast"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18V4a8 8 0 0 1 0 16z"/></svg></button>
-  <aside class="h-avail"><span>M.S. Computer Science, NYU Courant · expected May 2028.</span><span>Seeking Summer 2027 internships → <a href="mailto:ab14664@nyu.edu">Email me</a></span></aside>
-  <a class="h-cv" href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf"><b>CV</b><span>Download ↓</span></a>
 </header>
 
-<main id="stage">
+<main>
   <section class="hero" id="hero">
-    <div class="hero-waves" id="waves" aria-hidden="true"></div>
-    <div class="hero-content" id="hero-copy">
-      <div class="sep" data-sep></div>
-      <h1 class="h-title"><span class="w">Abhinav</span><span class="star">✦</span><span class="w">Bhat</span></h1>
-      <div class="sep" data-sep></div>
-      <div class="hero-lines">
-        <div>
-          <p class="lead">Pursuing a Master's of Computer Science at the <em>Courant Institute of Mathematical Sciences, NYU</em>. I build machine learning for healthcare: JEPA and world models for 3D imaging, and the data systems underneath.</p>
-          <div class="topics" aria-label="Interests"><span>Machine learning</span><span>Healthcare AI</span><span>JEPA</span><span>World models</span></div>
-        </div>
-        <div>
-          <p class="seek">Seeking Summer 2027 internships in machine learning, applied AI, data engineering and software engineering.</p>
-          <div class="links">
-            <a class="btn primary" href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Download CV</a>
-            <a class="btn" href="https://www.linkedin.com/in/abhinavbhat1/" target="_blank" rel="noopener">LinkedIn</a>
-            <a class="btn" href="https://orcid.org/0009-0009-2148-2209" target="_blank" rel="noopener">ORCID</a>
-            <a class="btn" href="mailto:ab14664@nyu.edu">Email</a>
-          </div>
-          <div class="school"><span class="logo"><img src="assets/logos/nyu-courant.png" alt="NYU Courant Institute"></span><span>M.S. Computer Science · expected May 2028</span></div>
-        </div>
+    <canvas id="net" aria-hidden="true"></canvas>
+    <div class="hero-copy">
+      <p class="kicker">Machine learning · Healthcare AI · JEPA · World models</p>
+      <h1>Abhinav Bhat</h1>
+      <p class="lead">Pursuing a Master's of Computer Science at the <em>Courant Institute of Mathematical Sciences, NYU</em>. I build machine learning for healthcare: self-supervised models for 3D imaging, and the data systems underneath them.</p>
+      <p class="seek">Seeking Summer 2027 internships in machine learning, applied AI, data engineering and software engineering.</p>
+      <div class="links">
+        <a class="btn primary" href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf">Download CV</a>
+        <a class="btn" href="https://www.linkedin.com/in/abhinavbhat1/" target="_blank" rel="noopener">LinkedIn</a>
+        <a class="btn" href="https://orcid.org/0009-0009-2148-2209" target="_blank" rel="noopener">ORCID</a>
+        <a class="btn" href="mailto:ab14664@nyu.edu">Email</a>
       </div>
+      <div class="school"><span class="logo"><img src="assets/logos/nyu-courant.png" alt="NYU Courant Institute"></span><span>M.S. Computer Science · expected May 2028</span></div>
     </div>
+    <div class="readout" id="readout" aria-hidden="true"></div>
   </section>
-  <div class="focus-strip" id="focus-chips" role="group" aria-label="Focus the CV on a topic">
+
+  <div class="focus" id="focus-chips" role="group" aria-label="Focus the CV on a topic">
     <span class="q">What are you looking for?</span>
     <button class="chip" data-f="all" aria-pressed="true">Everything</button>
     <button class="chip" data-f="ml" aria-pressed="false">Machine learning</button>
     <button class="chip" data-f="health" aria-pressed="false">Healthcare AI</button>
     <button class="chip" data-f="data" aria-pressed="false">Data engineering</button>
     <button class="chip" data-f="swe" aria-pressed="false">Software engineering</button>
-    <span class="focus-note" id="focus-note">Pick a focus and the site re-weights to it.</span>
+    <span class="note" id="focus-note">Pick a focus and the page re-weights to it.</span>
   </div>
-  <section class="sec" id="research" data-sec="research" data-short="Research" data-scene="corridor">
-    <div class="sticky">
-      <div class="wall" aria-hidden="true"><span>Research Research Research Research Research Research Research Research </span><span>Research Research Research Research Research Research Research Research </span><span>Research Research Research Research Research Research Research Research </span><span>Research Research Research Research Research Research Research Research </span></div>
-      <div class="track">
-      <article class="card title">
-        <div class="ch"><b>01</b><i>Research</i></div>
-        <h2>Healthcare AI research, from 3D imaging to adherence</h2>
-        <p class="sub">NYU Langone Health, the DCI Network at Beth Israel Deaconess / Harvard Medical School, Manipal and Deakin.</p>
-      </article>
-      <article class="card">
-      <div class="eyebrow"><span>Latest research</span><span class="status">In progress</span><span class="date">2026 – present</span></div>
-      <h2>Predicting post-contrast 3D breast MRI from pre-contrast scans</h2>
-      <div class="org">Research Assistant, <b>Sumit Chopra Lab</b> · NYU Langone Health</div>
-      <div class="logos"><span class="logo"><img src="assets/logos/nyu-langone.svg" alt="NYU Langone Health"></span></div>
-      <ul class="lines">
+
+  <section class="sec" id="research">
+    <div class="sec-head"><span class="num">01</span><h2>Research</h2></div>
+    <div class="sec-body">
+      <article class="entry reveal">
+        <div class="meta"><span class="date">2026 – present</span><span class="status">In progress</span></div>
+        <div class="body">
+          <h3>Predicting post-contrast 3D breast MRI from pre-contrast scans</h3>
+          <p class="org">Research Assistant, <b>Sumit Chopra Lab</b> · NYU Langone Health</p>
+          <div class="logos"><span class="logo"><img src="assets/logos/nyu-langone.svg" alt="NYU Langone Health"></span></div>
+<ul class="lines">
         <li data-w="1,1,0.2,0.3,0">Self-supervised <strong>LeJEPA</strong> representations of 3D MRI, learning to predict contrast enhancement so that fewer scans need a gadolinium injection.</li>
       </ul>
-      
-      </article>
-      <article class="card wide" data-auto="jepa">
-        <div class="eyebrow"><span>Latest research · the idea</span></div>
+        <details class="try" data-auto="jepa"><summary>Try the idea: hide part of a scan, predict the rest</summary>
 <div class="exp">
         <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">The idea in one picture: hide part of a scan, learn to predict the hidden part from what is visible.</span></div>
         <svg id="jepa-svg" role="img" aria-label="Masked prediction demo"></svg>
         <div class="row"><label>Training <input type="range" id="jepa-prog" min="0" max="1" step="0.02" value="0"><output id="jepa-val">0%</output></label></div>
         <div class="out" id="jepa-out"></div>
       </div>
+        </details>
+        </div>
       </article>
-      <article class="card">
-      <div class="eyebrow"><span>Research</span><span class="status">In progress</span><span class="date">2025 – present</span></div>
-      <h2>LUMINA Wearables: the archive layer of an AI-ready patient record</h2>
-      <div class="org">Research Collaborator · <b>DCI Network</b>, Beth Israel Deaconess Medical Center / Harvard Medical School · with <b>HealthKey</b></div>
-      <div class="logos"><span class="logo"><img src="assets/logos/dci-network.png" alt="DCI Network"></span><span class="logo"><img src="assets/logos/bidmc.svg" alt="Beth Israel Deaconess Medical Center"></span><span class="logo text">HealthKey<small>open-source patient record</small></span></div>
-      <ul class="lines">
+      <article class="entry reveal">
+        <div class="meta"><span class="date">2025 – present</span><span class="status">In progress</span></div>
+        <div class="body">
+          <h3>LUMINA Wearables: the archive layer of an AI-ready patient record</h3>
+          <p class="org">Research Collaborator · <b>DCI Network</b>, Beth Israel Deaconess Medical Center / Harvard Medical School · with <b>HealthKey</b></p>
+          <div class="logos"><span class="logo"><img src="assets/logos/dci-network.png" alt="DCI Network"></span><span class="logo"><img src="assets/logos/bidmc.svg" alt="Beth Israel Deaconess Medical Center"></span><span class="logo text">HealthKey<small>open-source patient record</small></span></div>
+<ul class="lines">
         <li data-w="0.5,1,1,0.8,0.3">Own work package 3 of LUMINA, the DCI Network's reference architecture for a longitudinal, multimodal patient record: a raw-readings archive, device sync and daily derivation into OMOP, delivered as pull requests to <strong>PRomop</strong>, HealthKey's open-source patient record.</li>
         <li data-w="0.8,1,0.6,0.2,0.3">Found five concept-mapping issues for the OMOP work package, including the heart-rate-variability mix-up (SDNN vs RMSSD) that became my semantic-drift research question.</li>
       </ul>
-      
-      </article>
-      <article class="card wide" data-auto="vol">
-        <div class="eyebrow"><span>Wearables · why derivation matters</span></div>
+        <details class="try" data-auto="vol"><summary>Try it: why the archive needs a daily derivation step</summary>
 <div class="exp">
         <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Why the archive needs a daily derivation step: raw wearable data is enormous.</span></div>
         <div class="row"><label>Patients <input type="range" id="vol-n" min="2" max="5" step="0.05" value="3"><output id="vol-val">1,000</output></label></div>
         <svg id="vol-svg" role="img" aria-label="Rows per year: raw vs daily"></svg>
         <div class="out" id="vol-out"></div>
       </div>
+        </details>
+        </div>
       </article>
-      <article class="card">
-      <div class="eyebrow"><span>Research</span><span class="status">Accepted poster · AMIA 2026</span><span class="date">2025 – present</span></div>
-      <h2>PACD: a contextual-bandit system for medication adherence</h2>
-      <div class="org">Research Collaborator with <b>Dr. Yuri Quintana</b> · Beth Israel Deaconess Medical Center / Harvard Medical School</div>
-      <div class="logos"><span class="logo"><img src="assets/logos/bidmc.svg" alt="Beth Israel Deaconess Medical Center"></span><span class="logo"><img src="assets/logos/harvard-teaching-hospital.svg" alt="A teaching hospital of Harvard Medical School"></span></div>
-      <ul class="lines">
+      <article class="entry reveal">
+        <div class="meta"><span class="date">2025 – present</span><span class="status">Accepted poster · AMIA 2026</span></div>
+        <div class="body">
+          <h3>PACD: a contextual-bandit system for medication adherence</h3>
+          <p class="org">Research Collaborator with <b>Dr. Yuri Quintana</b> · Beth Israel Deaconess Medical Center / Harvard Medical School</p>
+          <div class="logos"><span class="logo"><img src="assets/logos/bidmc.svg" alt="Beth Israel Deaconess Medical Center"></span><span class="logo"><img src="assets/logos/harvard-teaching-hospital.svg" alt="A teaching hospital of Harvard Medical School"></span></div>
+<ul class="lines">
         <li data-w="1,1,0.1,0.3,0.2">Personalises cardiovascular adherence interventions while only ever choosing from a clinician-approved set. <span class="st">Accepted poster, AMIA 2026 Annual Symposium</span></li>
         <li data-w="0.6,1,0,0,0.1">Scoping review of AI approaches to monitoring medication adherence in cardiovascular disease (Bebarta, Prabhakaran, <strong>Bhat</strong>, et al.). <span class="st pub">Published · <a href="https://doi.org/10.1186/s12911-026-03422-3" target="_blank" rel="noopener">BMC Medical Informatics and Decision Making, 26:132, March 2026</a></span></li>
       </ul>
-      
-      </article>
-      <article class="card wide" data-auto="bandit">
-        <div class="eyebrow"><span>Adherence · the system learning</span></div>
+        <details class="try" data-auto="bandit"><summary>Try it: let the system learn which option keeps patients on their medication</summary>
 <div class="exp">
         <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Tick what the clinician allows, then let the system learn which option keeps patients on their medication.</span></div>
         <div class="row" id="bandit-ok">
@@ -154,19 +137,20 @@
         <svg id="bandit-svg" role="img" aria-label="Estimated adherence per option" style="margin-top:.4rem"></svg>
         <div class="out" id="bandit-out"></div>
       </div>
+        </details>
+        </div>
       </article>
-      <article class="card">
-      <div class="eyebrow"><span>Research</span><span class="date">2024 – 2026</span></div>
-      <h2>Earlier work: honest evaluation and computational pathology</h2>
-      <div class="logos"><span class="logo"><img src="assets/logos/manipal.png" alt="Manipal Academy of Higher Education"></span><span class="logo text">Deakin University<small>Melbourne, Australia</small></span></div>
-      <ul class="lines">
+      <article class="entry reveal">
+        <div class="meta"><span class="date">2024 – 2026</span></div>
+        <div class="body">
+          <h3>Earlier work: honest evaluation and computational pathology</h3>
+          <p class="org">Manipal Institute of Technology · Deakin University</p>
+          <div class="logos"><span class="logo"><img src="assets/logos/manipal.png" alt="Manipal Academy of Higher Education"></span><span class="logo text">Deakin University<small>Melbourne, Australia</small></span></div>
+<ul class="lines">
         <li data-w="1,0.8,0.1,0.2,0">Multimodal depression detection (AVEC 2017): showed a 72%-accuracy model found only 7% of depressed patients, and set balanced reporting metrics · Manipal Institute of Technology &amp; Deakin University. <span class="st">Manuscript ready</span></li>
         <li data-w="0.8,0.9,0,0,0.2">First-author systematic review of automated mitotic-figure detection in breast histopathology · Manipal School of Information Sciences. <span class="st">Manuscript ready for submission</span></li>
       </ul>
-      
-      </article>
-      <article class="card wide" data-auto="metrics">
-        <div class="eyebrow"><span>Earlier work · why accuracy lies</span></div>
+        <details class="try" data-auto="metrics"><summary>Try it: why accuracy lies</summary>
 <div class="exp">
         <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Move the decision threshold: accuracy barely changes while the share of depressed patients actually found collapses.</span></div>
         <svg id="metrics-svg" role="img" aria-label="Score distributions and threshold"></svg>
@@ -177,123 +161,107 @@
         </div>
         <div class="out" id="metrics-out"></div>
       </div>
+        </details>
+        </div>
       </article>
-      </div>
     </div>
   </section>
-  <section class="sec" id="experience" data-sec="experience" data-short="Experience" data-scene="pipes">
-    <div class="sticky">
-      <div class="wall" aria-hidden="true"><span>Experience Experience Experience Experience Experience Experience Experience Experience </span><span>Experience Experience Experience Experience Experience Experience Experience Experience </span><span>Experience Experience Experience Experience Experience Experience Experience Experience </span><span>Experience Experience Experience Experience Experience Experience Experience Experience </span></div>
-      <div class="track">
-      <article class="card title">
-        <div class="ch"><b>02</b><i>Experience</i></div>
-        <h2>Honeywell: intern to Tech Lead</h2>
-        <p class="sub">Four and a half years in Bengaluru, from a 2022 internship to leading five engineers in 2026.</p>
-      </article>
-      <article class="card wide">
-      <div class="eyebrow"><span>Experience</span><span class="date">Jan 2022 – Jul 2026 · Bengaluru, India</span></div>
-      <h2>Honeywell: intern to Tech Lead</h2>
-      <div class="logos"><span class="logo"><img src="assets/logos/honeywell.svg" alt="Honeywell"></span></div>
-      <div class="roles">
+
+  <section class="sec" id="experience">
+    <div class="sec-head"><span class="num">02</span><h2>Experience</h2></div>
+    <div class="sec-body">
+      <article class="entry reveal">
+        <div class="meta"><span class="date">Jan 2022 – Jul 2026</span><span class="place">Bengaluru, India</span></div>
+        <div class="body">
+          <h3>Honeywell: intern to Tech Lead</h3>
+          <div class="logos"><span class="logo"><img src="assets/logos/honeywell.svg" alt="Honeywell"></span></div>
+          <div class="roles">
         <div class="role"><h3>Tech Lead / Data Validation Engineer</h3><span class="date">Sep 2024 – Jul 2026</span>
           <ul class="lines"><li data-w="0.4,0,1,0.6,1">Led five engineers on pipeline design, test strategy and release readiness for two enterprise platforms; built Snowflake and dbt validation frameworks that catch schema drift, silent corruption and data leakage before release; validated GenAI data migrations.</li></ul></div>
         <div class="role"><h3>Performance Engineer</h3><span class="date">Oct 2022 – Sep 2024</span>
           <ul class="lines"><li data-w="0,0,0.4,1,0.2">REST API benchmarking and regression suites in CI, capacity planning with JMeter and Groovy, Kubernetes CI/CD pipelines with Octopus Deploy and Bamboo.</li></ul></div>
         <div class="role"><h3>Software Engineering Intern</h3><span class="date">Jan 2022 – Jul 2022</span>
           <ul class="lines"><li data-w="0,0,0.3,1,0">Unit-testing web app and automated ISO builds with Python and PowerShell on a firewall-protected network.</li></ul></div>
-      </div>
-      
-      </article>
-      <article class="card wide" data-auto="drift">
-        <div class="eyebrow"><span>Honeywell · silent data corruption</span></div>
+          </div>
+        <details class="try" data-auto="drift"><summary>Try it: silent data corruption and the checks that catch it</summary>
 <div class="exp">
         <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Pick what goes wrong in today's data and see which check catches it.</span></div>
         <div class="row"><div class="seg" id="drift-mode" role="group" aria-label="Failure"><button data-v="none" aria-pressed="true">Healthy</button><button data-v="unit" aria-pressed="false">Unit change ×1000</button><button data-v="null" aria-pressed="false">Null spike</button><button data-v="shift" aria-pressed="false">Quiet drift</button></div></div>
         <div class="two" style="margin-top:.6rem"><svg id="drift-svg" role="img" aria-label="Reference vs today"></svg><div class="checks" id="drift-checks"></div></div>
         <div class="out" id="drift-out"></div>
       </div>
+        </details>
+        </div>
       </article>
-      </div>
     </div>
   </section>
-  <section class="sec" id="education" data-sec="education" data-short="Education" data-scene="radial">
-    <div class="sticky">
-      <div class="wall" aria-hidden="true"><span>Education Education Education Education Education Education Education Education </span><span>Education Education Education Education Education Education Education Education </span><span>Education Education Education Education Education Education Education Education </span><span>Education Education Education Education Education Education Education Education </span></div>
-      <div class="track">
-      <article class="card title">
-        <div class="ch"><b>03</b><i>Education</i></div>
-        <h2>NYU Courant and Manipal</h2>
-        <p class="sub">A Master's of Computer Science in progress, a B.Tech. behind it, and the grants and boards along the way.</p>
-      </article>
-      <article class="card wide">
-      <div class="eyebrow"><span>Education</span></div>
-      <div class="edu">
+
+  <section class="sec" id="education">
+    <div class="sec-head"><span class="num">03</span><h2>Education</h2></div>
+    <div class="sec-body">
+      <article class="entry reveal">
+        <div class="meta"><span class="date">Degrees</span></div>
+        <div class="body">
+          <div class="edu">
         <div class="e"><span class="logo"><img src="assets/logos/nyu-courant.png" alt="NYU Courant Institute"></span><div><h3>New York University</h3><p>Master's of Computer Science · Courant Institute of Mathematical Sciences</p><p>Coursework: Machine Learning, Operating Systems, Programming Languages</p><span class="date">Expected May 2028 · New York</span></div></div>
         <div class="e"><span class="logo"><img src="assets/logos/manipal.png" alt="Manipal Academy of Higher Education"></span><div><h3>Manipal Institute of Technology</h3><p>B.Tech. Computer Science and Engineering · Manipal Academy of Higher Education</p><span class="date">Graduated Nov 2022 · Manipal, India</span></div></div>
-      </div>
-      
+          </div>
+        </div>
       </article>
-      <article class="card">
-<div class="eyebrow"><span>Leadership &amp; honours</span></div>
-      <ul class="lines">
+      <article class="entry reveal">
+        <div class="meta"><span class="date">Leadership &amp; honours</span></div>
+        <div class="body">
+<ul class="lines">
         <li data-w="0.1,0.7,0,0.3,0.9"><strong>NIDHI-EIR grant</strong> for low-cost 3D-printed prosthetic splints with KMC Manipal Orthopaedics <span class="dt">2019</span></li>
         <li data-w="0.1,0,0.4,0.6,0.8"><strong>Honeywell Bronze Award</strong>, three times, for engineering quality and delivery</li>
         <li data-w="0,0,0,0,1"><strong>National Board Member, IAESTE India</strong>: national operations and international relations across 10+ committees <span class="dt">2019 – 2021</span></li>
         <li data-w="0,0,0,0,0.9"><strong>Content &amp; Marketing Head, IAESTE Manipal</strong>: grew engagement to 1,500+ followers <span class="dt">2018 – 2019</span></li>
       </ul>
-      <div class="logos" style="margin-top:1rem"><span class="logo"><img src="assets/logos/iaeste.png" alt="IAESTE"></span></div>
+          <div class="logos" style="margin-top:1rem"><span class="logo"><img src="assets/logos/iaeste.png" alt="IAESTE"></span></div>
+        </div>
       </article>
-      </div>
     </div>
   </section>
-  <section class="sec" id="skills" data-sec="skills" data-short="Skills" data-scene="matrix">
-    <div class="sticky">
-      <div class="wall" aria-hidden="true"><span>Skills Skills Skills Skills Skills Skills Skills Skills </span><span>Skills Skills Skills Skills Skills Skills Skills Skills </span><span>Skills Skills Skills Skills Skills Skills Skills Skills </span><span>Skills Skills Skills Skills Skills Skills Skills Skills </span></div>
-      <div class="track">
-      <article class="card title">
-        <div class="ch"><b>04</b><i>Skills</i></div>
-        <h2>The toolkit</h2>
-        <p class="sub">Machine learning, data engineering, testing and the languages underneath.</p>
-      </article>
-      <article class="card wide">
-      <div class="eyebrow"><span>Skills</span></div>
-      <h2>Toolkit</h2>
-      <div class="skills" style="margin-top:1.2rem">
+
+  <section class="sec" id="skills">
+    <div class="sec-head"><span class="num">04</span><h2>Skills</h2></div>
+    <div class="sec-body">
+      <article class="entry reveal">
+        <div class="meta"><span class="date">Toolkit</span></div>
+        <div class="body">
+          <div class="skills">
         <div class="g"><h3>ML &amp; AI</h3><div class="tags"><span class="hot">PyTorch</span><span>TensorFlow</span><span>scikit-learn</span><span class="hot">Hugging Face Transformers</span><span class="hot">JEPA</span><span>Computer vision</span><span class="hot">Contextual bandits</span><span>Model evaluation</span></div></div>
         <div class="g"><h3>Data engineering</h3><div class="tags"><span class="hot">Snowflake</span><span class="hot">dbt</span><span>Kafka</span><span>ETL pipelines</span><span>Data quality</span><span>OMOP</span><span>Docker</span><span>Kubernetes</span><span>REST APIs</span><span>Power BI</span></div></div>
         <div class="g"><h3>Testing &amp; DevOps</h3><div class="tags"><span>Pytest</span><span>Great Expectations</span><span>TestNG</span><span>Maven</span><span>JMeter</span><span>Grafana</span><span>AppDynamics</span><span>CI/CD</span><span>Git</span></div></div>
         <div class="g"><h3>Programming</h3><div class="tags"><span class="hot">Python</span><span class="hot">SQL</span><span>Java</span><span>C++</span><span>C</span><span>R</span><span>Bash</span><span>PowerShell</span><span>Groovy</span></div></div>
-      </div>
+          </div>
+        </div>
       </article>
-      </div>
     </div>
   </section>
-  <section class="sec final" id="contact" data-sec="contact" data-short="Contact" data-scene="landscape">
-    <div class="sticky">
-      <div class="wall" aria-hidden="true"><span>Contact Contact Contact Contact Contact Contact Contact Contact </span><span>Contact Contact Contact Contact Contact Contact Contact Contact </span><span>Contact Contact Contact Contact Contact Contact Contact Contact </span><span>Contact Contact Contact Contact Contact Contact Contact Contact </span></div>
-      <article class="card contact">
-      <div class="ch"><b>05</b><i>Contact</i></div>
-      <h2>Let's talk about Summer 2027.</h2>
-      <p class="org">Machine learning, applied AI, data engineering or software engineering internships, and research collaborations in healthcare AI.</p>
-      <div class="contact-list">
-        <a href="mailto:ab14664@nyu.edu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span class="k">Email</span>ab14664@nyu.edu</a>
-        <a href="https://www.linkedin.com/in/abhinavbhat1/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg><span class="k">LinkedIn</span>linkedin.com/in/abhinavbhat1</a>
-        <a href="https://orcid.org/0009-0009-2148-2209" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 8v8M12.5 8h2a4 4 0 0 1 0 8h-2z"/></svg><span class="k">ORCID</span>0009-0009-2148-2209</a>
-        <a href="https://github.com/abhinavbhat1" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg><span class="k">GitHub</span>github.com/abhinavbhat1</a>
-        <a href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span class="k">CV</span>Download the one-page PDF</a>
-        <a href="Abhinav_Bhat_CV.pdf" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 13h6M9 17h6"/></svg><span class="k">Read</span>Read my latest CV</a>
+
+  <section class="sec contact" id="contact">
+    <div class="sec-head"><span class="num">05</span><h2>Contact</h2></div>
+    <div class="sec-body">
+      <div class="contact-grid reveal">
+        <div class="minimum"><canvas id="minimum" aria-hidden="true"></canvas><p class="cap">The output neuron, settling at the global minimum.</p></div>
+        <div>
+          <h3 class="big">Let's talk about Summer 2027.</h3>
+          <p class="org">Machine learning, applied AI, data engineering or software engineering internships, and research collaborations in healthcare AI.</p>
+          <ul class="contact-list">
+            <li><span class="k">Email</span><a href="mailto:ab14664@nyu.edu">ab14664@nyu.edu</a></li>
+            <li><span class="k">LinkedIn</span><a href="https://www.linkedin.com/in/abhinavbhat1/" target="_blank" rel="noopener">linkedin.com/in/abhinavbhat1</a></li>
+            <li><span class="k">ORCID</span><a href="https://orcid.org/0009-0009-2148-2209" target="_blank" rel="noopener">0009-0009-2148-2209</a></li>
+            <li><span class="k">GitHub</span><a href="https://github.com/abhinavbhat1" target="_blank" rel="noopener">github.com/abhinavbhat1</a></li>
+            <li><span class="k">CV</span><span><a href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf">Download the one-page PDF</a> · <a href="Abhinav_Bhat_CV.pdf" target="_blank" rel="noopener">Read my latest CV</a></span></li>
+          </ul>
+        </div>
       </div>
-      </article>
     </div>
   </section>
 </main>
 
-<footer class="foot" id="foot">
-  <div class="sep" data-sep></div>
-  <div class="foot-in"><div class="mark">AB</div><p>© 2026 Abhinav Bhat · New York</p></div>
-</footer>
-<nav class="rail" id="rail" aria-label="Sections"></nav>
-<div class="pill" id="pill"></div>
+<footer class="foot"><span>© 2026 Abhinav Bhat · New York</span><a href="#top" id="to-top">Back to top</a></footer>
 
 <script src="assets/js/main.js" defer></script>
 <script src="assets/js/scene.js" defer></script>
