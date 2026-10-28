@@ -65,6 +65,15 @@ html[data-mode="journey"] .in-journey, html[data-mode="boring"] .in-boring { dis
 .hero-copy > * { opacity: 0; transform: translateY(10px); transition: opacity .7s ease, transform .7s ease; }
 html.ready .hero-copy > * { opacity: 1; transform: none; }
 html.ready .hero-copy > :nth-child(2) { transition-delay: .07s } html.ready .hero-copy > :nth-child(3) { transition-delay: .14s } html.ready .hero-copy > :nth-child(4) { transition-delay: .21s } html.ready .hero-copy > :nth-child(5) { transition-delay: .28s } html.ready .hero-copy > :nth-child(6) { transition-delay: .35s }
+.beacon { display: inline-flex; align-items: center; gap: .55rem; max-width: 100%; margin-bottom: 1.1rem; padding: .36rem .85rem .36rem .6rem; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, transparent); font-size: .78rem; color: var(--text); transition: border-color .2s; }
+.beacon:hover { border-color: var(--accent); }
+.beacon .tag { font-weight: 600; font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); flex: none; }
+.beacon .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.beacon .txt-s { display: none; }
+.beacon .pulse { position: relative; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+.beacon .pulse::before, .beacon .pulse::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--accent); animation: beacon 2.4s ease-out infinite; }
+.beacon .pulse::after { animation-delay: 1.2s; }
+@keyframes beacon { 0% { transform: scale(.45); opacity: .95; } 100% { transform: scale(2.6); opacity: 0; } }
 .kicker { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.1rem; }
 .hero h1 { font-size: clamp(2.9rem, 6.2vw, 4.8rem); line-height: 1.02; letter-spacing: -.035em; margin-bottom: 1.1rem; }
 .hero .lead { font-size: clamp(1.05rem, 1.4vw, 1.22rem); line-height: 1.45; color: var(--text); margin-bottom: .9rem; }
@@ -77,7 +86,7 @@ html.ready .hero-copy > :nth-child(2) { transition-delay: .07s } html.ready .her
 /* ── Journey mode ── */
 html[data-mode="journey"] #main > :not(.hero) { display: none; }
 html[data-mode="journey"] .hero { position: fixed; inset: 0; z-index: 5; margin: 0 auto; pointer-events: none; }
-html[data-mode="journey"] .hero-copy { pointer-events: none; will-change: opacity, transform; }
+html[data-mode="journey"] .hero-copy { pointer-events: none; will-change: opacity, transform; transform-origin: 50% 50%; }
 html[data-mode="journey"] .hero-copy a { pointer-events: auto; }
 html[data-mode="boring"] .hero { min-height: 82vh; min-height: 82dvh; }
 html[data-mode="boring"] .hero-copy { max-width: 46rem; }
@@ -91,9 +100,6 @@ html[data-mode="boring"] #journey { display: none; }
 .jcard .entry { grid-template-columns: 1fr; gap: .5rem; padding: 0; border: 0; }
 .jcard .entry:last-child { border: 0; }
 .jcard .meta { flex-direction: row; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; }
-.jlabel { position: fixed; left: var(--gutter); bottom: 1.2rem; z-index: 6; font-family: var(--mono); font-size: .7rem; letter-spacing: .06em; color: var(--dim); pointer-events: none; opacity: 0; transition: opacity .3s; }
-.jlabel.show { opacity: 1; }
-.jlabel b { color: var(--ink); font-weight: 600; margin-right: .5rem; }
 
 /* ── Boring mode: the document ── */
 html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
@@ -193,7 +199,7 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
 #jepa-svg { max-width: 430px; } #bandit-svg { max-width: 560px; } #vol-svg { max-width: 560px; } #metrics-svg { max-width: 520px; } #drift-svg { max-height: 110px; }
 .btn.sm.primary { background: var(--ink); color: var(--bg); }
 
-@media (prefers-reduced-motion: reduce) { .blip::after { animation: none; } .hero-copy > * { opacity: 1 !important; transform: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .blip::after { animation: none; } .beacon .pulse::before, .beacon .pulse::after { animation: none; } .hero-copy > * { opacity: 1 !important; transform: none !important; transition: none !important; } }
 
 /* ── Mobile ── */
 @media (max-width: 900px) {
@@ -209,12 +215,14 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
   html[data-mode="journey"] .hero .lead { font-size: .95rem; margin-bottom: .6rem; }
   html[data-mode="journey"] .hero .seek { font-size: .86rem; margin-bottom: 1rem; }
   html[data-mode="journey"] .kicker { display: none; }
+  .beacon { font-size: .72rem; margin-bottom: .8rem; }
+  .beacon .txt { display: none; }
+  .beacon .txt-s { display: inline; white-space: nowrap; }
   html[data-mode="journey"] .hero .links { margin-bottom: 0; }
   .hero h1 { font-size: 2.6rem; }
   .hero .lead { font-size: 1rem; }
   .hero .seek { font-size: .92rem; }
   .jcard { width: calc(100vw - 2rem); max-height: 56dvh; padding: 1.1rem 1.1rem; border-radius: 14px; }
-  .jlabel { display: none; }
   .focus { gap: .15rem; }
   .focus .q { display: none; }
   .focus .q.set { display: inline; }

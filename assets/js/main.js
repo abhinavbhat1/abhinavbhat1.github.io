@@ -51,9 +51,11 @@
         requestAnimationFrame(step); }
       requestAnimationFrame(step); };
   })();
-  const goHome = (e) => { e.preventDefault(); if (reduced) { window.scrollTo(0, 0); return; } melt(() => { window.scrollTo(0, 0); if (window.resetJourney) window.resetJourney(); }); };
+  const goHome = (e) => { e.preventDefault(); if (root.getAttribute('data-mode') === 'journey' && window.warpHome) { window.warpHome(); return; } if (reduced) { window.scrollTo(0, 0); return; } melt(() => { window.scrollTo(0, 0); if (window.resetJourney) window.resetJourney(); }); };
   $('brand').addEventListener('click', goHome); $('to-top').addEventListener('click', goHome);
   window.meltHome = () => $('brand').click();
+  // the beacon: straight to what's latest (the PACD neuron in fun mode, the PACD entry in boring mode)
+  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (root.getAttribute('data-mode') === 'journey' && window.jumpToNeuron) window.jumpToNeuron(1, 2); else { const art = document.querySelector('article[data-short="PACD"]'); if (art) art.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'center' }); } });
 
   // ── "What are you looking for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe'];
