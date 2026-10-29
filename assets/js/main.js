@@ -1,5 +1,5 @@
-/* Theme, the two modes (journey / boring), the cards that neurons burst into, the pixel-melt home transition,
-   focus re-weighting, and the small experiments. The drawing and the scroll journey live in scene.js. */
+/* Theme, the cards that neurons burst into, the TL;DR panel, the home and nav hooks, focus re-weighting, and the small
+   experiments. The drawing and the scroll journey live in scene.js; the boot mark in logo.js. */
 (function () {
   'use strict';
   const root = document.documentElement, $ = (id) => document.getElementById(id);
@@ -9,9 +9,9 @@
   // ── Theme ──
   function currentTheme() { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
   window.currentTheme = currentTheme;
-  function setTheme(t) { root.setAttribute('data-theme', t); try { localStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
+  function setTheme(t) { root.setAttribute('data-theme', t); try { sessionStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
-  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
+  if (!root.classList.contains('booting')) requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
 
   // ── Layers and cards: every entry in the document is one neuron; in journey mode it lives in a card ──
   const cardsHost = $('cards');
@@ -20,42 +20,32 @@
     cards: Array.from(sec.querySelectorAll('.entry')).map(entry => { const el = document.createElement('div'); el.className = 'jcard'; cardsHost.appendChild(el); return { el, entry, short: entry.dataset.short || '', home: entry.parentElement, next: entry.nextElementSibling }; })
   }));
   window.LAYERS = LAYERS;
-  function currentMode() { return root.getAttribute('data-mode') === 'boring' ? 'boring' : 'journey'; }
+  function currentMode() { return 'journey'; }
   window.currentMode = currentMode;
-  function placeEntries(mode) { LAYERS.forEach(L => L.cards.forEach(c => { if (mode === 'journey') { if (c.entry.parentElement !== c.el) c.el.appendChild(c.entry); } else if (c.entry.parentElement !== c.home) { c.home.insertBefore(c.entry, c.next && c.next.parentElement === c.home ? c.next : null); } })); }
-  function setMode(m, keepScroll) { root.setAttribute('data-mode', m); try { localStorage.setItem('mode', m); } catch (e) {} placeEntries(m); const hc = $('hero-copy'); if (hc) hc.removeAttribute('style'); LAYERS.forEach(L => L.cards.forEach(c => { c.el.classList.remove('on'); c.el.style.opacity = '0'; })); if (!keepScroll) window.scrollTo(0, 0); if (m === 'journey' && window.resetJourney) window.resetJourney(); window.dispatchEvent(new CustomEvent('modechange', { detail: { mode: m } })); }
-  placeEntries(currentMode());
-  $('mode-toggle').addEventListener('click', () => setMode(currentMode() === 'journey' ? 'boring' : 'journey'));
-  window.setMode = setMode;
+  LAYERS.forEach(L => L.cards.forEach(c => { if (c.entry.parentElement !== c.el) c.el.appendChild(c.entry); }));
 
-  // ── Nav: in journey mode a link jumps to that layer; in boring mode it scrolls to the section ──
-  document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); if (currentMode() === 'journey' && window.jumpToLayer) { e.preventDefault(); window.jumpToLayer(id); } else { const el = $(id); if (el) { e.preventDefault(); window.scrollTo({ top: el.offsetTop - 70, behavior: reduced ? 'auto' : 'smooth' }); } } }));
+  // ── Nav: a link warps to that layer ──
+  document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); e.preventDefault(); if (window.jumpToLayer) window.jumpToLayer(id); }));
+
+  // ── TL;DR: the whole thing on one card ──
+  const tldr = $('tldr'); let tldrWas = null;
+  function openTldr() { tldr.classList.add('open'); root.classList.add('tldr-open'); tldr.setAttribute('aria-hidden', 'false'); tldrWas = document.activeElement; $('tldr-close').focus(); }
+  function closeTldr() { tldr.classList.remove('open'); root.classList.remove('tldr-open'); tldr.setAttribute('aria-hidden', 'true'); if (tldrWas && tldrWas.focus) tldrWas.focus(); }
+  $('tldr-toggle').addEventListener('click', () => (tldr.classList.contains('open') ? closeTldr() : openTldr()));
+  $('tldr-close').addEventListener('click', closeTldr);
+  tldr.addEventListener('click', (e) => { if (e.target === tldr) closeTldr(); });
+  ['wheel', 'touchmove'].forEach(ev => tldr.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tldr.classList.contains('open')) closeTldr(); });
+  window.openTldr = openTldr; window.closeTldr = closeTldr;
 
   // ── Experiments run once when their panel is opened ──
   document.querySelectorAll('details.try[data-auto]').forEach(d => { d.addEventListener('toggle', () => { if (!d.open || d.dataset.played) return; d.dataset.played = '1'; const fn = window.AUTO && window.AUTO[d.dataset.auto]; const badge = d.querySelector('[data-auto-badge]'); if (fn) setTimeout(() => fn(() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 200); }); });
 
-  // ── Home: the page melts away pixel by pixel into black, then un-melts onto the top of the page ──
-  let melting = false;
-  const melt = (() => {
-    const host = $('melt'), c = host.querySelector('canvas'), g = c.getContext('2d'); let cols = 0, rows = 0, cells = null; const S = 10;
-    function setup() { const dpr = Math.min(window.devicePixelRatio || 1, 2); c.width = Math.ceil(window.innerWidth * dpr); c.height = Math.ceil(window.innerHeight * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0); cols = Math.ceil(window.innerWidth / S); rows = Math.ceil(window.innerHeight / S); const r = rng((Date.now() & 0xffff) + 7); cells = new Float32Array(cols * rows); const drip = Array.from({ length: cols }, () => r()); for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) cells[j * cols + i] = 0.12 * (j / rows) + 0.55 * r() + 0.3 * drip[i]; }
-    function draw(u) { const W = window.innerWidth, H = window.innerHeight; g.clearRect(0, 0, W, H); g.fillStyle = '#0b0b0c';
-      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) { const k = (u * 1.3 - cells[j * cols + i]) / 0.3; if (k <= 0) continue; const e = Math.min(1, k); g.fillRect(i * S, j * S - 1, S + 1, S * e + e * S * 2.4); }
-      const fade = Math.max(0, (u - 0.82) / 0.18); if (fade > 0) { g.globalAlpha = fade; g.fillRect(0, 0, W, H); g.globalAlpha = 1; } }
-    return function run(mid) { if (melting) return; melting = true; host.classList.add('on'); setup(); const t0 = performance.now(); const OUT = 720, HOLD = 140, IN = 720;
-      function step(now) { const el = now - t0;
-        if (el < OUT) { const u = el / OUT; draw(u * u * (3 - 2 * u)); }
-        else if (el < OUT + HOLD) { if (!step.mid) { step.mid = true; draw(1); mid(); } }
-        else if (el < OUT + HOLD + IN) { const u = 1 - (el - OUT - HOLD) / IN; draw(u * u * (3 - 2 * u)); }
-        else { host.classList.remove('on'); g.clearRect(0, 0, window.innerWidth, window.innerHeight); melting = false; return; }
-        requestAnimationFrame(step); }
-      requestAnimationFrame(step); };
-  })();
-  const goHome = (e) => { e.preventDefault(); if (root.getAttribute('data-mode') === 'journey' && window.warpHome) { window.warpHome(); return; } if (reduced) { window.scrollTo(0, 0); return; } melt(() => { window.scrollTo(0, 0); if (window.resetJourney) window.resetJourney(); }); };
+  // ── Home: the mark warps home (a fidget when already there) ──
+  const goHome = (e) => { e.preventDefault(); if (window.warpHome) window.warpHome(); else window.scrollTo(0, 0); };
   $('brand').addEventListener('click', goHome); $('to-top').addEventListener('click', goHome);
-  window.meltHome = () => $('brand').click();
-  // the beacon: straight to what's latest (the PACD neuron in fun mode, the PACD entry in boring mode)
-  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (root.getAttribute('data-mode') === 'journey' && window.jumpToNeuron) window.jumpToNeuron(1, 2); else { const art = document.querySelector('article[data-short="PACD"]'); if (art) art.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'center' }); } });
+  // the beacon: straight to what's latest (the PACD neuron)
+  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (window.jumpToNeuron) window.jumpToNeuron(1, 2); });
 
   // ── "What are you looking for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe'];
