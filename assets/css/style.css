@@ -45,6 +45,8 @@ html.tldr-open { overflow: hidden; }
 .tldr-sec ul { list-style: none; margin: 0; padding: 0; }
 .tldr-sec li { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .22rem 0; font-size: .92rem; line-height: 1.35; }
 .tldr-sec li .m { color: var(--muted); font-size: .78rem; white-space: nowrap; flex: none; }
+.tldr-sec li a, .tldr-sub a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+.tldr-sec li a:hover, .tldr-sub a:hover { color: var(--accent); text-decoration-color: currentColor; }
 .tldr-tags { font-size: .9rem; line-height: 1.6; padding-top: .1rem; }
 .tldr-links p { display: flex; flex-wrap: wrap; gap: .45rem; }
 .tldr-x { position: absolute; top: .9rem; right: .9rem; width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; color: var(--muted); font-size: 1.3rem; line-height: 1; cursor: pointer; }
@@ -168,6 +170,10 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
 .entry h3.big { font-size: 2rem; line-height: 1.1; margin-bottom: .7rem; }
 .entry .org { color: var(--muted); font-size: .95rem; margin-bottom: .8rem; }
 .entry .org b { color: var(--text); font-weight: 500; }
+.entry .org a, .entry h3 a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 30%, transparent); text-underline-offset: 3px; }
+.entry .org a:hover, .entry h3 a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.lines li a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 30%, transparent); text-underline-offset: 3px; }
+.lines li a:hover { color: var(--accent); text-decoration-color: currentColor; }
 .logos { display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; align-items: center; margin: .2rem 0 1rem; }
 .meta .logos { width: 100%; margin: 0 0 .15rem; }
 .logo { display: inline-flex; align-items: center; width: 130px; height: 36px; }
@@ -192,7 +198,6 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
 .lines li .dt { display: inline-block; margin-left: .35rem; font-size: .76rem; color: var(--dim); white-space: nowrap; }
 .tags { display: flex; flex-wrap: wrap; gap: .35rem; }
 .tags span { font-size: .8rem; padding: .3rem .6rem; border-radius: 999px; border: 1px solid var(--line); color: var(--text); }
-.tags span.hot { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent); }
 .tags span { transition: opacity .3s, border-color .3s, background-color .3s; }
 .tags span.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .tags span.off { opacity: .35; }
