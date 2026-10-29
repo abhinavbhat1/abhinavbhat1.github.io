@@ -186,7 +186,9 @@
     if (heroVis > 0.5 && !warp.on) queuePass(true); });
   window.addEventListener('pointerup', (e) => { ptr.down = false; const moved = Math.hypot(ptr.x - downAt.x, ptr.y - downAt.y), held = performance.now() - downAt.t;
     if (dragNode) { const sc = dragNode.p.s || cam.s; if (moved < 5 && held < 350) { dragNode.vy -= 0.6; } else { dragNode.vx = ptr.vx / sc * 0.6; dragNode.vy = ptr.vy / sc * 0.6; pluck(dragNode, clamp(0.04 + Math.hypot(ptr.vx, ptr.vy) / sc * 0.08, 0.04, 0.22)); } dragNode = null; }
-    else if (dragFlo) { dragFlo.drag = false; if (moved < 6 && held < 400) breakFlo(dragFlo); dragFlo = null; } });
+    else if (dragFlo) { dragFlo.drag = false; if (moved < 6 && held < 400) breakFlo(dragFlo, e.clientX, e.clientY); dragFlo = null; } });
+  window.addEventListener('pointerleave', () => { ptr.x = ptr.y = -1e4; ptr.vx = ptr.vy = 0; });
+  document.addEventListener('mouseleave', () => { ptr.x = ptr.y = -1e4; ptr.vx = ptr.vy = 0; });
   window.addEventListener('pointercancel', () => { ptr.down = false; dragNode = null; if (dragFlo) dragFlo.drag = false; dragFlo = null; });
   function pluck(nd, amp) { adj.get(nd).forEach(e => { if (e.amp * Math.exp(-2.2 * (tNow - e.t0)) < amp) { e.amp = amp; e.t0 = tNow; } }); }
   let tNow = 0, heroVis = 1;
@@ -206,6 +208,7 @@
   let sv = 0;
   const unproj = (X, Y) => ({ x: cam.fx + (X - cam.ax) / cam.s, y: cam.fy + (Y - cam.ay) / cam.s }); // exact once the view is flat
   function drawJourney(t, dt) {
+    ptr.vx *= Math.exp(-dt * 9); ptr.vy *= Math.exp(-dt * 9);
     const target = window.scrollY; sv += (target - sv) * (reduced ? 1 : 1 - Math.exp(-dt * 14)); if (Math.abs(target - sv) < 0.3) sv = target;
     const u = sv / BEAT(); const Wp = warp.on ? warpState(t) : null; const p = Wp ? Wp.pose : poseAt(u);
     if (!Wp) { if (u > 2.5 && !awayFlag) { awayFlag = true; randomizeHome(); } else if (u < 0.05) awayFlag = false; }
@@ -222,7 +225,7 @@
     const lw = counts.map((_, k) => Wp ? Wp.lw(k) : layerWeight(k, u)); let activeK = -1, aw = 0.25; lw.forEach((w, k) => { if (w > aw) { aw = w; activeK = k; } });
     const bOf = (k, i) => Wp ? Wp.burst(k, i) : burstOf(k, i, u);
     // the home cycle: draw the network in, run a pass; again every few seconds, or on a click
-    if (!build.started && !root.classList.contains('booting')) { build.started = true; build.dis = false; build.t0 = t + 0.35; build.pending = true; }
+    if (!build.started) { build.started = true; build.dis = false; build.t0 = t + 0.35; build.pending = true; }
     const ct = t - build.t0; if (build.pending && ct >= (reduced ? 0 : BUILD - 0.12)) { build.pending = false; startPass(false); nextHomePass = t + 4 + Math.random() * 4; }
     if (heroK < 0.5) nextHomePass = t + 2 + Math.random() * 3; else if (!build.pending && !reduced && document.visibilityState === 'visible' && t > nextHomePass) { startPass(false); nextHomePass = t + 4 + Math.random() * 5; }
     const hw = Wp ? 0 : 1 - smooth((u - 0.02) / 0.1); const lb = counts.map((_, k) => heroLb(k, ct));
@@ -291,51 +294,71 @@
     window.__nodeScreen = (k, i) => ({ x: byL[k][i].p.x, y: byL[k][i].p.y });
   }
 
-  // ───────── the home field: small MLPs floating behind the home page. They drift, turn in fake 3D and light up along a random path
-  // now and then; they wiggle under the pointer, can be dragged, and a tap breaks one into debris that falls, knocks the others
-  // (hard hits chain-break), drops off the screen and is replaced from an edge ─────────
+  // ───────── the home field: small MLPs floating behind the home page. They drift, turn in fake 3D and light up along a random
+  // path now and then. The cursor is a field: beads near it are pushed aside and glow, a whole architecture eases away from
+  // it, and a fast swipe knocks it. They can be dragged, and a tap breaks one: its beads fly out from the tap and fall, and
+  // the ones they hit are knocked, spun and jostled, but hold together; the debris bounces off and falls out of the screen,
+  // and the field is topped up from an edge ─────────
   let flos = [], floAlpha = 1, nursery = null; const volleys = []; const CAP = () => (narrow() ? 12 : 24);
-  function layoutFlo(f) { const c = Math.cos(f.yaw), sn = Math.sin(f.yaw); f.nodes.forEach(nd => { const zr = nd.lx * sn; const k = 2.6 / (2.6 + Math.max(-1.2, zr)); nd.rx = f.cx + nd.lx * c * f.sz * k; nd.ry = f.cy + nd.ly * f.sz * k; nd.d = k; }); }
+  function layoutFlo(f) { const c = Math.cos(f.yaw), sn = Math.sin(f.yaw); let R = 0; f.nodes.forEach(nd => { const zr = nd.lx * sn; const k = 2.6 / (2.6 + Math.max(-1.2, zr)); nd.rx = f.cx + nd.lx * c * f.sz * k; nd.ry = f.cy + nd.ly * f.sz * k; nd.d = k; R = Math.max(R, Math.hypot(nd.rx - f.cx, nd.ry - f.cy)); }); f.rad = R + 8; }
   function makeFlo(fromEdge) { const r = Math.random, m = narrow(); const nl = 3 + Math.floor(r() * 3); const layers = Array.from({ length: nl }, () => 2 + Math.floor(r() * 4)); const nodes = [], byLayer = [];
-    layers.forEach((n, k) => { const row = []; for (let i = 0; i < n; i++) { const nd = { k, i, lx: k - (nl - 1) / 2, ly: (i - (n - 1) / 2) * 0.72, x: 0, y: 0, vx: 0, vy: 0, rx: 0, ry: 0, d: 1, lit: 0 }; nodes.push(nd); row.push(nd); } byLayer.push(row); });
+    layers.forEach((n, k) => { const row = []; for (let i = 0; i < n; i++) { const nd = { k, i, lx: k - (nl - 1) / 2, ly: (i - (n - 1) / 2) * 0.72, x: 0, y: 0, vx: 0, vy: 0, rx: 0, ry: 0, d: 1, lit: 0, hv: 0 }; nodes.push(nd); row.push(nd); } byLayer.push(row); });
     const edges = []; for (let k = 0; k < nl - 1; k++) byLayer[k].forEach(A => byLayer[k + 1].forEach(B => edges.push({ A, B })));
-    const sz = (m ? 17 : 23) + 13 * r(); const f = { layers, nodes, byLayer, edges, cx: W * (0.06 + 0.88 * r()), cy: H * (0.08 + 0.84 * r()), vx0: (r() - 0.5) * 14, vy0: (r() - 0.5) * 10, vx: 0, vy: 0, sz, yaw: r() * 6.28, yawV: (r() < 0.5 ? -1 : 1) * (0.1 + 0.16 * r()), pass: null, nextPass: tNow + 0.5 + r() * 6, born: tNow, state: 'float', drag: false, gx: 0, gy: 0, brokeT: 0, linkA: 1 };
+    const sz = (m ? 17 : 23) + 13 * r(); const yawV = (r() < 0.5 ? -1 : 1) * (0.1 + 0.16 * r());
+    const f = { layers, nodes, byLayer, edges, cx: W * (0.06 + 0.88 * r()), cy: H * (0.08 + 0.84 * r()), vx0: (r() - 0.5) * 14, vy0: (r() - 0.5) * 10, vx: 0, vy: 0, sz, rad: sz * 2, mass: 0.5 + nodes.length / 12, yaw: r() * 6.28, yawV, yawV0: yawV, pass: null, nextPass: tNow + 0.5 + r() * 6, born: tNow, state: 'float', drag: false, gx: 0, gy: 0, brokeT: 0, linkA: 1 };
     f.vx = f.vx0; f.vy = f.vy0; if (fromEdge) { const side = r(); if (side < 0.5) f.cy = -sz * 2.5; else if (side < 0.75) f.cx = -sz * 2.5; else f.cx = W + sz * 2.5; }
     layoutFlo(f); f.nodes.forEach(nd => { nd.x = nd.rx; nd.y = nd.ry; }); return f; }
   function seedFlos() { flos = []; nursery = null; volleys.length = 0; const n = narrow() ? 7 : 14; for (let j = 0; j < n; j++) flos.push(makeFlo(false)); }
   // the nursery: pressing the mark at home shoots neurons out of it. Each lands at its place in a planned architecture that stands
   // alone, half-built, its strings drawn only between the neurons that have arrived; later presses complete it, and then it joins
   // the field and lights up. The oldest floating one breaks when the field is full.
-  function planNursery() { const f = makeFlo(false); f.state = 'grow'; f.vx0 *= 0.5; f.vy0 *= 0.5; f.yawV *= 0.6; f.nextPass = 1e9; f.nodes.forEach(nd => { nd.here = 0; nd.hereT = -1; nd.shot = false; }); flos.push(f); nursery = f; return f; }
+  function planNursery() { const f = makeFlo(false); f.state = 'grow'; f.vx0 *= 0.5; f.vy0 *= 0.5; f.yawV *= 0.6; f.yawV0 = f.yawV; f.nextPass = 1e9; f.nodes.forEach(nd => { nd.here = 0; nd.hereT = -1; nd.shot = false; }); flos.push(f); nursery = f; return f; }
   function markCentre() { const m = document.querySelector('.brand .mark'); const r = m ? m.getBoundingClientRect() : null; return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 40, y: HEAD() / 2 }; }
   function shootNeurons(n) { if (!nursery || nursery.state !== 'grow' || nursery.nodes.every(nd => nd.shot)) planNursery(); const c0 = markCentre(); let j = 0;
     for (const nd of nursery.nodes) { if (nd.hereT >= 0 || nd.shot) continue; if (j >= n) break; nd.shot = true; volleys.push({ f: nursery, nd, t0: tNow + j * 0.1, dur: 0.6 + Math.random() * 0.2, x0: c0.x, y0: c0.y, bend: (Math.random() - 0.5) * 300, trail: [] }); j++; } }
   window.shootNeurons = shootNeurons; window.__shoot = shootNeurons; window.__nursery = () => nursery ? { state: nursery.state, here: nursery.nodes.filter(nd => nd.hereT >= 0).length, total: nursery.nodes.length, shots: volleys.length } : null;
   function floPass(f) { if (f.state !== 'float') return; f.pass = { t0: tNow, path: f.byLayer.map(row => row[Math.floor(Math.random() * row.length)]) }; }
-  function breakFlo(f, hard) { if (f.state !== 'float') return; f.state = 'broken'; f.brokeT = tNow; f.drag = false; f.nodes.forEach(nd => { nd.vx += (Math.random() - 0.5) * (hard ? 700 : 520) + f.vx; nd.vy += -140 - Math.random() * 360 + f.vy; }); }
-  window.__flos = () => flos.map(f => ({ x: Math.round(f.cx), y: Math.round(f.cy), layers: f.layers, lit: !!f.pass, state: f.state, here: f.nodes.filter(nd => nd.hereT >= 0).length, spread: +Math.max(...f.nodes.map(nd => Math.hypot(nd.x - nd.rx, nd.y - nd.ry))).toFixed(1) }));
-  window.__breakFlo = (j) => breakFlo(flos[j]); window.__floPass = (j) => floPass(flos[j]);
+  // a break: every bead flies out from the point of the tap (the nearer, the harder), with a little lift, and falls
+  function breakFlo(f, px, py) { if (f.state !== 'float') return; f.state = 'broken'; f.brokeT = tNow; f.drag = false; const ox = px == null ? f.cx : px, oy = py == null ? f.cy : py;
+    f.nodes.forEach(nd => { const dx = nd.x - ox, dy = nd.y - oy, d = Math.hypot(dx, dy) || 1; const v = 160 + 420 * clamp(1 - d / (f.rad * 1.5)); nd.vx += dx / d * v + f.vx + (Math.random() - 0.5) * 90; nd.vy += dy / d * v - 110 - Math.random() * 120 + f.vy; }); }
+  // a hit on a floating architecture: the piece bounces off its edge, the whole thing is knocked back and spun a little, and the
+  // beads near the impact are jostled; nothing breaks
+  function knock(o, x, y, vx, vy, nx, ny, vn) { const e = 0.45, j = -(1 + e) * vn; const m = o.mass; o.vx -= j * nx * 0.22 / m; o.vy -= j * ny * 0.22 / m; o.yawV += (nx * vy - ny * vx) / 900 * clamp(-vn / 500) * (Math.random() < 0.5 ? -1 : 1);
+    o.nodes.forEach(q => { const qd = Math.hypot(q.x - x, q.y - y); const w = Math.max(0, 1 - qd / (o.sz * 1.6)); if (w > 0) { q.vx += vx * 0.5 * w; q.vy += vy * 0.5 * w; } }); return j; }
+  window.__flos = () => flos.map(f => ({ x: Math.round(f.cx), y: Math.round(f.cy), layers: f.layers, lit: !!f.pass, state: f.state, here: f.nodes.filter(nd => nd.hereT >= 0).length, spread: +Math.max(...f.nodes.map(nd => Math.hypot(nd.x - nd.rx, nd.y - nd.ry))).toFixed(1), v: +Math.hypot(f.vx, f.vy).toFixed(0) }));
+  window.__breakFlo = (j, x, y) => breakFlo(flos[j], x, y); window.__floPass = (j) => floPass(flos[j]);
   function stepFlos(t, dt, alpha) {
-    const wrapW = W + 200, wrapH = H + 200;
-    flos.forEach(f => { if (f.state !== 'float' && f.state !== 'grow') return; if (!f.drag) { f.vx += (f.vx0 - f.vx) * 0.8 * dt; f.vy += (f.vy0 - f.vy) * 0.8 * dt; f.cx += f.vx * dt; f.cy += f.vy * dt; if (f.cx < -100) f.cx += wrapW; else if (f.cx > W + 100) f.cx -= wrapW; if (f.cy < -100) f.cy += wrapH; else if (f.cy > H + 100) f.cy -= wrapH; } f.yaw += f.yawV * dt; layoutFlo(f); });
-    // gentle bumps between floating neighbours
-    for (let a = 0; a < flos.length; a++) for (let b = a + 1; b < flos.length; b++) { const A = flos[a], B = flos[b]; if ((A.state !== 'float' && A.state !== 'grow') || (B.state !== 'float' && B.state !== 'grow')) continue; const dx = B.cx - A.cx, dy = B.cy - A.cy, d = Math.hypot(dx, dy) || 1, min = (A.sz + B.sz) * 1.5; if (d < min) { const push = (min - d) * 1.6 * dt, nx = dx / d, ny = dy / d; if (!A.drag) { A.cx -= nx * push; A.cy -= ny * push; } if (!B.drag) { B.cx += nx * push; B.cy += ny * push; } } }
+    const wrapW = W + 200, wrapH = H + 200, RH = narrow() ? 64 : 96, live = (f) => f.state === 'float' || f.state === 'grow';
+    flos.forEach(f => { if (!live(f)) return;
+      if (!f.drag) { f.vx += (f.vx0 - f.vx) * 0.8 * dt; f.vy += (f.vy0 - f.vy) * 0.8 * dt;
+        // the cursor field: the whole architecture eases away from the pointer, and a fast pointer passing through knocks it
+        const dx = f.cx - ptr.x, dy = f.cy - ptr.y, d = Math.hypot(dx, dy), R = f.rad + RH * 0.6; if (d < R && d > 0.1 && ptr.x > -1000) { const w = 1 - d / R; f.vx += dx / d * w * 55 * dt; f.vy += dy / d * w * 55 * dt; const sp = Math.hypot(ptr.vx, ptr.vy); if (sp > 900) { f.vx += ptr.vx * 0.012 * w / f.mass; f.vy += ptr.vy * 0.012 * w / f.mass; } }
+        const sp = Math.hypot(f.vx, f.vy); if (sp > 260) { f.vx *= 260 / sp; f.vy *= 260 / sp; }
+        f.cx += f.vx * dt; f.cy += f.vy * dt; let sx = 0, sy = 0; if (f.cx < -100) sx = wrapW; else if (f.cx > W + 100) sx = -wrapW; if (f.cy < -100) sy = wrapH; else if (f.cy > H + 100) sy = -wrapH; if (sx || sy) { f.cx += sx; f.cy += sy; f.nodes.forEach(nd => { nd.x += sx; nd.y += sy; }); } }
+      f.yawV += (f.yawV0 - f.yawV) * 1.1 * dt; f.yaw += f.yawV * dt; layoutFlo(f); });
+    // gentle bumps between floating neighbours, the lighter one giving way
+    for (let a = 0; a < flos.length; a++) for (let b = a + 1; b < flos.length; b++) { const A = flos[a], B = flos[b]; if (!live(A) || !live(B)) continue; const dx = B.cx - A.cx, dy = B.cy - A.cy, d = Math.hypot(dx, dy) || 1, min = (A.rad + B.rad) * 0.9; if (d < min) { const push = (min - d) * 1.8 * dt, nx = dx / d, ny = dy / d, tm = A.mass + B.mass; if (!A.drag) { A.cx -= nx * push * B.mass / tm; A.cy -= ny * push * B.mass / tm; } if (!B.drag) { B.cx += nx * push * A.mass / tm; B.cy += ny * push * A.mass / tm; } } }
     flos.forEach(f => {
       if (!f.pass && t > f.nextPass) floPass(f); const pt = f.pass ? (t - f.pass.t0) / 0.32 : -1; const fade = f.pass ? 1 - smooth((t - f.pass.t0 - 0.32 * f.layers.length - 0.9) / 0.8) : 0; if (f.pass && fade <= 0) { f.pass = null; f.nextPass = t + 2.5 + Math.random() * 6; }
-      const grow = f.state === 'grow'; const hover = !ptr.down && f.state === 'float' && Math.hypot(f.cx - ptr.x, f.cy - ptr.y) < f.sz * 1.8; const broken = f.state === 'broken'; f.linkA += ((broken ? 0 : 1) - f.linkA) * (1 - Math.exp(-dt * (broken ? 14 : 2.2)));
-      let below = 0;
+      const grow = f.state === 'grow', broken = f.state === 'broken'; f.linkA += ((broken ? 0 : 1) - f.linkA) * (1 - Math.exp(-dt * (broken ? 14 : 2.2)));
+      let below = 0, near = 0;
       f.nodes.forEach(nd => {
         if (broken) { nd.vy += 820 * dt; nd.vx *= Math.exp(-dt * 0.35); nd.x += nd.vx * dt; nd.y += nd.vy * dt; if (nd.x < 4 || nd.x > W - 4) { nd.vx *= -0.55; nd.x = clamp(nd.x, 4, W - 4); } if (nd.y > H + 60) below++;
-          const sp = Math.hypot(nd.vx, nd.vy); if (sp > 60) flos.forEach(o => { if (o === f || o.state !== 'float') return; const dx = nd.x - o.cx, dy = nd.y - o.cy, d = Math.hypot(dx, dy), R = o.sz * 1.6; if (d < R && d > 0.1) { const nx = dx / d, ny = dy / d, vn = nd.vx * nx + nd.vy * ny; if (vn < 0) { nd.vx -= 1.6 * vn * nx; nd.vy -= 1.6 * vn * ny; o.vx += -vn * nx * 0.35; o.vy += -vn * ny * 0.35; o.nodes.forEach(q => { q.vx += (Math.random() - 0.5) * 90; q.vy += (Math.random() - 0.5) * 90; }); if (-vn > 520 && Math.random() < 0.3) breakFlo(o, true); } } }); }
-        else { if (grow) { nd.here = nd.hereT < 0 ? 0 : clamp((t - nd.hereT) / 0.4); if (nd.hereT < 0) { nd.x = nd.rx; nd.y = nd.ry; return; } } const k = f.drag ? 90 : 40; nd.vx += ((nd.rx - nd.x) * k - 7 * nd.vx) * dt; nd.vy += ((nd.ry - nd.y) * k - 7 * nd.vy) * dt; if (hover && Math.random() < 0.12) { nd.vx += (Math.random() - 0.5) * 160; nd.vy += (Math.random() - 0.5) * 160; } nd.x += nd.vx * dt; nd.y += nd.vy * dt; }
+          // debris meets a floating architecture: it bounces off the edge and the architecture takes the hit
+          if (Math.hypot(nd.vx, nd.vy) > 40) flos.forEach(o => { if (o === f || !live(o)) return; const dx = nd.x - o.cx, dy = nd.y - o.cy, d = Math.hypot(dx, dy), R = o.rad; if (d < R && d > 0.1) { const nx = dx / d, ny = dy / d, vn = nd.vx * nx + nd.vy * ny; if (vn < 0) { const vx0 = nd.vx, vy0 = nd.vy; const j = knock(o, nd.x, nd.y, vx0, vy0, nx, ny, vn); nd.vx += j * nx; nd.vy += j * ny; nd.x = o.cx + nx * R; nd.y = o.cy + ny * R; } } }); }
+        else { if (grow) { nd.here = nd.hereT < 0 ? 0 : clamp((t - nd.hereT) / 0.4); if (nd.hereT < 0) { nd.x = nd.rx; nd.y = nd.ry; return; } }
+          const k = f.drag ? 90 : 55; nd.vx += ((nd.rx - nd.x) * k - 7.5 * nd.vx) * dt; nd.vy += ((nd.ry - nd.y) * k - 7.5 * nd.vy) * dt;
+          // the cursor field: beads near the pointer are pushed aside and glow
+          const dx = nd.x - ptr.x, dy = nd.y - ptr.y, d = Math.hypot(dx, dy); let hv = 0; if (d < RH && d > 0.1 && ptr.x > -1000) { const w = 1 - d / RH; hv = w; near++; nd.vx += (dx / d * w * 1500 + ptr.vx * 0.05 * w) * dt; nd.vy += (dy / d * w * 1500 + ptr.vy * 0.05 * w) * dt; }
+          nd.hv += (hv - nd.hv) * (1 - Math.exp(-dt * 9)); nd.x += nd.vx * dt; nd.y += nd.vy * dt; }
         const on = f.pass && f.pass.path[nd.k] === nd; nd.lit = on ? smooth(pt - nd.k) * fade : 0; });
       if (broken && (below === f.nodes.length || t - f.brokeT > 6)) f.state = 'gone';
-      const a0 = alpha * (narrow() ? 0.5 : 0.85) * clamp((t - f.born) / 0.9);
+      const a0 = alpha * (narrow() ? 0.5 : 0.85) * clamp((t - f.born) / 0.9), hover = near > 0;
       g.strokeStyle = col.ink; g.lineWidth = 1;
       if (grow) { f.edges.forEach(e => { if (e.A.hereT < 0 || e.B.hereT < 0) return; const [Pn, Qn] = e.A.hereT <= e.B.hereT ? [e.A, e.B] : [e.B, e.A]; const q = Math.min(e.A.here, e.B.here); g.globalAlpha = 0.11 * a0; g.beginPath(); g.moveTo(Pn.x, Pn.y); g.lineTo(mix(Pn.x, Qn.x, q), mix(Pn.y, Qn.y, q)); g.stroke(); if (q < 0.999) { g.fillStyle = col.accent; g.globalAlpha = 0.7 * a0 * Math.sin(Math.PI * q); g.beginPath(); g.arc(mix(Pn.x, Qn.x, q), mix(Pn.y, Qn.y, q), 1.8, 0, 6.2832); g.fill(); } }); }
       else { g.beginPath(); f.edges.forEach(e => { g.moveTo(e.A.x, e.A.y); g.lineTo(e.B.x, e.B.y); }); g.globalAlpha = (0.09 + 0.05 * (hover ? 1 : 0)) * a0 * f.linkA; g.stroke(); }
       if (f.pass) { const P = f.pass.path; g.strokeStyle = col.accent; g.lineWidth = 1.4; for (let k = 0; k < P.length - 1; k++) { const sg = clamp(pt - k); if (sg <= 0) break; const A = P[k], B = P[k + 1]; g.globalAlpha = 0.85 * a0 * fade * Math.max(f.linkA, 0.15); g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(mix(A.x, B.x, sg), mix(A.y, B.y, sg)); g.stroke(); if (sg < 1) { g.fillStyle = col.accent; g.beginPath(); g.arc(mix(A.x, B.x, sg), mix(A.y, B.y, sg), 2.2, 0, 6.2832); g.fill(); } } g.lineWidth = 1; }
-      f.nodes.forEach(nd => { if (grow && nd.hereT < 0) return; const r = 2.3 * nd.d * (1 + 0.5 * nd.lit) * (grow ? pop(nd.here) : 1); if (r <= 0.05) return; g.fillStyle = nd.lit > 0.01 ? mixc('bg', 'accent', nd.lit) : col.bg; g.globalAlpha = a0; g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.fill(); g.strokeStyle = nd.lit > 0.3 ? col.accent : col.ink; g.globalAlpha = (0.38 + 0.5 * nd.lit) * a0 * clamp(nd.d, 0.5, 1); g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.stroke(); if (nd.lit > 0.05) { g.fillStyle = col.accent; g.globalAlpha = 0.18 * nd.lit * a0; g.beginPath(); g.arc(nd.x, nd.y, r + 5, 0, 6.2832); g.fill(); } }); });
+      f.nodes.forEach(nd => { if (grow && nd.hereT < 0) return; const glow = Math.max(nd.lit, nd.hv * 0.8); const r = 2.3 * nd.d * (1 + 0.5 * glow) * (grow ? pop(nd.here) : 1); if (r <= 0.05) return; g.fillStyle = glow > 0.01 ? mixc('bg', 'accent', glow) : col.bg; g.globalAlpha = a0; g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.fill(); g.strokeStyle = glow > 0.3 ? col.accent : col.ink; g.globalAlpha = (0.38 + 0.5 * glow) * a0 * clamp(nd.d, 0.5, 1); g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.stroke(); if (glow > 0.05) { g.fillStyle = col.accent; g.globalAlpha = 0.18 * glow * a0; g.beginPath(); g.arc(nd.x, nd.y, r + 5, 0, 6.2832); g.fill(); } }); });
     const gone = flos.filter(f => f.state === 'gone').length; if (gone) { flos = flos.filter(f => f.state !== 'gone'); for (let j = 0; j < gone; j++) flos.push(makeFlo(true)); }
     // the shots: neurons flying out of the mark along a bent path, with a short trail; each lands with a pop and joins the nursery
     for (let j = volleys.length - 1; j >= 0; j--) { const sh = volleys[j]; if (t < sh.t0) continue; const q = clamp((t - sh.t0) / sh.dur), e = smooth(q); const nd = sh.nd, tx = nd.rx, ty = nd.ry;

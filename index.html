@@ -25,8 +25,6 @@
 </script>
 </head>
 <body>
-<div id="boot" aria-hidden="true"><canvas></canvas></div>
-<script src="assets/js/logo.js"></script>
 <canvas id="bg" aria-hidden="true"></canvas>
 <svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
   <filter id="lg-pill" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
@@ -34,10 +32,10 @@
     <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3ClinearGradient id='v' x1='0' x2='0' y1='0' y2='1'%3E%3Cstop offset='0' stop-color='rgb(0,255,0)'/%3E%3Cstop offset='.35' stop-color='rgb(0,128,0)'/%3E%3Cstop offset='.65' stop-color='rgb(0,128,0)'/%3E%3Cstop offset='1' stop-color='rgb(0,0,0)'/%3E%3C/linearGradient%3E%3Crect width='100' height='100' fill='url(%23v)'/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="V"/>
     <feComposite in="H" in2="V" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="M"/>
     <feGaussianBlur in="M" stdDeviation="1.5" result="MB"/>
-    <feDisplacementMap in="SourceGraphic" in2="MB" scale="14" xChannelSelector="R" yChannelSelector="G" result="D"/>
+    <feDisplacementMap in="SourceGraphic" in2="MB" scale="10" xChannelSelector="R" yChannelSelector="G" result="D"/>
     <feTurbulence type="fractalNoise" baseFrequency="0.02 0.03" numOctaves="2" seed="7" result="N"/>
     <feGaussianBlur in="N" stdDeviation="1.5" result="NB"/>
-    <feDisplacementMap in="D" in2="NB" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+    <feDisplacementMap in="D" in2="NB" scale="4" xChannelSelector="R" yChannelSelector="G"/>
   </filter>
   <filter id="lg-sheet" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
     <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3ClinearGradient id='h' x1='0' x2='1' y1='0' y2='0'%3E%3Cstop offset='0' stop-color='rgb(255,0,0)'/%3E%3Cstop offset='.1' stop-color='rgb(128,0,0)'/%3E%3Cstop offset='.9' stop-color='rgb(128,0,0)'/%3E%3Cstop offset='1' stop-color='rgb(0,0,0)'/%3E%3C/linearGradient%3E%3Crect width='100' height='100' fill='url(%23h)'/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="H"/>
@@ -70,7 +68,7 @@
   <section class="hero" id="hero">
     <div class="hero-copy" id="hero-copy">
       <div class="hero-l">
-        <h1><span class="hi" id="hello">Hello</span>, I'm<br>Abhinav Bhat!</h1>
+        <h1><span class="hi"><span class="w" id="hello">Hello</span></span>I'm Abhinav Bhat!</h1>
         <p class="lead">Pursuing an M.S. in Computer Science at the <a class="em" href="https://cims.nyu.edu/" target="_blank" rel="noopener">Courant Institute, NYU</a>.</p>
         <div class="links">
           <a class="btn glass pill primary" href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf">Download CV</a>
@@ -83,7 +81,7 @@
         <a class="beacon glass pill" id="beacon" href="#research"><span class="pulse" aria-hidden="true"></span><span class="tag">Latest</span><span class="txt">Presenting PACD at AMIA 2026 · Dallas · Nov 9</span><span class="txt-s">PACD at AMIA 2026 · Dallas · Nov 9</span></a>
         <p class="seek">Seeking Summer 2027 internships in machine learning, applied AI, data engineering and software engineering.</p>
         <p class="lab">Working on</p>
-        <ul class="topics"><li>Machine learning</li><li>Healthcare AI</li><li>JEPA</li><li>World models</li></ul>
+        <ul class="topics"><li class="glass pill">Machine learning</li><li class="glass pill">Healthcare AI</li><li class="glass pill">Data engineering</li><li class="glass pill">JEPA</li><li class="glass pill">World models</li></ul>
       </div>
     </div>
   </section>
