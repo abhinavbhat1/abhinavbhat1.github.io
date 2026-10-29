@@ -49,13 +49,13 @@
     document.body.appendChild(wrap); const top0 = tcard.scrollTop; strips.forEach(st => { st.firstChild.scrollTop = top0; }); tcard.style.visibility = 'hidden';
     // the funnel: a row that has been pulled by q sits at fx(q), narrowed to fw(q) of the width; the path bends toward the button late, as a genie does
     const fx = (q) => (bx - cx0) * Math.pow(q, 1.7), fw = (q) => wb + (1 - wb) * Math.pow(1 - q, 2.4);
-    const place = (p) => { const front = sm(Math.min(1, p / 0.5)), back = sm(Math.max(0, (p - 0.5) / 0.5)); const Y = [], X = [], S = [], Q = [];
-      for (let j = 0; j <= N; j++) { const y = j / N, q = back + (front - back) * Math.pow(1 - y, 1.5); const ry = y * h; Q.push(q); Y.push(ry + (by - rc.top - ry) * q); X.push(w / 2 + fx(q)); S.push(fw(q) * w); }
+    const place = (p) => { const front = sm(Math.min(1, p / 0.62)), back = sm(Math.max(0, (p - 0.16) / 0.84)); const Y = [], X = [], S = [], Q = [];
+      for (let j = 0; j <= N; j++) { const y = j / N, q = back + (front - back) * Math.pow(1 - y, 1.25); const ry = y * h; Q.push(q); Y.push(ry + (by - rc.top - ry) * q); X.push(w / 2 + fx(q)); S.push(fw(q) * w); }
       for (let i = 0; i < N; i++) { const y0 = i * sh, yt = Y[i], yb = Math.max(Y[i + 1], Y[i] + 0.4), wt = Math.max(S[i], 2), wbm = Math.max(S[i + 1], 2);
         strips[i].style.transform = quadMatrix(w, sh, [X[i] - wt / 2, yt - y0], [X[i] + wt / 2, yt - y0], [X[i + 1] - wbm / 2, yb - y0], [X[i + 1] + wbm / 2, yb - y0]);
         const q = (Q[i] + Q[i + 1]) / 2; strips[i].style.opacity = (1 - 0.7 * Math.pow(q, 6)).toFixed(3); } };
-    const D = reverse ? 560 : 680, t0 = performance.now(); let raf = 0;
-    const frame = (now) => { const k = Math.min(1, (now - t0) / D); const hold = window.__genieHold; const p = hold != null ? hold : (reverse ? 1 - Math.pow(k, 0.9) : Math.pow(k, 1.1)); place(p); if (k < 1 || hold != null) raf = requestAnimationFrame(frame); else { wrap.remove(); tcard.style.visibility = ''; genieOn = null; if (done) done(); } };
+    const D = reverse ? 600 : 720, t0 = performance.now(); let raf = 0;
+    const frame = (now) => { const k = Math.min(1, (now - t0) / D); const hold = window.__genieHold; const e = 0.65 * sm(k) + 0.35 * k; const p = hold != null ? hold : (reverse ? 1 - e : e); place(p); if (k < 1 || hold != null) raf = requestAnimationFrame(frame); else { wrap.remove(); tcard.style.visibility = ''; genieOn = null; if (done) done(); } };
     place(reverse ? 1 : 0); raf = requestAnimationFrame(frame); genieOn = { cancel: () => { cancelAnimationFrame(raf); wrap.remove(); tcard.style.visibility = ''; genieOn = null; } }; return genieOn; }
   function openTldr() { tldr.classList.add('open'); root.classList.add('tldr-open'); tldr.setAttribute('aria-hidden', 'false'); tldrWas = document.activeElement; tcard.focus({ preventScroll: true }); if (minimised && !reduced) { tldr.classList.add('genie'); requestAnimationFrame(() => tldr.classList.remove('genie')); genie(true); } minimised = false; }
   function finishClose() { tldr.classList.remove('open', 'genie'); root.classList.remove('tldr-open'); tldr.setAttribute('aria-hidden', 'true'); if (tldrWas && tldrWas.focus) tldrWas.focus(); }
