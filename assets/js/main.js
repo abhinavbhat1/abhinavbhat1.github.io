@@ -28,20 +28,42 @@
   document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); e.preventDefault(); if (window.jumpToLayer) window.jumpToLayer(id); }));
 
   // ── TL;DR: the whole thing on one card ──
-  const tldr = $('tldr'), tcard = tldr.querySelector('.tldr-card'), tbtn = $('tldr-toggle'); let tldrWas = null, minimised = false, genieAnim = null;
+  const tldr = $('tldr'), tcard = tldr.querySelector('.tldr-card'), tbtn = $('tldr-toggle'); let tldrWas = null, minimised = false, genieOn = null;
   tcard.setAttribute('tabindex', '-1');
-  // the genie: the sheet is drawn into the TL;DR button, squeezing as it goes; reversed when it comes back out
-  function genie(reverse) { const c = tcard.getBoundingClientRect(), b = tbtn.getBoundingClientRect(); const dx = (b.left + b.width / 2) - (c.left + c.width / 2), dy = (b.top + b.height / 2) - c.top, sk = dx > 0 ? -14 : 14;
-    let frames = [{ transform: 'translate(0px, 0px) scale(1, 1) skewX(0deg)', opacity: 1, offset: 0 }, { transform: `translate(${(dx * 0.22).toFixed(1)}px, ${(dy * 0.1).toFixed(1)}px) scale(.78, .92) skewX(${sk * 0.6}deg)`, opacity: 1, offset: 0.4 }, { transform: `translate(${(dx * 0.72).toFixed(1)}px, ${(dy * 0.6).toFixed(1)}px) scale(.22, .38) skewX(${sk}deg)`, opacity: .9, offset: 0.78 }, { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(.04, .03) skewX(0deg)`, opacity: .25, offset: 1 }];
-    if (reverse) frames = frames.map(f => Object.assign({}, f, { offset: 1 - f.offset })).reverse();
-    tcard.style.transformOrigin = '50% 0%'; if (genieAnim) genieAnim.cancel(); genieAnim = tcard.animate(frames, { duration: reverse ? 420 : 460, easing: reverse ? 'cubic-bezier(.2,.8,.25,1)' : 'cubic-bezier(.55,0,.85,.35)', fill: 'none' }); return genieAnim; }
-  function openTldr() { tldr.classList.add('open'); root.classList.add('tldr-open'); tldr.setAttribute('aria-hidden', 'false'); tldrWas = document.activeElement; tcard.focus({ preventScroll: true }); if (minimised && !reduced) genie(true); minimised = false; }
-  function finishClose() { tldr.classList.remove('open'); root.classList.remove('tldr-open'); tldr.setAttribute('aria-hidden', 'true'); if (tldrWas && tldrWas.focus) tldrWas.focus(); }
-  function closeTldr() { if (genieAnim) { genieAnim.cancel(); genieAnim = null; } finishClose(); }
-  function minimiseTldr() { if (reduced) { closeTldr(); minimised = true; return; } const a = genie(false); a.onfinish = () => { genieAnim = null; finishClose(); minimised = true; tbtn.classList.remove('bounce'); void tbtn.offsetWidth; tbtn.classList.add('bounce'); setTimeout(() => tbtn.classList.remove('bounce'), 500); }; }
+  const sm = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  // the genie: the sheet is cut into horizontal strips, each a clipped copy of it, and the strip edges are mapped onto a funnel
+  // that runs from the sheet to the TL;DR button. First the sheet's top edge is drawn along the funnel to the button while its
+  // bottom stays put, so the sheet stretches into a tapering neck; then the whole sheet slides up the neck into the button.
+  // Every strip is projected exactly onto its slice of the funnel (a trapezoid, via a 3D matrix), so neighbouring strips share
+  // their edges and the sheet stays one smoothly bending surface. Played backwards it pours back out of the button
+  const adj3 = (m) => [m[4] * m[8] - m[5] * m[7], m[2] * m[7] - m[1] * m[8], m[1] * m[5] - m[2] * m[4], m[5] * m[6] - m[3] * m[8], m[0] * m[8] - m[2] * m[6], m[2] * m[3] - m[0] * m[5], m[3] * m[7] - m[4] * m[6], m[1] * m[6] - m[0] * m[7], m[0] * m[4] - m[1] * m[3]];
+  const mm3 = (a, b) => { const c = new Array(9); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { let v = 0; for (let k = 0; k < 3; k++) v += a[3 * i + k] * b[3 * k + j]; c[3 * i + j] = v; } return c; };
+  const mv3 = (m, v) => [m[0] * v[0] + m[1] * v[1] + m[2] * v[2], m[3] * v[0] + m[4] * v[1] + m[5] * v[2], m[6] * v[0] + m[7] * v[1] + m[8] * v[2]];
+  const basis = (x1, y1, x2, y2, x3, y3, x4, y4) => { const m = [x1, x2, x3, y1, y2, y3, 1, 1, 1], v = mv3(adj3(m), [x4, y4, 1]); return mm3(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]); };
+  // the matrix that takes the rectangle (0,0)-(w,h) onto the quad p1 (top-left), p2 (top-right), p3 (bottom-left), p4 (bottom-right)
+  function quadMatrix(w, h, p1, p2, p3, p4) { const S = basis(0, 0, w, 0, 0, h, w, h), D = basis(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1], p4[0], p4[1]); const t = mm3(D, adj3(S)); for (let i = 0; i < 9; i++) t[i] /= t[8]; return `matrix3d(${t[0]},${t[3]},0,${t[6]},${t[1]},${t[4]},0,${t[7]},0,0,1,0,${t[2]},${t[5]},0,${t[8]})`; }
+  function genie(reverse, done) {
+    const rc = tcard.getBoundingClientRect(), bb = tbtn.getBoundingClientRect(); const bx = bb.left + bb.width / 2, by = bb.top + bb.height * 0.55, cx0 = rc.left + rc.width / 2, w = rc.width, h = rc.height, N = innerWidth < 900 ? 26 : 40, sh = h / N, wb = Math.max(0.03, bb.width / rc.width);
+    const wrap = document.createElement('div'); wrap.className = 'genie'; wrap.style.cssText = `left:${rc.left}px;top:${rc.top}px;width:${w}px;height:${h}px`; const strips = [];
+    for (let i = 0; i < N; i++) { const st = document.createElement('div'); st.className = 'genie-strip'; st.style.cssText = `top:${(i * sh).toFixed(3)}px;height:${sh.toFixed(3)}px`; const cl = tcard.cloneNode(true); cl.removeAttribute('id'); cl.removeAttribute('tabindex'); cl.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); cl.classList.add('genie-clone'); cl.style.cssText = `width:${w}px;height:${h}px;transform:translateY(${(-i * sh).toFixed(3)}px)`; st.appendChild(cl); wrap.appendChild(st); strips.push(st); }
+    document.body.appendChild(wrap); const top0 = tcard.scrollTop; strips.forEach(st => { st.firstChild.scrollTop = top0; }); tcard.style.visibility = 'hidden';
+    // the funnel: a row that has been pulled by q sits at fx(q), narrowed to fw(q) of the width; the path bends toward the button late, as a genie does
+    const fx = (q) => (bx - cx0) * Math.pow(q, 1.7), fw = (q) => wb + (1 - wb) * Math.pow(1 - q, 2.4);
+    const place = (p) => { const front = sm(Math.min(1, p / 0.5)), back = sm(Math.max(0, (p - 0.5) / 0.5)); const Y = [], X = [], S = [], Q = [];
+      for (let j = 0; j <= N; j++) { const y = j / N, q = back + (front - back) * Math.pow(1 - y, 1.5); const ry = y * h; Q.push(q); Y.push(ry + (by - rc.top - ry) * q); X.push(w / 2 + fx(q)); S.push(fw(q) * w); }
+      for (let i = 0; i < N; i++) { const y0 = i * sh, yt = Y[i], yb = Math.max(Y[i + 1], Y[i] + 0.4), wt = Math.max(S[i], 2), wbm = Math.max(S[i + 1], 2);
+        strips[i].style.transform = quadMatrix(w, sh, [X[i] - wt / 2, yt - y0], [X[i] + wt / 2, yt - y0], [X[i + 1] - wbm / 2, yb - y0], [X[i + 1] + wbm / 2, yb - y0]);
+        const q = (Q[i] + Q[i + 1]) / 2; strips[i].style.opacity = (1 - 0.7 * Math.pow(q, 6)).toFixed(3); } };
+    const D = reverse ? 560 : 680, t0 = performance.now(); let raf = 0;
+    const frame = (now) => { const k = Math.min(1, (now - t0) / D); const hold = window.__genieHold; const p = hold != null ? hold : (reverse ? 1 - Math.pow(k, 0.9) : Math.pow(k, 1.1)); place(p); if (k < 1 || hold != null) raf = requestAnimationFrame(frame); else { wrap.remove(); tcard.style.visibility = ''; genieOn = null; if (done) done(); } };
+    place(reverse ? 1 : 0); raf = requestAnimationFrame(frame); genieOn = { cancel: () => { cancelAnimationFrame(raf); wrap.remove(); tcard.style.visibility = ''; genieOn = null; } }; return genieOn; }
+  function openTldr() { tldr.classList.add('open'); root.classList.add('tldr-open'); tldr.setAttribute('aria-hidden', 'false'); tldrWas = document.activeElement; tcard.focus({ preventScroll: true }); if (minimised && !reduced) { tldr.classList.add('genie'); requestAnimationFrame(() => tldr.classList.remove('genie')); genie(true); } minimised = false; }
+  function finishClose() { tldr.classList.remove('open', 'genie'); root.classList.remove('tldr-open'); tldr.setAttribute('aria-hidden', 'true'); if (tldrWas && tldrWas.focus) tldrWas.focus(); }
+  function closeTldr() { if (genieOn) genieOn.cancel(); finishClose(); }
+  function minimiseTldr() { if (reduced) { closeTldr(); minimised = true; return; } if (genieOn) return; tldr.classList.add('genie'); genie(false, () => { finishClose(); minimised = true; tbtn.classList.remove('bounce'); void tbtn.offsetWidth; tbtn.classList.add('bounce'); setTimeout(() => tbtn.classList.remove('bounce'), 500); }); }
   tbtn.addEventListener('click', () => (tldr.classList.contains('open') ? minimiseTldr() : openTldr()));
   $('tldr-close').addEventListener('click', closeTldr); $('tldr-min').addEventListener('click', minimiseTldr);
-  window.__tldr = () => ({ open: tldr.classList.contains('open'), minimised, animating: !!genieAnim });
+  window.__tldr = () => ({ open: tldr.classList.contains('open'), minimised, animating: !!genieOn, strips: document.querySelectorAll('.genie-strip').length });
   tldr.addEventListener('click', (e) => { if (e.target === tldr) closeTldr(); });
   ['wheel', 'touchmove'].forEach(ev => tldr.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tldr.classList.contains('open')) closeTldr(); });
