@@ -163,17 +163,18 @@ html[data-mode="boring"] #journey { display: none; }
 #cards { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
 .jcard { position: absolute; left: 0; top: 0; width: min(480px, 38vw); max-height: calc(100vh - var(--head) - 2rem); overflow: auto; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 18px; padding: 1.4rem 1.6rem; box-shadow: 0 24px 60px rgba(20, 20, 20, .08); opacity: 0; visibility: hidden; pointer-events: none; will-change: transform, opacity; transform-origin: center; }
 .jcard.on { visibility: visible; pointer-events: auto; }
-.jcard .entry { grid-template-columns: 170px 1fr; gap: .6rem 2.2rem; padding: 0; border: 0; }
-.jcard .body { max-width: 64rem; }
-#secbar { position: fixed; left: 0; right: 0; z-index: 7; height: 34px; display: flex; align-items: center; justify-content: center; gap: 1.6rem; font-size: .8rem; color: var(--muted); white-space: nowrap; opacity: 0; pointer-events: none; }
-#secbar a { display: inline-flex; align-items: center; gap: .4rem; color: inherit; transition: color .2s; }
-#secbar a::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--line-2); transition: background .2s; }
+.jcard .entry { grid-template-columns: 1fr; gap: .5rem; padding: 0; border: 0; }
+#secbar, #rail { display: none; }
+#secbar { position: fixed; left: 0; right: 0; z-index: 7; height: 32px; align-items: center; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; padding: 0 1.4rem 0 .8rem; gap: .7rem; font-size: .7rem; color: var(--muted); white-space: nowrap; opacity: 0; pointer-events: none; }
+#secbar::-webkit-scrollbar { display: none; }
+#secbar a { display: inline-flex; align-items: center; gap: .3rem; color: inherit; transition: color .2s; }
+#secbar a::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--line-2); transition: background .2s; }
 #secbar a:hover { color: var(--ink); }
 #secbar a.on { color: var(--ink); font-weight: 500; } #secbar a.on::before { background: var(--accent); }
 #secbar a .n { font-size: .68rem; color: var(--dim); font-variant-numeric: tabular-nums; } #secbar a:not(.on) .n { display: none; }
-#rail { position: fixed; right: 10px; top: 66%; transform: translateY(-50%); z-index: 7; display: flex; flex-direction: column; align-items: flex-end; opacity: 0; pointer-events: none; }
-#rail i { display: block; width: 14px; height: 1.5px; background: var(--line-2); margin: 0 0 6.5px; cursor: pointer; transition: width .18s, background .18s; }
-#rail i:hover { width: 20px; background: var(--muted); } #rail i.on { width: 26px; background: var(--ink); }
+#rail { position: fixed; right: 6px; top: 66%; transform: translateY(-50%); z-index: 7; flex-direction: column; align-items: flex-end; opacity: 0; pointer-events: none; }
+#rail i { display: block; width: 9px; height: 1.5px; background: var(--line-2); margin: 0 0 4.5px; cursor: pointer; transition: width .18s, background .18s; }
+#rail i.on { width: 16px; background: var(--ink); }
 .jcard .entry:last-child { border: 0; }
 .jcard .meta { flex-direction: row; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; }
 
@@ -309,11 +310,7 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
   .hero .lead { font-size: 1rem; }
   .hero .seek { font-size: .92rem; }
   .jcard { width: calc(100vw - 2rem); max-height: 56dvh; padding: 1rem 1rem; border-radius: 14px; }
-  .jcard .entry { grid-template-columns: 1fr; gap: .5rem; }
-  #secbar { justify-content: flex-start; overflow-x: auto; scrollbar-width: none; padding: 0 1.4rem 0 .8rem; gap: .7rem; font-size: .7rem; height: 32px; }
-  #secbar a { gap: .3rem; } #secbar a::before { width: 4px; height: 4px; }
-  #secbar::-webkit-scrollbar { display: none; }
-  #rail { right: 6px; } #rail i { width: 9px; margin-bottom: 4.5px; } #rail i.on { width: 16px; }
+  #secbar, #rail { display: flex; }
   .focus { gap: .15rem; }
   .focus .q { display: none; }
   .focus .q.set { display: inline; }
