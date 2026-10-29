@@ -24,7 +24,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 ::selection { background: var(--accent); color: #fff; }
 a { color: inherit; text-decoration: none; }
 p a, li a { color: var(--accent); }
-p a:hover, li a:hover { text-decoration: underline; text-underline-offset: 3px; }
+p a:hover, li a:hover { color: var(--accent-2); }
 h1, h2, h3 { font-weight: 600; color: var(--ink); letter-spacing: -.02em; }
 button { font: inherit; cursor: pointer; color: inherit; background: none; border: 0; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
@@ -45,12 +45,21 @@ html.tldr-open { overflow: hidden; }
 .tldr-sec ul { list-style: none; margin: 0; padding: 0; }
 .tldr-sec li { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .22rem 0; font-size: .92rem; line-height: 1.35; }
 .tldr-sec li .m { color: var(--muted); font-size: .78rem; white-space: nowrap; flex: none; }
-.tldr-sec li a, .tldr-sub a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
-.tldr-sec li a:hover, .tldr-sub a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.tldr-sec li a, .tldr-sub a { color: var(--accent); text-decoration: none; }
+.tldr-sec li a:hover, .tldr-sub a:hover { color: var(--accent-2); }
 .tldr-tags { font-size: .9rem; line-height: 1.6; padding-top: .1rem; }
 .tldr-links p { display: flex; flex-wrap: wrap; gap: .45rem; }
-.tldr-x { position: absolute; top: .9rem; right: .9rem; width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; color: var(--muted); font-size: 1.3rem; line-height: 1; cursor: pointer; }
-.tldr-x:hover { color: var(--ink); border-color: var(--ink); }
+.lights { position: absolute; top: 1.05rem; left: 1.15rem; display: flex; gap: 8px; }
+.light { position: relative; width: 12px; height: 12px; border-radius: 50%; border: 0; padding: 0; box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .2); cursor: default; }
+.light.close { background: #ff5f57; } .light.min { background: #febc2e; } .light.zoom { background: #28c840; }
+.light::before, .light::after { content: ''; position: absolute; left: 50%; top: 50%; width: 7px; height: 1.5px; background: rgba(0, 0, 0, .55); border-radius: 1px; opacity: 0; transition: opacity .12s; }
+.lights:hover .light.close::before, .lights:hover .light.close::after, .lights:hover .light.min::before { opacity: 1; }
+.light.close::before { transform: translate(-50%, -50%) rotate(45deg); } .light.close::after { transform: translate(-50%, -50%) rotate(-45deg); } .light.min::before { transform: translate(-50%, -50%); }
+.light:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tldr-card { padding-top: 2.5rem; }
+.tldr-card:focus { outline: 0; }
+#tldr-toggle.bounce { animation: popin .45s ease-out; }
+@keyframes popin { 0% { transform: scale(1); } 35% { transform: scale(1.14); } 70% { transform: scale(.96); } 100% { transform: scale(1); } }
 
 /* ── Header ── */
 .top { position: fixed; top: 0; left: 0; right: 0; z-index: 40; display: flex; align-items: center; gap: 1.5rem; height: var(--head); padding: 0 var(--gutter); max-width: var(--maxw); margin: 0 auto; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
@@ -78,7 +87,7 @@ html.tldr-open { overflow: hidden; }
 /* ── Hero: two columns. Left: a greeting that keeps changing, the name, the degree, the links. Right: what's latest, what I'm
    seeking, what I work on. Fixed on the left in journey mode; the whole block balls up into a bead on the first scroll. ── */
 .hero { position: relative; max-width: var(--maxw); margin: 0 auto; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; padding: calc(var(--head) + 2rem) var(--gutter) 4rem; }
-.hero-copy { position: relative; z-index: 2; width: 100%; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 2rem clamp(2rem, 6vw, 5rem); align-items: center; }
+.hero-copy { position: relative; z-index: 2; width: 100%; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 2rem clamp(2rem, 6vw, 5rem); align-items: start; }
 .hero-l > *, .hero-r > * { opacity: 0; transform: translateY(10px); transition: opacity .7s ease, transform .7s ease; }
 html.ready .hero-l > *, html.ready .hero-r > * { opacity: 1; transform: none; }
 html.ready .hero-l > :nth-child(2) { transition-delay: .08s } html.ready .hero-l > :nth-child(3) { transition-delay: .16s }
@@ -90,9 +99,9 @@ html.ready .hero-r > :nth-child(1) { transition-delay: .2s } html.ready .hero-r 
 .hero h1 .w.swap { opacity: 0; transform: translateY(.3em); }
 .hero .lead { font-size: clamp(1.02rem, 1.3vw, 1.18rem); line-height: 1.45; color: var(--text); margin-bottom: 1.4rem; max-width: 26rem; }
 .hero .lead em, .hero .lead a.em { font-style: normal; color: var(--accent); }
-.hero .lead a.em:hover { text-decoration: underline; text-underline-offset: 3px; }
+.hero .lead a.em:hover { color: var(--accent-2); }
 .links { display: flex; flex-wrap: wrap; gap: .5rem; }
-.hero-r { padding-top: .4rem; }
+.hero-r { padding-top: .45rem; }
 .hero .seek { color: var(--text); font-size: .98rem; line-height: 1.5; margin: 1.1rem 0 0; max-width: 24rem; }
 .hero .lab { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 1.3rem 0 .5rem; }
 .topics { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem; }
@@ -170,10 +179,9 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
 .entry h3.big { font-size: 2rem; line-height: 1.1; margin-bottom: .7rem; }
 .entry .org { color: var(--muted); font-size: .95rem; margin-bottom: .8rem; }
 .entry .org b { color: var(--text); font-weight: 500; }
-.entry .org a, .entry h3 a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 30%, transparent); text-underline-offset: 3px; }
-.entry .org a:hover, .entry h3 a:hover { color: var(--accent); text-decoration-color: currentColor; }
-.lines li a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 30%, transparent); text-underline-offset: 3px; }
-.lines li a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.entry .org a, .lines li a { color: var(--accent); text-decoration: none; }
+.entry h3 a { color: inherit; text-decoration: none; }
+.entry .org a:hover, .lines li a:hover, .entry h3 a:hover { color: var(--accent-2); }
 .logos { display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; align-items: center; margin: .2rem 0 1rem; }
 .meta .logos { width: 100%; margin: 0 0 .15rem; }
 .logo { display: inline-flex; align-items: center; width: 130px; height: 36px; }
@@ -259,7 +267,7 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
   .top { gap: .5rem; }
   .brand { margin-right: auto; font-size: .98rem; gap: .45rem; }
   .brand .mark { width: 30px; height: 22px; }
-  .tldr-card { padding: 1.2rem 1rem 1.3rem; }
+  .tldr-card { padding: 2.4rem 1rem 1.3rem; }
   .tldr-sec { grid-template-columns: 1fr; gap: .15rem 0; }
   .tldr-sec li { flex-direction: column; align-items: flex-start; gap: .05rem; }
   .tldr-sec li .m { white-space: normal; }
