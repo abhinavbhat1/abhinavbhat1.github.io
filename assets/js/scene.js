@@ -24,9 +24,10 @@
   const narrow = () => W < 900; const mode = () => 'journey';
   const SANS = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif", MONO = "ui-monospace, 'SF Mono', Menlo, monospace";
   const HEAD = () => (narrow() ? 62 : 70);
-  // in the sections the screen is in three parts: the network in a band at the top, a one-line bar of the sections under it, and the details panel below
-  const band = () => { const h = H - HEAD(); return { top: HEAD(), h: (narrow() ? 0.34 : 0.46) * h }; }; const BAR = () => (narrow() ? 32 : 34);
-  const panelRect = () => { const B = band(); const top = B.top + B.h + BAR() + 10, width = narrow() ? W - 46 : Math.min(1080, W - 32); return { left: narrow() ? 14 : (W - width) / 2, top, width, height: H - top - 10 }; };
+  // on phones the sections are in three parts: the network in a band at the top, a one-line bar of the sections under it, and the
+  // details panel below. On the desktop the network has the whole screen and the card opens beside its neuron
+  const band = () => { const h = H - HEAD(); return { top: HEAD(), h: 0.34 * h }; }; const BAR = () => 32;
+  const panelRect = () => { const B = band(); const top = B.top + B.h + BAR() + 10, width = W - 46; return { left: 14, top, width, height: H - top - 10 }; };
   function resize() { const dpr = Math.min(window.devicePixelRatio || 1, 2); W = window.innerWidth; H = window.innerHeight; canvas.width = Math.ceil(W * dpr); canvas.height = Math.ceil(H * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0); layoutSpacer(); if (!field.cl.length || field.W !== W) seedField(); }
 
   // ───────── the network: an input layer, one layer per section, one neuron per entry ─────────
@@ -55,7 +56,7 @@
   function poseHero() { return { fx: 0, fy: 0, ax: hero.cx, ay: hero.cy, s: hero.s, th: 0, ph: 0, rl: 0 }; }
   // each layer is viewed head-on, but the yaw, pitch and roll it is reached at depend on the shots taken on the way (multiples of π / 2π)
   const thL = [0], phL = [0], rlL = [0], shots = [null], shotWin = [];
-  function poseLayer(k) { const m = narrow(), B = band(); const s = m ? Math.min(W * 0.5, B.h * 0.74 / (spanK(k) + 0.4)) : Math.min(W * 0.36, B.h * 0.82 / (spanK(k) + 0.45)); return { fx: k, fy: 0, ax: W / 2, ay: B.top + B.h * 0.5, s, th: thL[k], ph: phL[k], rl: rlL[k] }; }
+  function poseLayer(k) { const m = narrow(), B = band(); const s = m ? Math.min(W * 0.5, B.h * 0.74 / (spanK(k) + 0.4)) : Math.min(W * 0.36, H * 0.58 / (spanK(k) + 0.45)); return { fx: k, fy: 0, ax: W / 2, ay: m ? B.top + B.h * 0.5 : H * 0.5, s, th: thL[k], ph: phL[k], rl: rlL[k] }; }
   function poseNeuron(k, i) { const p = poseLayer(k); p.fy = 0.7 * byL[k][i].y; return p; }
   function poseClose(k, i, mul) { const p = poseLayer(k), nd = byL[k][i]; p.fx = nd.x; p.fy = nd.y; p.s *= mul; return p; }
   const lerpPose = (a, b, f) => ({ fx: mix(a.fx, b.fx, f), fy: mix(a.fy, b.fy, f), ax: mix(a.ax, b.ax, f), ay: mix(a.ay, b.ay, f), s: Math.exp(mix(Math.log(a.s), Math.log(b.s), f)), th: mix(a.th, b.th, f), ph: mix(a.ph || 0, b.ph || 0, f), rl: mix(a.rl || 0, b.rl || 0, f) });
@@ -77,7 +78,7 @@
   { kfs.push({ u: 0, f: poseHero });
     kfs.push({ u: IN0, f: poseHero });
     kfs.push({ u: HOLD, f: () => { const p = poseHero(); p.th = 0.55; p.ph = 0.22; p.s *= 0.88; return p; } });
-    kfs.push({ u: HOLD + STR, f: () => { const B = byL[1][0], L = poseLayer(1); return { fx: 0.5, fy: B.y * 0.5, ax: W / 2, ay: band().top + band().h * 0.5, s: Math.min(L.s * 0.85, hero.s * 1.6), th: 0.3, ph: 0.1, rl: 0 }; } });
+    kfs.push({ u: HOLD + STR, f: () => { const B = byL[1][0], L = poseLayer(1); return { fx: 0.5, fy: B.y * 0.5, ax: W / 2, ay: narrow() ? band().top + band().h * 0.5 : H * 0.5, s: Math.min(L.s * 0.85, hero.s * 1.6), th: 0.3, ph: 0.1, rl: 0 }; } });
     let S0 = HOLD + STR, prevF = kfs[kfs.length - 1].f;
     for (let k = 1; k < NLy; k++) { const n = counts[k]; const uE = S0 + (k === 1 ? ZOOM : SHOT); layerStart[k] = uE; const sh = shots[k]; shotWin[k] = [S0, uE];
       if (sh === 'zoom') { /* the ride over from the beads is the shot */ }
@@ -158,7 +159,7 @@
   function pathPoint(q) { const p = warp.path, n = p.length - 1; if (n <= 0) return { x: p[0].x, y: p[0].y }; const sq = clamp(q) * n, j = Math.min(n - 1, Math.floor(sq)), f = sq - j; return { x: mix(p[j].x, p[j + 1].x, f), y: mix(p[j].y, p[j + 1].y, f) }; }
   function warpState(t) {
     const wt = clamp((t - warp.t0) / warp.dur), from = warp.from, to = warp.to, P0 = warp.P0, hf = warp.homeFrom, ht = warp.homeTo, m = narrow();
-    const PT = ht ? poseHero() : warp.PT; const ride = smooth((wt - 0.1) / 0.68); const ayC = band().top + band().h * 0.5; let pose;
+    const PT = ht ? poseHero() : warp.PT; const ride = smooth((wt - 0.1) / 0.68); const ayC = m ? band().top + band().h * 0.5 : H * 0.5; let pose;
     if (ht) { // out of the neuron to the spot where the network will float, the view kept as it is (a layer's view is flat)
       const E = { fx: warp.kMax / 2, fy: 0, ax: warp.hx, ay: warp.hy, s: warp.sOut, th: P0.th, ph: P0.ph, rl: P0.rl || 0 }; pose = wt < 0.08 ? P0 : lerpPose(P0, E, smooth((wt - 0.08) / 0.8));
       return { wt, pose, done: wt >= 1, hf, ht, wob: 0, sep: warp.whole ? 0 : warp.sepMax * smooth((wt - 0.3) / 0.65), cut: warp.whole ? 0 : smooth((wt - 0.25) / 0.4), mk: 1 - smooth((wt - 0.5) / 0.4), flo: smooth((wt - 0.4) / 0.45), heroK: smooth((wt - 0.5) / 0.4), zoomK: mix(smooth((from - 0.5) / 0.7), 0, smooth((wt - 0.08) / 0.4)), lw: (kk) => layerWeight(kk, from) * (1 - smooth((wt - 0.08) / 0.4)), c: (nd) => nd.cStart, burst: (kk, i) => burstOf(kk, i, from) * (1 - smooth(wt / 0.12)) }; }
@@ -217,7 +218,7 @@
   const rail = document.createElement('div'); rail.id = 'rail'; rail.setAttribute('aria-label', 'Progress');
   const ticks = pois.slice(1).map(u => { const i = document.createElement('i'); i.addEventListener('click', () => { if (!warp.on) { cancelTween(); goTo(Math.round(u * BEAT()), 600); } }); rail.appendChild(i); return { el: i, u }; });
   document.body.appendChild(rail); let secOn = -1, secTxt = '', tickOn = -1;
-  function updateChrome(u, activeK, zoomK) { const B = band(); secbar.style.top = (B.top + B.h) + 'px'; const o = zoomK.toFixed(2); if (secbar.style.opacity !== o) { secbar.style.opacity = o; rail.style.opacity = o; secbar.style.pointerEvents = rail.style.pointerEvents = zoomK > 0.5 ? 'auto' : 'none'; }
+  function updateChrome(u, activeK, zoomK) { if (!narrow()) zoomK = 0; const B = band(); secbar.style.top = (B.top + B.h) + 'px'; const o = zoomK.toFixed(2); if (secbar.style.opacity !== o) { secbar.style.opacity = o; rail.style.opacity = o; secbar.style.pointerEvents = rail.style.pointerEvents = zoomK > 0.5 ? 'auto' : 'none'; }
     const k = activeK > 0 ? activeK : secOn; if (k > 0) { const i = clamp(Math.floor(u - layerStart[k]), 0, counts[k] - 1); const txt = `${i + 1}/${counts[k]}`; if (k !== secOn) { secLinks.forEach(s => s.a.classList.toggle('on', s.k === k)); secOn = k; } const sl = secLinks[k - 1]; if (sl && txt !== secTxt) { sl.n.textContent = txt; secTxt = txt; } }
     let best = 0, bd = 1e9; ticks.forEach((tk, j) => { const d = Math.abs(tk.u - u); if (d < bd) { bd = d; best = j; } }); if (best !== tickOn) { ticks.forEach((tk, j) => tk.el.classList.toggle('on', j === best)); tickOn = best; } }
   function setNav(id) { if (id === navOn) return; navOn = id; navLinks.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + id)); }
@@ -276,7 +277,7 @@
       g.strokeStyle = col.accent; g.lineWidth = 1; byL[0].forEach(nd => { if (nd.c <= 0.001) return; g.globalAlpha = 0.45 * Math.sin(Math.PI * clamp(nd.c)); g.beginPath(); g.moveTo(hx, hy); g.lineTo(nd.p.x, nd.p.y); g.stroke(); });
       const rr = smooth(c0) * hero.s * 1.15; g.globalAlpha = 0.5 * (1 - smooth(c0)); g.lineWidth = 1.5; g.beginPath(); g.arc(hx, hy, rr, 0, 6.2832); g.stroke(); g.fillStyle = col.accent; g.globalAlpha = 0.07 * (1 - c0); g.fill(); g.lineWidth = 1; } }
     // beads (far first), bursts, names
-    const Rb = clamp(band().h * 0.2, 40, 90); const bursts = []; g.textBaseline = 'middle';
+    const Rb = narrow() ? clamp(band().h * 0.2, 40, 90) : Math.min(W, H) * 0.14; const bursts = []; g.textBaseline = 'middle';
     const order = nodes.slice().sort((a, b) => b.p.z - a.p.z);
     order.forEach(nd => { if (nd.vis < 0.01) return; const s = nd.p; const r0 = clamp(0.045 * s.s * (nd.out ? 1.5 : nd.k === 0 ? 1.6 : 1), 3, 24), r = r0 * nd.vis; const b = bOf(nd.k, nd.i); const focus = lw[nd.k]; const bb = clamp(b);
       if (bb > 0.05 && nd.bPrev <= 0.05) pluck(nd, 0.07); nd.bPrev = bb;
@@ -285,14 +286,16 @@
       if (nd.vr > 0.01 && nd.vr < 0.99) { g.strokeStyle = col.accent; g.globalAlpha = 0.5 * (1 - nd.vr) * depth; g.lineWidth = 1; g.beginPath(); g.arc(s.x, s.y, r0 * (0.5 + 1.5 * nd.vr), 0, 6.2832); g.stroke(); }
       sphere(s.x, s.y, r, focus * zoomK, Math.max(bb, nd.k === 0 ? 0.35 * (1 - nd.vr) : 0), (0.4 + 0.5 * focus * zoomK + 0.4 * bb) * depth);
       if (nd.hov > 0.05) { g.strokeStyle = col.accent; g.globalAlpha = nd.hov * 0.5; g.beginPath(); g.arc(s.x, s.y, r + 5 * nd.hov, 0, 6.2832); g.stroke(); }
-      const la = focus * zoomK * (1 - bb) * nd.vr * (cam.s > 80 ? 1 : 0); if (la > 0.03 && nd.short) { g.fillStyle = col.ink; g.globalAlpha = 0.65 * la; g.font = `500 11px ${SANS}`; g.textAlign = narrow() ? 'center' : 'left'; g.fillText(nd.short, narrow() ? s.x : s.x + r + 9, narrow() ? s.y + r + 11 : s.y); } });
+      const la = focus * zoomK * (1 - bb) * nd.vr * (cam.s > (narrow() ? 80 : 160) ? 1 : 0); if (la > 0.03 && nd.short) { g.fillStyle = col.ink; g.globalAlpha = 0.65 * la; g.font = `500 ${narrow() ? 11 : 12}px ${SANS}`; g.textAlign = narrow() ? 'center' : 'left'; g.fillText(nd.short, narrow() ? s.x : s.x + r + 9, narrow() ? s.y + r + 11 : s.y); } });
     g.globalAlpha = 1;
     setNav(activeK > 0 && zoomK > 0.5 ? LAYERS[activeK].id : ''); updateChrome(u, activeK, zoomK);
     // cards explode out of their neuron
     LAYERS.forEach((L, k) => L.cards.forEach((c, i) => { const nd = byL[k][i]; const b = bOf(k, i); const el = c.el;
       if (b <= 0.002) { if (el.classList.contains('on')) { el.classList.remove('on'); el.style.opacity = '0'; el.querySelectorAll('details.try[open]').forEach(d => { d.open = false; }); el.querySelectorAll('details.try[data-played]').forEach(d => { delete d.dataset.played; const bd = d.querySelector('[data-auto-badge]'); if (bd) { bd.textContent = 'auto-running'; bd.classList.remove('done'); } }); el.scrollTop = 0; } return; }
       const s = nd.p; const bb = clamp(b); const R = clamp(0.045 * s.s, 3, 16) + b * Rb; el.classList.add('on');
-      const P = panelRect(); el.style.width = P.width + 'px'; el.style.maxHeight = P.height + 'px'; const cw = P.width, ch = Math.min(el.offsetHeight, P.height), left = P.left, top = P.top;
+      let cw, ch, left, top;
+      if (narrow()) { const P = panelRect(); el.style.width = P.width + 'px'; el.style.maxHeight = P.height + 'px'; cw = P.width; ch = Math.min(el.offsetHeight, P.height); left = P.left; top = P.top; }
+      else { el.style.width = ''; el.style.maxHeight = ''; cw = el.offsetWidth; ch = el.offsetHeight; left = s.x + R + 26; if (left + cw > W - 16) left = s.x - R - 26 - cw; top = clamp(s.y - ch / 2, HEAD() + 12, Math.max(HEAD() + 12, H - ch - 12)); }
       const tx = (s.x - (left + cw / 2)) * (1 - bb), ty = (s.y - (top + ch / 2)) * (1 - bb);
       el.style.left = left.toFixed(1) + 'px'; el.style.top = top.toFixed(1) + 'px'; el.style.opacity = smooth(bb * 1.3).toFixed(3); el.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${(0.5 + 0.5 * b).toFixed(3)})`; }));
     if (Wp && Wp.done) endWarp();
