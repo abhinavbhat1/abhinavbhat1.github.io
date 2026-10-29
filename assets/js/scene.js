@@ -119,11 +119,11 @@
   window.addEventListener('touchend', () => { touching = false; if (mode() === 'journey') scheduleSettle(); }, { passive: true });
   window.addEventListener('keydown', (e) => { if (mode() !== 'journey' || warp.on || (e.target && /input|textarea|select/i.test(e.target.tagName))) return; const u = window.scrollY / BEAT(); if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { const n = pois.find(p => p > u + 0.05); if (n != null) { e.preventDefault(); goTo(Math.round(n * BEAT()), 600); } } if (['ArrowUp', 'PageUp'].includes(e.key)) { const p = [...pois].reverse().find(p => p < u - 0.05); e.preventDefault(); goTo(Math.round((p == null ? 0 : p) * BEAT()), 600); } });
 
-  // ───────── warps: nav clicks. The open card balls up, every neuron forms (left to right), the camera spins and contorts
-  // through the whole network, then zooms into the target neuron while the neurons beyond it un-form. The way home is one
-  // pull-back: from wherever you are the camera zooms straight out of that neuron, unwinding its turns, until what exists of
-  // the network is in view at the home scale, then pans to put the input beads on the text while that retracts into them
-  // from the far end, and the beads fold into the text as it re-expands. Nothing is built on the way home ─────────
+  // ───────── warps: nav and home clicks, one mechanism. The open card balls up, the camera rides the wires from the current
+  // neuron to the target, swivelling and changing plane while the network contorts, then zooms in and lands. Between sections
+  // every neuron forms first and those beyond the target un-form on landing. On the way home the target is an input bead:
+  // nothing new forms, the ride goes back through what exists, that retracts from the far end on landing, the beads fold into
+  // the text, and the home structure fades in and strings itself back together ─────────
   const warp = { on: false, t0: 0, dur: 1.8, from: 0, to: 0, F: null, T: null, path: [], dir: 1, pdir: 1, P0: null, PT: null, thEnd: 0, phEnd: 0, rlEnd: 0, sRide: 100, homeFrom: false, homeTo: false };
   const nearestTurn = (a, target) => a + 2 * Math.PI * Math.round((target - a) / (2 * Math.PI)); const atHome = (u) => u < 0.05;
   function focusNode(u) { let best = null, bb = 0.05; nodes.forEach(nd => { if (nd.k === 0) return; const b = burstOf(nd.k, nd.i, u); if (b > bb) { bb = b; best = nd; } }); if (best) return best; let last = null; nodes.forEach(nd => { if (nd.k > 0 && nd.c0 <= u && (!last || nd.c0 > last.c0)) last = nd; }); return last || byL[1][0]; }
@@ -133,32 +133,22 @@
     cancelTween(); clearTimeout(settleTimer); nodes.forEach(nd => { nd.cStart = nd.c; }); const r = Math.random;
     warp.homeFrom = atHome(fromU); warp.homeTo = atHome(toU);
     const F = warp.homeFrom ? byL[0][Math.floor(r() * counts[0])] : focusNode(fromU);
-    const T = Tnode || (() => { const cand = nodes.filter(nd => nd.k > 0); return cand[Math.floor(r() * cand.length)]; })();
+    const T = Tnode || (warp.homeTo ? byL[0][Math.floor(r() * counts[0])] : (() => { const cand = nodes.filter(nd => nd.k > 0); return cand[Math.floor(r() * cand.length)]; })());
     // the path rides the wires: one neuron per layer in between (via a neighbouring layer when both are in the same one)
     const path = [F]; const step = Math.sign(T.k - F.k); if (step === 0) { const kv = F.k < Lmax ? F.k + 1 : F.k - 1; path.push(byL[kv][Math.floor(r() * counts[kv])]); } else for (let k = F.k + step; k !== T.k; k += step) path.push(byL[k][Math.floor(r() * counts[k])]); path.push(T);
     const P0 = Object.assign({}, cam), PT = warp.homeTo ? poseHero() : poseAt(toU), dir = r() < 0.5 ? -1 : 1;
-    warp.thEnd = warp.homeTo ? nearestTurn(0, P0.th) : nearestTurn(PT.th, P0.th + Math.PI * dir); warp.phEnd = warp.homeTo ? nearestTurn(0, P0.ph) : nearestTurn(PT.ph, P0.ph); warp.rlEnd = warp.homeTo ? nearestTurn(0, P0.rl || 0) : nearestTurn(PT.rl || 0, P0.rl || 0); warp.dir = dir; warp.pdir = r() < 0.5 ? -1 : 1;
-    warp.sRide = Math.max(warp.homeTo ? PT.s * 3 : poseLayer(T.k).s * 1.3, 150); warp.P0 = P0; warp.PT = PT; warp.F = F; warp.T = T; warp.path = path;
-    let kMax = 1; nodes.forEach(nd => { if (nd.c > 0.5) kMax = Math.max(kMax, nd.k); }); warp.kMax = kMax;
+    warp.thEnd = nearestTurn(PT.th, P0.th + Math.PI * dir); warp.phEnd = nearestTurn(PT.ph, P0.ph); warp.rlEnd = nearestTurn(PT.rl || 0, P0.rl || 0); warp.dir = dir; warp.pdir = r() < 0.5 ? -1 : 1;
+    warp.sRide = Math.max(warp.homeTo ? PT.s * 2.6 : poseLayer(T.k).s * 1.3, 150); warp.P0 = P0; warp.PT = PT; warp.F = F; warp.T = T; warp.path = path;
     warp.on = true; warp.t0 = tNow; warp.from = fromU; warp.to = toU; warp.dur = 1.8;
   }
   function pathPoint(q) { const p = warp.path, n = p.length - 1; if (n <= 0) return { x: p[0].x, y: p[0].y }; const sq = clamp(q) * n, j = Math.min(n - 1, Math.floor(sq)), f = sq - j; return { x: mix(p[j].x, p[j + 1].x, f), y: mix(p[j].y, p[j + 1].y, f) }; }
   function warpState(t) {
     const wt = clamp((t - warp.t0) / warp.dur), from = warp.from, to = warp.to, P0 = warp.P0, hf = warp.homeFrom, ht = warp.homeTo, m = narrow();
     const PT = ht ? poseHero() : warp.PT; const ride = smooth((wt - 0.1) / 0.68); const ayC = m ? H * 0.4 : H * 0.5; let pose;
-    if (ht) { // the whole network in view at the home scale, turns unwound, then the pan onto the text
-      const A = { fx: warp.kMax / 2, fy: 0, ax: W / 2, ay: ayC, s: Math.min(hero.s, W * 0.8 / (warp.kMax + 1)), th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd }, E = Object.assign(poseHero(), { th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd });
-      if (wt < 0.08) pose = P0; else if (wt < 0.62) { const q = smooth((wt - 0.08) / 0.54); pose = lerpPose(P0, A, q); pose.s *= 1 - 0.08 * Math.sin(Math.PI * q); } else pose = lerpPose(A, E, smooth((wt - 0.62) / 0.38));
-      return { wt, pose, done: wt >= 1, hf, ht, wob: 0.35 * Math.sin(Math.PI * clamp((wt - 0.08) / 0.6)),
-        mk: 1 - smooth((wt - 0.84) / 0.16), flo: smooth((wt - 0.78) / 0.2), heroK: smooth((wt - 0.84) / 0.16),
-        zoomK: mix(smooth((from - 0.5) / 0.7), 0, smooth((wt - 0.1) / 0.4)), lw: (kk) => layerWeight(kk, from) * (1 - smooth((wt - 0.1) / 0.4)),
-        c: (nd) => { const un = clamp((wt - 0.58 - (warp.kMax - nd.x) * 0.05) / 0.17); return nd.cStart * (1 - un); },
-        burst: (kk, i) => burstOf(kk, i, from) * (1 - smooth(wt / 0.12)) }; }
     if (wt < 0.1) pose = P0;
     else if (wt < 0.78) { const q = pathPoint(ride), sIn = smooth((wt - 0.1) / 0.2); pose = { fx: q.x, fy: q.y, ax: mix(P0.ax, W / 2, sIn), ay: mix(P0.ay, ayC, sIn), s: Math.exp(mix(Math.log(P0.s), Math.log(warp.sRide), sIn)), th: mix(P0.th, warp.thEnd, ride) + 0.45 * Math.sin(Math.PI * ride) * warp.dir, ph: mix(P0.ph, warp.phEnd, ride) + 0.55 * Math.sin(Math.PI * ride) * warp.pdir, rl: mix(P0.rl || 0, warp.rlEnd, ride) + 0.35 * Math.sin(Math.PI * ride) * warp.dir }; }
     else { const T = warp.T, A = { fx: T.x, fy: T.y, ax: W / 2, ay: ayC, s: warp.sRide, th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd }, E = Object.assign({}, PT, { th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd });
-      if (ht) { const C = { fx: T.x, fy: T.y, ax: PT.ax, ay: PT.ay, s: PT.s * 2.2, th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd }; pose = wt < 0.88 ? lerpPose(A, C, smooth((wt - 0.78) / 0.1)) : lerpPose(C, E, smooth((wt - 0.88) / 0.12)); }
-      else pose = lerpPose(A, E, smooth((wt - 0.78) / 0.22)); }
+      pose = lerpPose(A, E, smooth((wt - 0.78) / 0.22)); }
     const zk = (u) => smooth((u - 0.5) / 0.7);
     return { wt, pose, done: wt >= 1, hf, ht, wob: Math.sin(Math.PI * clamp((wt - 0.08) / 0.8)),
       mk: hf ? smooth(wt / 0.15) : ht ? 1 - smooth((wt - 0.86) / 0.14) : 1,
@@ -166,11 +156,12 @@
       heroK: hf ? 1 - smooth(wt / 0.15) : ht ? smooth((wt - 0.86) / 0.14) : 0,
       zoomK: mix(zk(from), zk(to), smooth((wt - 0.1) / 0.3)),
       lw: (kk) => mix(layerWeight(kk, from), layerWeight(kk, to), smooth((wt - 0.3) / 0.4)),
-      // leaving home the beads burst out first (the input column forms before the rest); coming home they fold back last
-      c: (nd) => { const form = clamp((wt - 0.04 - nd.x * 0.03) / 0.16), cB = Math.max(nd.cStart, form); const un = clamp((wt - 0.74 - (Lmax - nd.x) * 0.02) / 0.16); return mix(cB, Math.min(cB, journeyC(nd, to)), un); },
+      // leaving home the beads burst out first (the input column forms before the rest); coming home nothing new forms: the
+      // ride goes back through what exists, which then retracts from the far end while the beads fold into the text
+      c: (nd) => { const form = ht ? 0 : clamp((wt - 0.04 - nd.x * 0.03) / 0.16), cB = Math.max(nd.cStart, form); const un = clamp((wt - 0.74 - (Lmax - nd.x) * 0.02) / 0.16); return mix(cB, Math.min(cB, journeyC(nd, to)), un); },
       burst: (kk, i) => burstOf(kk, i, from) * (1 - smooth(wt / 0.12)) + burstOf(kk, i, to) * smooth((wt - 0.86) / 0.14) };
   }
-  function endWarp() { const to = warp.to; warp.on = false; window.scrollTo(0, Math.round(to * BEAT())); sv = to * BEAT(); lastY = window.scrollY; Object.assign(cam, poseAt(to)); if (to === 0) lightUp(); }
+  function endWarp() { const to = warp.to; warp.on = false; window.scrollTo(0, Math.round(to * BEAT())); sv = to * BEAT(); lastY = window.scrollY; Object.assign(cam, poseAt(to)); if (to === 0) { reconnectMesh(); lightUp(); } }
   window.__warp = () => warp.on ? { wt: +((tNow - warp.t0) / warp.dur).toFixed(2), from: +warp.from.toFixed(2), to: +warp.to.toFixed(2), path: warp.path.map(nd => [nd.k, nd.i]) } : null;
   const pop = (t) => { t = clamp(t); const c = 1.25; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
 
@@ -183,7 +174,7 @@
   window.addEventListener('pointerdown', (e) => { if (e.button !== 0 || interactive(e.target)) return; ptr.x = e.clientX; ptr.y = e.clientY; ptr.down = true; downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
     let best = null, bd = 26; nodes.forEach(nd => { if (nd.vis < 0.5) return; const d = Math.hypot(nd.p.x - e.clientX, nd.p.y - e.clientY); if (d < bd) { bd = d; best = nd; } });
     if (best) { dragNode = best; pluck(best, 0.08); e.preventDefault(); return; }
-    if (meshAlpha > 0.3) { let mb = null, md = 18; mesh.nodes.forEach(nd => { const d = Math.hypot(nd.x - e.clientX, nd.y - e.clientY); if (d < md) { md = d; mb = nd; } }); if (mb) { dragM = mb; mb.lit = 1; e.preventDefault(); } } });
+    if (meshAlpha > 0.3) { let mb = null, md = 24; mesh.nodes.forEach(nd => { const d = Math.hypot(nd.x - e.clientX, nd.y - e.clientY); if (d < md) { md = d; mb = nd; } }); if (mb) { dragM = mb; mb.lit = 1; e.preventDefault(); } } });
   window.addEventListener('pointerup', (e) => { const wasDown = ptr.down; ptr.down = false; const moved = Math.hypot(ptr.x - downAt.x, ptr.y - downAt.y), held = performance.now() - downAt.t;
     if (dragNode) { const sc = dragNode.p.s || cam.s; if (moved < 5 && held < 350) { dragNode.vy -= 0.3; tapNode(dragNode); } else { dragNode.vx = ptr.vx / sc * 0.6; dragNode.vy = ptr.vy / sc * 0.6; pluck(dragNode, clamp(0.04 + Math.hypot(ptr.vx, ptr.vy) / sc * 0.08, 0.04, 0.22)); } dragNode = null; }
     else if (wasDown && meshAlpha > 0.3) { if (dragM) { dragM.vx = ptr.vx * 0.5; dragM.vy = ptr.vy * 0.5; dragM.w = (Math.random() < 0.5 ? -1 : 1) * 1.6; dragM.wT = tNow; dragM = null; } if (moved < 6 && held < 400) blast(e.clientX, e.clientY); } });
@@ -195,11 +186,11 @@
   let tNow = 0;
 
   // ───────── drawing helpers ─────────
-  function sphere(x, y, r, fillK, accentK, strokeA) { // a quietly shaded bead
+  function sphere(x, y, r, fillK, accentK, strokeA, am) { // a quietly shaded bead; am scales its whole alpha
     const gr = g.createRadialGradient(x - r * 0.35, y - r * 0.38, r * 0.15, x, y, r * 1.05);
     const base = accentK > 0.01 ? mixc('bg', 'accent', accentK) : col.bg; gr.addColorStop(0, base); gr.addColorStop(1, accentK > 0.01 ? mixc('bg', 'accent', clamp(accentK * 1.15)) : mixc('bg', 'ink', 0.16 + 0.1 * fillK));
-    g.globalAlpha = 1; g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
-    g.strokeStyle = accentK > 0.3 ? col.accent : col.ink; g.globalAlpha = strokeA; g.lineWidth = 1; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.stroke();
+    g.globalAlpha = am == null ? 1 : am; g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
+    g.strokeStyle = accentK > 0.3 ? col.accent : col.ink; g.globalAlpha = strokeA * (am == null ? 1 : am); g.lineWidth = 1; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.stroke();
   }
   const navLinks = Array.from(document.querySelectorAll('.nav a')); let navOn = '';
   function setNav(id) { if (id === navOn) return; navOn = id; navLinks.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + id)); }
@@ -290,11 +281,14 @@
   // mark shoots new neurons out of it that land in the sparse parts of the structure and string themselves in ─────────
   const mesh = { nodes: [], cols: [], edges: [], pulses: [], blasts: [], volleys: [], nextPulse: 0, added: 0, W: 0 }; let meshAlpha = 1, dragM = null;
   function link(A, B, born) { const e = { A, B, w: 0.4 + 0.6 * Math.random(), amp: 0, t0: -9, ph: Math.random() * 6.28, born: born || 0, from: A }; mesh.edges.push(e); A.out.push(e); B.inn.push(e); return e; }
-  function meshNode(k, hx, hy, z) { const nd = { k, hx, hy, x: hx, y: hy, vx: 0, vy: 0, z, r: (narrow() ? 2.2 : 2.6) * z, hv: 0, lit: 0, w: 0, wT: -9, zw: 0, ph: Math.random() * 6.28, out: [], inn: [] }; mesh.nodes.push(nd); mesh.cols[k].push(nd); return nd; }
+  function meshNode(k, hx, hy, z) { const nd = { k, hx, hy, x: hx, y: hy, vx: 0, vy: 0, z, r: (narrow() ? 4.2 : 8.8) * z, hv: 0, lit: 0, w: 0, wT: -9, zw: 0, popT: -9, ph: Math.random() * 6.28, out: [], inn: [] }; mesh.nodes.push(nd); mesh.cols[k].push(nd); return nd; }
   function seedMesh() { const m = narrow(), r = Math.random; Object.assign(mesh, { nodes: [], cols: [], edges: [], pulses: [], blasts: [], volleys: [], added: 0, W });
-    const nc = m ? 5 : 8, per = m ? 8 : 11, x0 = -0.04 * W, x1 = 1.04 * W, y0 = HEAD() * 0.6, y1 = H * 1.04, cw = (x1 - x0) / (nc - 1);
-    for (let k = 0; k < nc; k++) { mesh.cols.push([]); const n = per + Math.floor(r() * 3) - 1, ch = (y1 - y0) / n; for (let i = 0; i < n; i++) meshNode(k, x0 + cw * k + (r() - 0.5) * cw * 0.5, y0 + ch * (i + 0.5) + (r() - 0.5) * ch * 0.7, 0.55 + 0.65 * r()); }
-    for (let k = 0; k < nc - 1; k++) mesh.cols[k].forEach(A => { const nxt = mesh.cols[k + 1].slice().sort((p, q) => Math.abs(p.hy - A.hy) - Math.abs(q.hy - A.hy)); const n = 2 + (r() < 0.5 ? 1 : 0); for (let j = 0; j < Math.min(n, nxt.length); j++) link(A, nxt[j]); if (k < nc - 2 && r() < 0.12) { const far = mesh.cols[k + 2]; link(A, far[Math.floor(r() * far.length)]); } });
+    // the lattice's layer axis runs down and to the right; layers are spaced along it and their beads spread across it
+    const th = 0.5, ax = Math.cos(th), ay = Math.sin(th), cw = m ? W * 0.36 : W * 0.146, rh = m ? 84 : 100, C = [W / 2, (HEAD() + H) / 2]; mesh.axis = [ax, ay, C[0], C[1]];
+    const x0 = -0.05 * W, x1 = 1.05 * W, y0 = HEAD() * 0.45, y1 = H * 1.05, K = Math.ceil(Math.hypot(W, H) / cw / 2) + 1, I = Math.ceil(Math.hypot(W, H) / rh / 2) + 1;
+    for (let k = -K; k <= K; k++) { const col = []; for (let i = -I; i <= I; i++) { const a = k * cw + (r() - 0.5) * cw * 0.4, b = i * rh + (r() - 0.5) * rh * 0.6; const x = C[0] + a * ax - b * ay, y = C[1] + a * ay + b * ax; if (x < x0 || x > x1 || y < y0 || y > y1) continue; col.push([x, y]); } if (col.length) { mesh.cols.push([]); const kk = mesh.cols.length - 1; col.forEach(([x, y]) => meshNode(kk, x, y, 0.8 + 0.4 * r())); } }
+    const nc = mesh.cols.length;
+    for (let k = 0; k < nc - 1; k++) mesh.cols[k].forEach(A => { const nxt = mesh.cols[k + 1].slice().sort((p, q) => Math.hypot(p.hx - A.hx, p.hy - A.hy) - Math.hypot(q.hx - A.hx, q.hy - A.hy)); const n = 2 + (r() < 0.5 ? 1 : 0); for (let j = 0; j < Math.min(n, nxt.length); j++) link(A, nxt[j]); if (k < nc - 2 && r() < 0.12) { const far = mesh.cols[k + 2]; link(A, far[Math.floor(r() * far.length)]); } });
     mesh.nextPulse = tNow + 1 + r() * 2; }
   // a pulse: a neuron fires and the light runs forward through the strings, hop by hop, choosing at random at every neuron
   function firePulse(delay) { const c0 = mesh.cols[0]; if (!c0 || !c0.length) return; let cur = c0[Math.floor(Math.random() * c0.length)]; const path = [cur]; while (cur.out.length && path.length < 14) { const e = cur.out[Math.floor(Math.random() * cur.out.length)]; path.push(e.B); cur = e.B; } if (path.length < 2) return; mesh.pulses.push({ path, t0: tNow + (delay || 0), hop: 0.22 + 0.05 * Math.random() }); }
@@ -308,10 +302,12 @@
   function shootNeurons(n) { if (mesh.added >= (narrow() ? 18 : 36)) { for (let j = 0; j < 3; j++) firePulse(j * 0.3); return; } const c0 = markCentre();
     for (let j = 0; j < n; j++) { let best = null, bd = -1; for (let q = 0; q < 10; q++) { const x = W * (0.03 + 0.94 * Math.random()), y = HEAD() + (H - HEAD()) * (0.04 + 0.92 * Math.random()); let d = 1e9; mesh.nodes.forEach(nd => { d = Math.min(d, Math.hypot(nd.hx - x, nd.hy - y)); }); mesh.volleys.forEach(v => { d = Math.min(d, Math.hypot(v.tx - x, v.ty - y)); }); if (d > bd) { bd = d; best = { x, y }; } }
       mesh.volleys.push({ t0: tNow + j * 0.12, dur: 0.6 + Math.random() * 0.2, x0: c0.x, y0: c0.y, tx: best.x, ty: best.y, bend: (Math.random() - 0.5) * 320, trail: [] }); mesh.added++; } }
-  function landNeuron(x, y) { const nc = mesh.cols.length; let k = 0, bd = 1e9; mesh.cols.forEach((c, j) => { const cx = c.reduce((a, nd) => a + nd.hx, 0) / Math.max(1, c.length); if (Math.abs(cx - x) < bd) { bd = Math.abs(cx - x); k = j; } });
+  function landNeuron(x, y) { const nc = mesh.cols.length, [ax, ay, cx0, cy0] = mesh.axis, along = (px, py) => (px - cx0) * ax + (py - cy0) * ay; let k = 0, bd = 1e9; mesh.cols.forEach((c, j) => { const ca = c.reduce((a, nd) => a + along(nd.hx, nd.hy), 0) / Math.max(1, c.length); if (Math.abs(ca - along(x, y)) < bd) { bd = Math.abs(ca - along(x, y)); k = j; } });
     const nd = meshNode(k, x, y, 0.75 + 0.45 * Math.random()); nd.lit = 1; nd.zw = 1; nd.wT = tNow; nd.w = 1.5; const near = (c) => c.slice().sort((p, q) => Math.hypot(p.hx - x, p.hy - y) - Math.hypot(q.hx - x, q.hy - y));
     if (k > 0) near(mesh.cols[k - 1]).slice(0, 2).forEach(p => { link(p, nd, tNow); }); if (k < nc - 1) near(mesh.cols[k + 1]).slice(0, 2).forEach(q => { const e = link(nd, q, tNow); e.from = nd; }); return nd; }
-  function lightUp() { firePulse(0); firePulse(0.35); }
+  function lightUp() { firePulse(0.5); firePulse(0.9); }
+  // on arriving home the structure strings itself back together: every bead pops in and every string draws itself from its start
+  function reconnectMesh() { mesh.nodes.forEach(nd => { nd.popT = tNow + Math.random() * 0.35; }); mesh.edges.forEach(e => { e.born = tNow + 0.1 + Math.random() * 0.5; }); }
   window.shootNeurons = shootNeurons; window.__shoot = shootNeurons; window.__blast = blast; window.__pulse = () => firePulse(0);
   window.__mesh = () => ({ n: mesh.nodes.length, edges: mesh.edges.length, pulses: mesh.pulses.length, blasts: mesh.blasts.length, volleys: mesh.volleys.length, added: mesh.added, maxDisp: +Math.max(...mesh.nodes.map(nd => Math.hypot(nd.x - nd.hx, nd.y - nd.hy))).toFixed(1), lit: mesh.nodes.filter(nd => nd.lit > 0.3).length, hov: mesh.nodes.filter(nd => nd.hv > 0.2).length, nearestTo: (x, y) => { let b = null, bd = 1e9; mesh.nodes.forEach(nd => { const d = Math.hypot(nd.hx - x, nd.hy - y); if (d < bd) { bd = d; b = nd; } }); return b && { x: +b.x.toFixed(1), y: +b.y.toFixed(1), hx: +b.hx.toFixed(1), hy: +b.hy.toFixed(1) }; } });
   function stepMesh(t, dt, alpha) {
@@ -343,9 +339,8 @@
         if (sg < 1) { const hx = mix(A.x, B.x, sg), hy = mix(A.y, B.y, sg); g.fillStyle = col.accent; g.globalAlpha = base; g.beginPath(); g.arc(hx, hy, 3, 0, 6.2832); g.fill(); g.globalAlpha = 0.22 * base; g.beginPath(); g.arc(hx, hy, 9, 0, 6.2832); g.fill(); } }
       g.lineWidth = 1; });
     // neurons
-    mesh.nodes.forEach(nd => { const glow = Math.max(nd.lit, nd.hv * 0.8), dim = inRect(nd.x, nd.y) ? 0.35 : 1; const r = nd.r * (1 + 0.6 * glow) * (1 + 0.3 * nd.zw * Math.sin(t * 6 + nd.ph));
-      g.fillStyle = glow > 0.01 ? mixc('bg', 'accent', glow) : col.bg; g.globalAlpha = base * dim; g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.fill();
-      g.strokeStyle = glow > 0.3 ? col.accent : col.ink; g.globalAlpha = (0.28 + 0.25 * nd.z + 0.5 * glow) * base * dim; g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.stroke();
+    mesh.nodes.forEach(nd => { const glow = Math.max(nd.lit, nd.hv * 0.8), dim = inRect(nd.x, nd.y) ? 0.35 : 1; const r = nd.r * (1 + 0.4 * glow) * (1 + 0.25 * nd.zw * Math.sin(t * 6 + nd.ph)) * pop(clamp((t - nd.popT) / 0.4)); if (r < 0.3) return;
+      sphere(nd.x, nd.y, r, 0.2, glow * 0.9, 0.42 + 0.4 * glow, base * dim * (0.55 + 0.45 * nd.z));
       if (glow > 0.05) { g.fillStyle = col.accent; g.globalAlpha = 0.2 * glow * base * dim; g.beginPath(); g.arc(nd.x, nd.y, r + 6, 0, 6.2832); g.fill(); } });
     // the shock ring of a blast
     mesh.blasts = mesh.blasts.filter(b => t - b.t0 < 0.6); mesh.blasts.forEach(b => { const q = (t - b.t0) / 0.6; g.strokeStyle = col.accent; g.globalAlpha = 0.5 * (1 - q) * alpha; g.lineWidth = 1.5; g.beginPath(); g.arc(b.x, b.y, b.R * smooth(q), 0, 6.2832); g.stroke(); g.lineWidth = 1; });
