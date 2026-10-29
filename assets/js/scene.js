@@ -24,7 +24,7 @@
   const narrow = () => W < 900; const mode = () => 'journey';
   const SANS = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif", MONO = "ui-monospace, 'SF Mono', Menlo, monospace";
   const HEAD = () => (narrow() ? 62 : 70);
-  function resize() { const dpr = Math.min(window.devicePixelRatio || 1, 2); W = window.innerWidth; H = window.innerHeight; canvas.width = Math.ceil(W * dpr); canvas.height = Math.ceil(H * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0); layoutSpacer(); if (!mesh.nodes.length || mesh.W !== W) seedMesh(); }
+  function resize() { const dpr = Math.min(window.devicePixelRatio || 1, 2); W = window.innerWidth; H = window.innerHeight; canvas.width = Math.ceil(W * dpr); canvas.height = Math.ceil(H * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0); layoutSpacer(); if (!field.cl.length || field.W !== W) seedField(); }
 
   // ───────── the network: an input layer, one layer per section, one neuron per entry ─────────
   const SECS = window.LAYERS || [];
@@ -119,11 +119,11 @@
   window.addEventListener('touchend', () => { touching = false; if (mode() === 'journey') scheduleSettle(); }, { passive: true });
   window.addEventListener('keydown', (e) => { if (mode() !== 'journey' || warp.on || (e.target && /input|textarea|select/i.test(e.target.tagName))) return; const u = window.scrollY / BEAT(); if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { const n = pois.find(p => p > u + 0.05); if (n != null) { e.preventDefault(); goTo(Math.round(n * BEAT()), 600); } } if (['ArrowUp', 'PageUp'].includes(e.key)) { const p = [...pois].reverse().find(p => p < u - 0.05); e.preventDefault(); goTo(Math.round((p == null ? 0 : p) * BEAT()), 600); } });
 
-  // ───────── warps: nav and home clicks, one mechanism. The open card balls up, the camera rides the wires from the current
-  // neuron to the target, swivelling and changing plane while the network contorts, then zooms in and lands. Between sections
-  // every neuron forms first and those beyond the target un-form on landing. On the way home the target is an input bead:
-  // nothing new forms, the ride goes back through what exists, that retracts from the far end on landing, the beads fold into
-  // the text, and the home structure fades in and strings itself back together ─────────
+  // ───────── warps. Nav clicks: the open card balls up, the camera rides the wires from the current neuron to the target,
+  // swivelling and changing plane while the network contorts, then zooms in and lands; every neuron forms first and those
+  // beyond the target un-form on landing. Home clicks: the card balls up and the camera simply zooms out of the neuron, the
+  // network shrinking to the size of the floating ones and drifting to a random spot on the page while the text and the field
+  // come back; there it is handed over to the field and floats on as one of them ─────────
   const warp = { on: false, t0: 0, dur: 1.8, from: 0, to: 0, F: null, T: null, path: [], dir: 1, pdir: 1, P0: null, PT: null, thEnd: 0, phEnd: 0, rlEnd: 0, sRide: 100, homeFrom: false, homeTo: false };
   const nearestTurn = (a, target) => a + 2 * Math.PI * Math.round((target - a) / (2 * Math.PI)); const atHome = (u) => u < 0.05;
   function focusNode(u) { let best = null, bb = 0.05; nodes.forEach(nd => { if (nd.k === 0) return; const b = burstOf(nd.k, nd.i, u); if (b > bb) { bb = b; best = nd; } }); if (best) return best; let last = null; nodes.forEach(nd => { if (nd.k > 0 && nd.c0 <= u && (!last || nd.c0 > last.c0)) last = nd; }); return last || byL[1][0]; }
@@ -133,18 +133,25 @@
     cancelTween(); clearTimeout(settleTimer); nodes.forEach(nd => { nd.cStart = nd.c; }); const r = Math.random;
     warp.homeFrom = atHome(fromU); warp.homeTo = atHome(toU);
     const F = warp.homeFrom ? byL[0][Math.floor(r() * counts[0])] : focusNode(fromU);
-    const T = Tnode || (warp.homeTo ? byL[0][Math.floor(r() * counts[0])] : (() => { const cand = nodes.filter(nd => nd.k > 0); return cand[Math.floor(r() * cand.length)]; })());
+    const T = Tnode || (warp.homeTo ? F : (() => { const cand = nodes.filter(nd => nd.k > 0); return cand[Math.floor(r() * cand.length)]; })());
     // the path rides the wires: one neuron per layer in between (via a neighbouring layer when both are in the same one)
     const path = [F]; const step = Math.sign(T.k - F.k); if (step === 0) { const kv = F.k < Lmax ? F.k + 1 : F.k - 1; path.push(byL[kv][Math.floor(r() * counts[kv])]); } else for (let k = F.k + step; k !== T.k; k += step) path.push(byL[k][Math.floor(r() * counts[k])]); path.push(T);
     const P0 = Object.assign({}, cam), PT = warp.homeTo ? poseHero() : poseAt(toU), dir = r() < 0.5 ? -1 : 1;
     warp.thEnd = nearestTurn(PT.th, P0.th + Math.PI * dir); warp.phEnd = nearestTurn(PT.ph, P0.ph); warp.rlEnd = nearestTurn(PT.rl || 0, P0.rl || 0); warp.dir = dir; warp.pdir = r() < 0.5 ? -1 : 1;
     warp.sRide = Math.max(warp.homeTo ? PT.s * 2.6 : poseLayer(T.k).s * 1.3, 150); warp.P0 = P0; warp.PT = PT; warp.F = F; warp.T = T; warp.path = path;
-    warp.on = true; warp.t0 = tNow; warp.from = fromU; warp.to = toU; warp.dur = 1.8;
+    if (warp.homeTo) { // the formed layers, the zoomed-out scale they float at, and a random spot clear of the text for them
+      let kMax = 1; nodes.forEach(nd => { if (nd.c > 0.5) kMax = Math.max(kMax, nd.k); }); warp.kMax = kMax; const m = narrow(); warp.sOut = clamp((m ? 0.7 : 0.42) * W / (kMax + 1), m ? 44 : 80, m ? 80 : 140);
+      const rects = (heroL && heroR) ? [heroL.getBoundingClientRect(), heroR.getBoundingClientRect()] : []; let best = null, bd = -1; const hw = warp.sOut * kMax / 2 + 40, hh = warp.sOut * maxSpan + 40;
+      for (let q = 0; q < 12; q++) { const x = hw + (W - 2 * hw) * r(), y = HEAD() + hh + (H - HEAD() - 2 * hh) * r(); let d = 1e9; rects.forEach(rc => { const ex = Math.max(rc.left - x, 0, x - rc.right), ey = Math.max(rc.top - y, 0, y - rc.bottom); d = Math.min(d, Math.hypot(ex, ey)); }); if (d > bd) { bd = d; best = { x, y }; } } warp.hx = best.x; warp.hy = best.y; }
+    warp.on = true; warp.t0 = tNow; warp.from = fromU; warp.to = toU; warp.dur = warp.homeTo ? 1.4 : 1.8;
   }
   function pathPoint(q) { const p = warp.path, n = p.length - 1; if (n <= 0) return { x: p[0].x, y: p[0].y }; const sq = clamp(q) * n, j = Math.min(n - 1, Math.floor(sq)), f = sq - j; return { x: mix(p[j].x, p[j + 1].x, f), y: mix(p[j].y, p[j + 1].y, f) }; }
   function warpState(t) {
     const wt = clamp((t - warp.t0) / warp.dur), from = warp.from, to = warp.to, P0 = warp.P0, hf = warp.homeFrom, ht = warp.homeTo, m = narrow();
     const PT = ht ? poseHero() : warp.PT; const ride = smooth((wt - 0.1) / 0.68); const ayC = m ? H * 0.4 : H * 0.5; let pose;
+    if (ht) { // out of the neuron to the spot where the network will float, the view kept as it is (a layer's view is flat)
+      const E = { fx: warp.kMax / 2, fy: 0, ax: warp.hx, ay: warp.hy, s: warp.sOut, th: P0.th, ph: P0.ph, rl: P0.rl || 0 }; pose = wt < 0.08 ? P0 : lerpPose(P0, E, smooth((wt - 0.08) / 0.8));
+      return { wt, pose, done: wt >= 1, hf, ht, wob: 0, mk: 1 - smooth((wt - 0.5) / 0.4), flo: smooth((wt - 0.4) / 0.45), heroK: smooth((wt - 0.5) / 0.4), zoomK: mix(smooth((from - 0.5) / 0.7), 0, smooth((wt - 0.08) / 0.4)), lw: (kk) => layerWeight(kk, from) * (1 - smooth((wt - 0.08) / 0.4)), c: (nd) => nd.cStart, burst: (kk, i) => burstOf(kk, i, from) * (1 - smooth(wt / 0.12)) }; }
     if (wt < 0.1) pose = P0;
     else if (wt < 0.78) { const q = pathPoint(ride), sIn = smooth((wt - 0.1) / 0.2); pose = { fx: q.x, fy: q.y, ax: mix(P0.ax, W / 2, sIn), ay: mix(P0.ay, ayC, sIn), s: Math.exp(mix(Math.log(P0.s), Math.log(warp.sRide), sIn)), th: mix(P0.th, warp.thEnd, ride) + 0.45 * Math.sin(Math.PI * ride) * warp.dir, ph: mix(P0.ph, warp.phEnd, ride) + 0.55 * Math.sin(Math.PI * ride) * warp.pdir, rl: mix(P0.rl || 0, warp.rlEnd, ride) + 0.35 * Math.sin(Math.PI * ride) * warp.dir }; }
     else { const T = warp.T, A = { fx: T.x, fy: T.y, ax: W / 2, ay: ayC, s: warp.sRide, th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd }, E = Object.assign({}, PT, { th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd });
@@ -161,7 +168,7 @@
       c: (nd) => { const form = ht ? 0 : clamp((wt - 0.04 - nd.x * 0.03) / 0.16), cB = Math.max(nd.cStart, form); const un = clamp((wt - 0.74 - (Lmax - nd.x) * 0.02) / 0.16); return mix(cB, Math.min(cB, journeyC(nd, to)), un); },
       burst: (kk, i) => burstOf(kk, i, from) * (1 - smooth(wt / 0.12)) + burstOf(kk, i, to) * smooth((wt - 0.86) / 0.14) };
   }
-  function endWarp() { const to = warp.to; warp.on = false; window.scrollTo(0, Math.round(to * BEAT())); sv = to * BEAT(); lastY = window.scrollY; Object.assign(cam, poseAt(to)); if (to === 0) { reconnectMesh(); lightUp(); } }
+  function endWarp() { const to = warp.to; warp.on = false; window.scrollTo(0, Math.round(to * BEAT())); sv = to * BEAT(); lastY = window.scrollY; if (to === 0) adoptNetwork(); Object.assign(cam, poseAt(to)); if (to === 0) lightUp(); }
   window.__warp = () => warp.on ? { wt: +((tNow - warp.t0) / warp.dur).toFixed(2), from: +warp.from.toFixed(2), to: +warp.to.toFixed(2), path: warp.path.map(nd => [nd.k, nd.i]) } : null;
   const pop = (t) => { t = clamp(t); const c = 1.25; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
 
@@ -174,7 +181,7 @@
   window.addEventListener('pointerdown', (e) => { if (e.button !== 0 || interactive(e.target)) return; ptr.x = e.clientX; ptr.y = e.clientY; ptr.down = true; downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
     let best = null, bd = 26; nodes.forEach(nd => { if (nd.vis < 0.5) return; const d = Math.hypot(nd.p.x - e.clientX, nd.p.y - e.clientY); if (d < bd) { bd = d; best = nd; } });
     if (best) { dragNode = best; pluck(best, 0.08); e.preventDefault(); return; }
-    if (meshAlpha > 0.3) { let mb = null, md = 24; mesh.nodes.forEach(nd => { const d = Math.hypot(nd.x - e.clientX, nd.y - e.clientY); if (d < md) { md = d; mb = nd; } }); if (mb) { dragM = mb; mb.lit = 1; e.preventDefault(); } } });
+    if (meshAlpha > 0.3) { let mb = null, md = 24; allNodes(nd => { const d = Math.hypot(nd.x - e.clientX, nd.y - e.clientY); if (d < md) { md = d; mb = nd; } }); if (mb) { dragM = mb; mb.lit = 1; e.preventDefault(); } } });
   window.addEventListener('pointerup', (e) => { const wasDown = ptr.down; ptr.down = false; const moved = Math.hypot(ptr.x - downAt.x, ptr.y - downAt.y), held = performance.now() - downAt.t;
     if (dragNode) { const sc = dragNode.p.s || cam.s; if (moved < 5 && held < 350) { dragNode.vy -= 0.3; tapNode(dragNode); } else { dragNode.vx = ptr.vx / sc * 0.6; dragNode.vy = ptr.vy / sc * 0.6; pluck(dragNode, clamp(0.04 + Math.hypot(ptr.vx, ptr.vy) / sc * 0.08, 0.04, 0.22)); } dragNode = null; }
     else if (wasDown && meshAlpha > 0.3) { if (dragM) { dragM.vx = ptr.vx * 0.5; dragM.vy = ptr.vy * 0.5; dragM.w = (Math.random() < 0.5 ? -1 : 1) * 1.6; dragM.wT = tNow; dragM = null; } if (moved < 6 && held < 400) blast(e.clientX, e.clientY); } });
@@ -270,86 +277,98 @@
       const tx = (s.x - (left + cw / 2)) * (1 - bb), ty = (s.y - (top + ch / 2)) * (1 - bb);
       el.style.left = left.toFixed(1) + 'px'; el.style.top = top.toFixed(1) + 'px'; el.style.opacity = smooth(bb * 1.3).toFixed(3); el.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${(0.5 + 0.5 * b).toFixed(3)})`; }));
     if (Wp && Wp.done) endWarp();
-    window.__J = { u: +u.toFixed(2), activeK, zoomK: +zoomK.toFixed(2), heroK: +heroK.toFixed(2), bursts: bursts.map(x => [x.nd.k, x.nd.i, +x.b.toFixed(2)]), cam: { fx: +cam.fx.toFixed(2), fy: +cam.fy.toFixed(2), ax: Math.round(cam.ax), ay: Math.round(cam.ay), s: Math.round(cam.s), th: +cam.th.toFixed(2), ph: +cam.ph.toFixed(2) }, dragging: !!dragNode, maxAmp: +Math.max(0, ...edges.map(e => e.amp * Math.exp(-2.2 * (t - e.t0)))).toFixed(3), maxOff: +Math.max(...nodes.map(n => Math.hypot(n.ox, n.oy))).toFixed(3), total: +total.toFixed(2), beat: Math.round(BEAT()), pois, ls: layerStart, nav: navOn, built: counts.map((_, k) => byL[k].filter(nd => nd.vr > 0.99).length), partial: nodes.filter(nd => nd.c > 0.01 && nd.c < 0.99).map(nd => [nd.k, nd.i, +nd.c.toFixed(2)]), input: byL[0].map(nd => ({ c: +nd.c.toFixed(2), x: Math.round(nd.p.x), y: Math.round(nd.p.y), vis: +nd.vis.toFixed(2) })), traces: nodes.filter(nd => nd.doneT >= 0 && nd.k > 0).map(nd => [nd.k, nd.i, +Math.min(9, t - nd.doneT).toFixed(2)]), shots, mk: +mk.toFixed(2), floA: +floA.toFixed(2), mesh: { n: mesh.nodes.length, pulses: mesh.pulses.length, added: mesh.added }, rl: +cam.rl.toFixed(2), hero: { x: Math.round(hero.cx), y: Math.round(hero.cy), s: Math.round(hero.s) }, warp: window.__warp(), zspread: +(Math.max(...nodes.map(n => n.p.z)) - Math.min(...nodes.map(n => n.p.z))).toFixed(2) };
+    window.__J = { u: +u.toFixed(2), activeK, zoomK: +zoomK.toFixed(2), heroK: +heroK.toFixed(2), bursts: bursts.map(x => [x.nd.k, x.nd.i, +x.b.toFixed(2)]), cam: { fx: +cam.fx.toFixed(2), fy: +cam.fy.toFixed(2), ax: Math.round(cam.ax), ay: Math.round(cam.ay), s: Math.round(cam.s), th: +cam.th.toFixed(2), ph: +cam.ph.toFixed(2) }, dragging: !!dragNode, maxAmp: +Math.max(0, ...edges.map(e => e.amp * Math.exp(-2.2 * (t - e.t0)))).toFixed(3), maxOff: +Math.max(...nodes.map(n => Math.hypot(n.ox, n.oy))).toFixed(3), total: +total.toFixed(2), beat: Math.round(BEAT()), pois, ls: layerStart, nav: navOn, built: counts.map((_, k) => byL[k].filter(nd => nd.vr > 0.99).length), partial: nodes.filter(nd => nd.c > 0.01 && nd.c < 0.99).map(nd => [nd.k, nd.i, +nd.c.toFixed(2)]), input: byL[0].map(nd => ({ c: +nd.c.toFixed(2), x: Math.round(nd.p.x), y: Math.round(nd.p.y), vis: +nd.vis.toFixed(2) })), traces: nodes.filter(nd => nd.doneT >= 0 && nd.k > 0).map(nd => [nd.k, nd.i, +Math.min(9, t - nd.doneT).toFixed(2)]), shots, mk: +mk.toFixed(2), floA: +floA.toFixed(2), field: { clusters: field.cl.length }, rl: +cam.rl.toFixed(2), hero: { x: Math.round(hero.cx), y: Math.round(hero.cy), s: Math.round(hero.s) }, warp: window.__warp(), zspread: +(Math.max(...nodes.map(n => n.p.z)) - Math.min(...nodes.map(n => n.p.z))).toFixed(2) };
     window.__nodeScreen = (k, i) => ({ x: byL[k][i].p.x, y: byL[k][i].p.y });
   }
 
-  // ───────── the home structure: one neural structure, zoomed in so that it runs past every edge of the home page, drawn faded.
-  // Columns of neurons, each strung to a few of the next column's. Every few seconds one fires and the light runs through the
-  // network hop by hop. The cursor is a field: neurons near it are pushed aside and glow, and any of them can be dragged. A tap
-  // anywhere blasts a hole through it and the neurons spiral back along contorted helices while the strings ring. Pressing the
-  // mark shoots new neurons out of it that land in the sparse parts of the structure and string themselves in ─────────
-  const mesh = { nodes: [], cols: [], edges: [], pulses: [], blasts: [], volleys: [], nextPulse: 0, added: 0, W: 0 }; let meshAlpha = 1, dragM = null;
-  function link(A, B, born) { const e = { A, B, w: 0.4 + 0.6 * Math.random(), amp: 0, t0: -9, ph: Math.random() * 6.28, born: born || 0, from: A }; mesh.edges.push(e); A.out.push(e); B.inn.push(e); return e; }
-  function meshNode(k, hx, hy, z) { const nd = { k, hx, hy, x: hx, y: hy, vx: 0, vy: 0, z, r: (narrow() ? 4.2 : 8.8) * z, hv: 0, lit: 0, w: 0, wT: -9, zw: 0, popT: -9, ph: Math.random() * 6.28, out: [], inn: [] }; mesh.nodes.push(nd); mesh.cols[k].push(nd); return nd; }
-  function seedMesh() { const m = narrow(), r = Math.random; Object.assign(mesh, { nodes: [], cols: [], edges: [], pulses: [], blasts: [], volleys: [], added: 0, W });
-    // the lattice's layer axis runs down and to the right; layers are spaced along it and their beads spread across it
-    const th = 0.5, ax = Math.cos(th), ay = Math.sin(th), cw = m ? W * 0.36 : W * 0.146, rh = m ? 84 : 100, C = [W / 2, (HEAD() + H) / 2]; mesh.axis = [ax, ay, C[0], C[1]];
-    const x0 = -0.05 * W, x1 = 1.05 * W, y0 = HEAD() * 0.45, y1 = H * 1.05, K = Math.ceil(Math.hypot(W, H) / cw / 2) + 1, I = Math.ceil(Math.hypot(W, H) / rh / 2) + 1;
-    for (let k = -K; k <= K; k++) { const col = []; for (let i = -I; i <= I; i++) { const a = k * cw + (r() - 0.5) * cw * 0.4, b = i * rh + (r() - 0.5) * rh * 0.6; const x = C[0] + a * ax - b * ay, y = C[1] + a * ay + b * ax; if (x < x0 || x > x1 || y < y0 || y > y1) continue; col.push([x, y]); } if (col.length) { mesh.cols.push([]); const kk = mesh.cols.length - 1; col.forEach(([x, y]) => meshNode(kk, x, y, 0.8 + 0.4 * r())); } }
-    const nc = mesh.cols.length;
-    for (let k = 0; k < nc - 1; k++) mesh.cols[k].forEach(A => { const nxt = mesh.cols[k + 1].slice().sort((p, q) => Math.hypot(p.hx - A.hx, p.hy - A.hy) - Math.hypot(q.hx - A.hx, q.hy - A.hy)); const n = 2 + (r() < 0.5 ? 1 : 0); for (let j = 0; j < Math.min(n, nxt.length); j++) link(A, nxt[j]); if (k < nc - 2 && r() < 0.12) { const far = mesh.cols[k + 2]; link(A, far[Math.floor(r() * far.length)]); } });
-    mesh.nextPulse = tNow + 1 + r() * 2; }
-  // a pulse: a neuron fires and the light runs forward through the strings, hop by hop, choosing at random at every neuron
-  function firePulse(delay) { const c0 = mesh.cols[0]; if (!c0 || !c0.length) return; let cur = c0[Math.floor(Math.random() * c0.length)]; const path = [cur]; while (cur.out.length && path.length < 14) { const e = cur.out[Math.floor(Math.random() * cur.out.length)]; path.push(e.B); cur = e.B; } if (path.length < 2) return; mesh.pulses.push({ path, t0: tNow + (delay || 0), hop: 0.22 + 0.05 * Math.random() }); }
+  // ───────── the home field: small neural structures floating about, none strung to another, each laid out down and to the
+  // right, with beads the size of the section neurons, drawn faded. They drift and wrap; every few seconds one fires and
+  // the light runs through it. The cursor is a field: beads near it are pushed aside and glow, and any can be dragged. A tap
+  // anywhere blasts a hole through whatever is there and the beads spiral back along contorted helices while the strings
+  // ring. The mark pressed at home does something at random: lights a few up, or shoots the beads of a new one out of the
+  // mark. Coming home from a section, the network you were in is handed over to the field where it stands and floats on as
+  // one of them ─────────
+  const field = { cl: [], blasts: [], volleys: [], nextPulse: 0, W: 0 }; let meshAlpha = 1, dragM = null; const TH = 0.5, CAP = () => (narrow() ? 7 : 14);
+  const allNodes = (fn) => field.cl.forEach(cl => cl.nodes.forEach(nd => { if (nd.here) fn(nd, cl); }));
+  function link(cl, A, B, born) { const e = { A, B, w: 0.4 + 0.6 * Math.random(), amp: 0, t0: -9, ph: Math.random() * 6.28, born: born || 0, from: A }; cl.edges.push(e); A.out.push(e); B.inn.push(e); return e; }
+  function clusterNode(cl, k, lx, ly, z, here) { const nd = { cl, k, lx, ly, x: cl.cx + lx, y: cl.cy + ly, vx: 0, vy: 0, z, r: (narrow() ? 4 : 7.2) * z, hv: 0, lit: 0, w: 0, wT: -9, zw: 0, popT: -9, here: here !== false, ph: Math.random() * 6.28, out: [], inn: [] }; cl.nodes.push(nd); (cl.cols[k] || (cl.cols[k] = [])).push(nd); return nd; }
+  function newCluster(cx, cy, kind) { const r = Math.random; const cl = { cx, cy, vx0: (r() - 0.5) * 14, vy0: (r() - 0.5) * 10, vx: 0, vy: 0, nodes: [], cols: [], edges: [], pulses: [], born: tNow, kind: kind || 'flo', alpha: 1, state: 'float' }; cl.vx = cl.vx0; cl.vy = cl.vy0; field.cl.push(cl); return cl; }
+  // a small architecture: two to four layers of two to four beads, its layer axis running down and to the right
+  function makeCluster(cx, cy, here) { const r = Math.random, m = narrow(); const cl = newCluster(cx, cy); const nl = 2 + Math.floor(r() * 3); const layers = Array.from({ length: nl }, () => 2 + Math.floor(r() * 3)); const cw = (m ? 66 : 104) * (0.85 + 0.3 * r()), rh = (m ? 38 : 58) * (0.85 + 0.3 * r()); const ca = Math.cos(TH), sa = Math.sin(TH);
+    layers.forEach((n, k) => { for (let i = 0; i < n; i++) { const a = (k - (nl - 1) / 2) * cw + (r() - 0.5) * cw * 0.25, b = (i - (n - 1) / 2) * rh + (r() - 0.5) * rh * 0.3; clusterNode(cl, k, a * ca - b * sa, a * sa + b * ca, 0.8 + 0.4 * r(), here); } });
+    for (let k = 0; k < nl - 1; k++) cl.cols[k].forEach(A => { const nxt = cl.cols[k + 1].slice().sort((p, q) => Math.hypot(p.lx - A.lx, p.ly - A.ly) - Math.hypot(q.lx - A.lx, q.ly - A.ly)); const n = Math.min(nxt.length, 1 + Math.floor(r() * 3)); for (let j = 0; j < n; j++) link(cl, A, nxt[j]); });
+    return cl; }
+  function seedField() { field.cl = []; field.blasts = []; field.volleys = []; field.W = W; const m = narrow(), n = m ? 5 : 10, cols = m ? 2 : 4, rows = 3; const cells = []; for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) cells.push([i, j]); cells.sort(() => Math.random() - 0.5);
+    for (let q = 0; q < n; q++) { const [i, j] = cells[q % cells.length]; const cw = W / cols, ch = (H - HEAD()) / rows; makeCluster((i + 0.2 + 0.6 * Math.random()) * cw, HEAD() + (j + 0.2 + 0.6 * Math.random()) * ch); } field.nextPulse = tNow + 1 + Math.random() * 2; }
+  // a pulse: a bead in the first layer fires and the light runs forward hop by hop, choosing at random at every bead
+  function firePulse(cl, delay) { if (!cl) { const live = field.cl.filter(c => c.state === 'float'); if (!live.length) return; cl = live[Math.floor(Math.random() * live.length)]; } const c0 = (cl.cols[0] || []).filter(nd => nd.here); if (!c0.length) return; let cur = c0[Math.floor(Math.random() * c0.length)]; const path = [cur]; while (cur.out.length && path.length < 12) { const e = cur.out[Math.floor(Math.random() * cur.out.length)]; if (!e.B.here) break; path.push(e.B); cur = e.B; } if (path.length < 2) return; cl.pulses.push({ path, t0: tNow + (delay || 0), hop: 0.22 + 0.05 * Math.random() }); }
   // a blast: everything within reach is thrown outward from the point, hardest at the centre, given a swirl to come back on, and its strings ring
-  function blast(x, y) { const R = narrow() ? 150 : 230; mesh.blasts.push({ x, y, t0: tNow, R });
-    mesh.nodes.forEach(nd => { const dx = nd.x - x, dy = nd.y - y, d = Math.hypot(dx, dy); if (d > R) return; const f = Math.pow(1 - d / R, 1.4), v = 260 + 1100 * f; const nx = d > 0.5 ? dx / d : Math.cos(nd.ph), ny = d > 0.5 ? dy / d : Math.sin(nd.ph);
+  function blast(x, y) { const R = narrow() ? 150 : 230; field.blasts.push({ x, y, t0: tNow, R });
+    allNodes(nd => { const dx = nd.x - x, dy = nd.y - y, d = Math.hypot(dx, dy); if (d > R) return; const f = Math.pow(1 - d / R, 1.4), v = 260 + 1100 * f; const nx = d > 0.5 ? dx / d : Math.cos(nd.ph), ny = d > 0.5 ? dy / d : Math.sin(nd.ph);
       nd.vx += nx * v + (Math.random() - 0.5) * 120; nd.vy += ny * v + (Math.random() - 0.5) * 120; nd.w = (Math.random() < 0.5 ? -1 : 1) * (2.2 + 2.6 * Math.random()) * (0.4 + 0.6 * f); nd.wT = tNow; nd.zw = 1;
       nd.out.concat(nd.inn).forEach(e => { const a = 8 + 16 * f; if (e.amp * Math.exp(-2.2 * (tNow - e.t0)) < a) { e.amp = a; e.t0 = tNow; } }); }); }
   function markCentre() { const m = document.querySelector('.brand .mark'); const r = m ? m.getBoundingClientRect() : null; return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 40, y: HEAD() / 2 }; }
-  // the mark pressed at home: new neurons shoot out of it to the sparsest spots and string themselves in; once the structure is full, it pulses instead
-  function shootNeurons(n) { if (mesh.added >= (narrow() ? 18 : 36)) { for (let j = 0; j < 3; j++) firePulse(j * 0.3); return; } const c0 = markCentre();
-    for (let j = 0; j < n; j++) { let best = null, bd = -1; for (let q = 0; q < 10; q++) { const x = W * (0.03 + 0.94 * Math.random()), y = HEAD() + (H - HEAD()) * (0.04 + 0.92 * Math.random()); let d = 1e9; mesh.nodes.forEach(nd => { d = Math.min(d, Math.hypot(nd.hx - x, nd.hy - y)); }); mesh.volleys.forEach(v => { d = Math.min(d, Math.hypot(v.tx - x, v.ty - y)); }); if (d > bd) { bd = d; best = { x, y }; } }
-      mesh.volleys.push({ t0: tNow + j * 0.12, dur: 0.6 + Math.random() * 0.2, x0: c0.x, y0: c0.y, tx: best.x, ty: best.y, bend: (Math.random() - 0.5) * 320, trail: [] }); mesh.added++; } }
-  function landNeuron(x, y) { const nc = mesh.cols.length, [ax, ay, cx0, cy0] = mesh.axis, along = (px, py) => (px - cx0) * ax + (py - cy0) * ay; let k = 0, bd = 1e9; mesh.cols.forEach((c, j) => { const ca = c.reduce((a, nd) => a + along(nd.hx, nd.hy), 0) / Math.max(1, c.length); if (Math.abs(ca - along(x, y)) < bd) { bd = Math.abs(ca - along(x, y)); k = j; } });
-    const nd = meshNode(k, x, y, 0.75 + 0.45 * Math.random()); nd.lit = 1; nd.zw = 1; nd.wT = tNow; nd.w = 1.5; const near = (c) => c.slice().sort((p, q) => Math.hypot(p.hx - x, p.hy - y) - Math.hypot(q.hx - x, q.hy - y));
-    if (k > 0) near(mesh.cols[k - 1]).slice(0, 2).forEach(p => { link(p, nd, tNow); }); if (k < nc - 1) near(mesh.cols[k + 1]).slice(0, 2).forEach(q => { const e = link(nd, q, tNow); e.from = nd; }); return nd; }
-  function lightUp() { firePulse(0.5); firePulse(0.9); }
-  // on arriving home the structure strings itself back together: every bead pops in and every string draws itself from its start
-  function reconnectMesh() { mesh.nodes.forEach(nd => { nd.popT = tNow + Math.random() * 0.35; }); mesh.edges.forEach(e => { e.born = tNow + 0.1 + Math.random() * 0.5; }); }
-  window.shootNeurons = shootNeurons; window.__shoot = shootNeurons; window.__blast = blast; window.__pulse = () => firePulse(0);
-  window.__mesh = () => ({ n: mesh.nodes.length, edges: mesh.edges.length, pulses: mesh.pulses.length, blasts: mesh.blasts.length, volleys: mesh.volleys.length, added: mesh.added, maxDisp: +Math.max(...mesh.nodes.map(nd => Math.hypot(nd.x - nd.hx, nd.y - nd.hy))).toFixed(1), lit: mesh.nodes.filter(nd => nd.lit > 0.3).length, hov: mesh.nodes.filter(nd => nd.hv > 0.2).length, nearestTo: (x, y) => { let b = null, bd = 1e9; mesh.nodes.forEach(nd => { const d = Math.hypot(nd.hx - x, nd.hy - y); if (d < bd) { bd = d; b = nd; } }); return b && { x: +b.x.toFixed(1), y: +b.y.toFixed(1), hx: +b.hx.toFixed(1), hy: +b.hy.toFixed(1) }; } });
+  // the mark pressed at home: at random, a few light up, or a new architecture is shot out of the mark bead by bead
+  function pressHome() { if (Math.random() < 0.5) { const live = field.cl.filter(c => c.state === 'float').sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 3)); live.forEach((cl, j) => firePulse(cl, j * 0.18)); return; }
+    const c0 = markCentre(); let best = null, bd = -1; for (let q = 0; q < 10; q++) { const x = W * (0.12 + 0.76 * Math.random()), y = HEAD() + (H - HEAD()) * (0.12 + 0.76 * Math.random()); let d = 1e9; field.cl.forEach(cl => { d = Math.min(d, Math.hypot(cl.cx - x, cl.cy - y)); }); avoid.forEach(rc => { if (x > rc.left - 60 && x < rc.right + 60 && y > rc.top - 60 && y < rc.bottom + 60) d = 0; }); if (d > bd) { bd = d; best = { x, y }; } }
+    const cl = makeCluster(best.x, best.y, false); cl.vx0 *= 0.5; cl.vy0 *= 0.5; cl.vx = cl.vx0; cl.vy = cl.vy0;
+    cl.nodes.forEach((nd, j) => field.volleys.push({ cl, nd, t0: tNow + j * 0.1, dur: 0.6 + Math.random() * 0.2, x0: c0.x, y0: c0.y, bend: (Math.random() - 0.5) * 320, trail: [] })); trimField(); }
+  function trimField() { while (field.cl.filter(c => c.state === 'float').length > CAP()) { const old = field.cl.filter(c => c.state === 'float').sort((a, b) => a.born - b.born)[0]; old.state = 'fading'; old.goneT = tNow; } }
+  function lightUp() { const live = field.cl.filter(c => c.state === 'float').sort(() => Math.random() - 0.5).slice(0, 3); live.forEach((cl, j) => firePulse(cl, 0.4 + j * 0.25)); }
+  // coming home: the network you were in, as it stands on screen, becomes a floating architecture of the field (strings and all)
+  function adoptNetwork() { const formed = nodes.filter(nd => nd.vis > 0.5); if (formed.length < 2) return; const cx = formed.reduce((a, nd) => a + nd.p.x, 0) / formed.length, cy = formed.reduce((a, nd) => a + nd.p.y, 0) / formed.length;
+    const cl = newCluster(cx, cy, 'cv'); const map = new Map(); formed.forEach(nd => { const m = clusterNode(cl, nd.k, nd.p.x - cx, nd.p.y - cy, 1); m.r = clamp(0.045 * nd.p.s * (nd.out ? 1.5 : nd.k === 0 ? 1.6 : 1), 3, 24); m.x = nd.p.x; m.y = nd.p.y; map.set(nd, m); });
+    edges.forEach(e => { const A = map.get(e.A), B = map.get(e.B); if (A && B) link(cl, A, B); }); firePulse(cl, 0.8); trimField(); return cl; }
+  window.shootNeurons = pressHome; window.__shoot = pressHome; window.__blast = blast; window.__pulse = () => firePulse(null, 0);
+  window.__field = () => { let n = 0, maxDisp = 0, lit = 0, hov = 0, pulses = 0; allNodes(nd => { n++; maxDisp = Math.max(maxDisp, Math.hypot(nd.x - (nd.cl.cx + nd.lx), nd.y - (nd.cl.cy + nd.ly))); if (nd.lit > 0.3) lit++; if (nd.hv > 0.2) hov++; }); field.cl.forEach(cl => { pulses += cl.pulses.length; }); return { clusters: field.cl.length, kinds: field.cl.map(c => c.kind + ':' + c.state + ':' + c.nodes.filter(nd => nd.here).length), n, maxDisp: +maxDisp.toFixed(1), lit, hov, pulses, volleys: field.volleys.length, nearestTo: (x, y) => { let b = null, bd = 1e9; allNodes(nd => { const d = Math.hypot(nd.cl.cx + nd.lx - x, nd.cl.cy + nd.ly - y); if (d < bd) { bd = d; b = nd; } }); return b && { x: +b.x.toFixed(1), y: +b.y.toFixed(1), hx: +(b.cl.cx + b.lx).toFixed(1), hy: +(b.cl.cy + b.ly).toFixed(1) }; } }; };
   function stepMesh(t, dt, alpha) {
-    const RH = narrow() ? 64 : 96, inRect = (x, y) => avoid.some(rc => x > rc.left && x < rc.right && y > rc.top && y < rc.bottom);
+    const RH = narrow() ? 64 : 96, inRect = (x, y) => avoid.some(rc => x > rc.left && x < rc.right && y > rc.top && y < rc.bottom), wrapW = W + 240, wrapH = H + 240;
+    // each architecture drifts, keeps clear of the text columns, and wraps round the edges with its beads carried along
+    field.cl.forEach(cl => { if (cl.state === 'fading') { cl.alpha = Math.max(0, 1 - (t - cl.goneT) / 0.6); if (cl.alpha <= 0) cl.state = 'gone'; }
+      cl.vx += (cl.vx0 - cl.vx) * 0.8 * dt; cl.vy += (cl.vy0 - cl.vy) * 0.8 * dt;
+      avoid.forEach(rc => { const pad = 70; if (cl.cx > rc.left - pad && cl.cx < rc.right + pad && cl.cy > rc.top - pad && cl.cy < rc.bottom + pad) { const dl = cl.cx - (rc.left - pad), dr = (rc.right + pad) - cl.cx, dtp = cl.cy - (rc.top - pad), db = (rc.bottom + pad) - cl.cy; const mn = Math.min(dl, dr, dtp, db); if (mn === dl) cl.vx -= 90 * dt; else if (mn === dr) cl.vx += 90 * dt; else if (mn === dtp) cl.vy -= 90 * dt; else cl.vy += 90 * dt; } });
+      const sp = Math.hypot(cl.vx, cl.vy); if (sp > 120) { cl.vx *= 120 / sp; cl.vy *= 120 / sp; } cl.cx += cl.vx * dt; cl.cy += cl.vy * dt;
+      let sx = 0, sy = 0; if (cl.cx < -120) sx = wrapW; else if (cl.cx > W + 120) sx = -wrapW; if (cl.cy < -120) sy = wrapH; else if (cl.cy > H + 120) sy = -wrapH; if (sx || sy) { cl.cx += sx; cl.cy += sy; cl.nodes.forEach(nd => { nd.x += sx; nd.y += sy; }); } });
+    field.cl = field.cl.filter(cl => cl.state !== 'gone');
     // physics: a spring home, a dying swirl about home after a blast (the helix), the cursor field, the drag
-    mesh.nodes.forEach(nd => {
+    allNodes((nd, cl) => { const hx = cl.cx + nd.lx, hy = cl.cy + nd.ly;
       if (nd === dragM) { nd.vx = ptr.vx; nd.vy = ptr.vy; nd.x = ptr.x; nd.y = ptr.y; }
-      else { const dx = nd.x - nd.hx, dy = nd.y - nd.hy; let ax = -26 * dx - 5 * nd.vx, ay = -26 * dy - 5 * nd.vy;
+      else { const dx = nd.x - hx, dy = nd.y - hy; let ax = -26 * dx - 5 * nd.vx, ay = -26 * dy - 5 * nd.vy;
         const age = t - nd.wT; if (age < 3.5) { const wv = nd.w * Math.exp(-age / 1.1); ax += -dy * wv * 5.5; ay += dx * wv * 5.5; }
         const cx = nd.x - ptr.x, cy = nd.y - ptr.y, cd = Math.hypot(cx, cy); let hv = 0; if (cd < RH && cd > 0.1 && ptr.x > -1000) { const w = 1 - cd / RH; hv = w; ax += cx / cd * w * 1500 + ptr.vx * 2.5 * w; ay += cy / cd * w * 1500 + ptr.vy * 2.5 * w; }
         nd.hv += (hv - nd.hv) * (1 - Math.exp(-dt * 9));
         nd.vx += ax * dt; nd.vy += ay * dt; const sp = Math.hypot(nd.vx, nd.vy); if (sp > 1500) { nd.vx *= 1500 / sp; nd.vy *= 1500 / sp; } nd.x += nd.vx * dt; nd.y += nd.vy * dt; }
       nd.zw *= Math.exp(-dt * 1.3); nd.lit *= Math.exp(-dt * 1.6); });
     // pulses: brief, not frequent; now and then two
-    if (t > mesh.nextPulse && document.visibilityState === 'visible') { firePulse(0); if (Math.random() < 0.3) firePulse(0.4); mesh.nextPulse = t + 3.5 + Math.random() * 5; }
-    mesh.pulses = mesh.pulses.filter(p => (t - p.t0) / p.hop < p.path.length - 1 + 3);
-    mesh.pulses.forEach(p => { const q = (t - p.t0) / p.hop; if (q < 0) return; p.path.forEach((nd, j) => { if (q >= j) nd.lit = Math.max(nd.lit, clamp(1 - (q - j) / 3)); }); });
-    // strings
-    const base = alpha * (narrow() ? 0.6 : 0.85); g.lineWidth = 1; g.strokeStyle = col.ink;
-    mesh.edges.forEach(e => { const P = e.from, Q = e.from === e.A ? e.B : e.A; const grow = e.born ? clamp((t - e.born) / 0.45) : 1; const dim = inRect((P.x + Q.x) / 2, (P.y + Q.y) / 2) ? 0.3 : 1;
-      g.globalAlpha = (0.07 + 0.09 * e.w) * base * dim * (0.6 + 0.4 * Math.min(P.z, Q.z)); const qx = mix(P.x, Q.x, grow), qy = mix(P.y, Q.y, grow); g.beginPath();
-      const age = t - e.t0, ampS = e.amp * Math.exp(-2.2 * age);
-      if (ampS > 0.4) { const dx = qx - P.x, dy = qy - P.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L; for (let j = 0; j <= 14; j++) { const s = j / 14; const off = ampS * (Math.sin(Math.PI * s) * Math.cos(2 * Math.PI * 2.3 * age + e.ph) + 0.45 * Math.sin(2 * Math.PI * s) * Math.cos(2 * Math.PI * 3.1 * age) * Math.exp(-0.8 * age)); const x = P.x + dx * s + nx * off, y = P.y + dy * s + ny * off; if (j === 0) g.moveTo(x, y); else g.lineTo(x, y); } }
-      else { g.moveTo(P.x, P.y); g.lineTo(qx, qy); }
-      g.stroke(); if (grow < 0.999) { g.fillStyle = col.accent; g.globalAlpha = 0.7 * base * Math.sin(Math.PI * grow); g.beginPath(); g.arc(qx, qy, 1.8, 0, 6.2832); g.fill(); } });
-    // the light running through: a lit trail that fades a few hops behind the head
-    mesh.pulses.forEach(p => { const q = (t - p.t0) / p.hop; if (q < 0) return; const n = p.path.length - 1; g.strokeStyle = col.accent; g.lineWidth = 1.5;
-      for (let j = 0; j < n; j++) { const sg = clamp(q - j); if (sg <= 0) break; const fade = clamp(1 - (q - j - 1) / 2.5); if (fade <= 0) continue; const A = p.path[j], B = p.path[j + 1]; g.globalAlpha = 0.85 * base * fade; g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(mix(A.x, B.x, sg), mix(A.y, B.y, sg)); g.stroke();
-        if (sg < 1) { const hx = mix(A.x, B.x, sg), hy = mix(A.y, B.y, sg); g.fillStyle = col.accent; g.globalAlpha = base; g.beginPath(); g.arc(hx, hy, 3, 0, 6.2832); g.fill(); g.globalAlpha = 0.22 * base; g.beginPath(); g.arc(hx, hy, 9, 0, 6.2832); g.fill(); } }
-      g.lineWidth = 1; });
-    // neurons
-    mesh.nodes.forEach(nd => { const glow = Math.max(nd.lit, nd.hv * 0.8), dim = inRect(nd.x, nd.y) ? 0.35 : 1; const r = nd.r * (1 + 0.4 * glow) * (1 + 0.25 * nd.zw * Math.sin(t * 6 + nd.ph)) * pop(clamp((t - nd.popT) / 0.4)); if (r < 0.3) return;
-      sphere(nd.x, nd.y, r, 0.2, glow * 0.9, 0.42 + 0.4 * glow, base * dim * (0.55 + 0.45 * nd.z));
-      if (glow > 0.05) { g.fillStyle = col.accent; g.globalAlpha = 0.2 * glow * base * dim; g.beginPath(); g.arc(nd.x, nd.y, r + 6, 0, 6.2832); g.fill(); } });
+    if (t > field.nextPulse && document.visibilityState === 'visible') { firePulse(null, 0); if (Math.random() < 0.3) firePulse(null, 0.4); field.nextPulse = t + 3 + Math.random() * 4; }
+    field.cl.forEach(cl => { cl.pulses = cl.pulses.filter(p => (t - p.t0) / p.hop < p.path.length - 1 + 3); cl.pulses.forEach(p => { const q = (t - p.t0) / p.hop; if (q < 0) return; p.path.forEach((nd, j) => { if (q >= j) nd.lit = Math.max(nd.lit, clamp(1 - (q - j) / 3)); }); }); });
+    const base0 = alpha * (narrow() ? 0.6 : 0.85); g.lineWidth = 1;
+    field.cl.forEach(cl => { const base = base0 * cl.alpha; if (base <= 0.005) return;
+      // strings
+      g.strokeStyle = col.ink;
+      cl.edges.forEach(e => { if (!e.A.here || !e.B.here) return; const P = e.from, Q = e.from === e.A ? e.B : e.A; const grow = e.born ? clamp((t - e.born) / 0.45) : 1; const dim = inRect((P.x + Q.x) / 2, (P.y + Q.y) / 2) ? 0.3 : 1;
+        g.globalAlpha = (0.08 + 0.09 * e.w) * base * dim * (0.6 + 0.4 * Math.min(P.z, Q.z)); const qx = mix(P.x, Q.x, grow), qy = mix(P.y, Q.y, grow); g.beginPath();
+        const age = t - e.t0, ampS = e.amp * Math.exp(-2.2 * age);
+        if (ampS > 0.4) { const dx = qx - P.x, dy = qy - P.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L; for (let j = 0; j <= 14; j++) { const s = j / 14; const off = ampS * (Math.sin(Math.PI * s) * Math.cos(2 * Math.PI * 2.3 * age + e.ph) + 0.45 * Math.sin(2 * Math.PI * s) * Math.cos(2 * Math.PI * 3.1 * age) * Math.exp(-0.8 * age)); const x = P.x + dx * s + nx * off, y = P.y + dy * s + ny * off; if (j === 0) g.moveTo(x, y); else g.lineTo(x, y); } }
+        else { g.moveTo(P.x, P.y); g.lineTo(qx, qy); }
+        g.stroke(); if (grow < 0.999) { g.fillStyle = col.accent; g.globalAlpha = 0.7 * base * Math.sin(Math.PI * grow); g.beginPath(); g.arc(qx, qy, 1.8, 0, 6.2832); g.fill(); } });
+      // the light running through: a lit trail that fades a few hops behind the head
+      cl.pulses.forEach(p => { const q = (t - p.t0) / p.hop; if (q < 0) return; const n = p.path.length - 1; g.strokeStyle = col.accent; g.lineWidth = 1.5;
+        for (let j = 0; j < n; j++) { const sg = clamp(q - j); if (sg <= 0) break; const fade = clamp(1 - (q - j - 1) / 2.5); if (fade <= 0) continue; const A = p.path[j], B = p.path[j + 1]; g.globalAlpha = 0.85 * base * fade; g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(mix(A.x, B.x, sg), mix(A.y, B.y, sg)); g.stroke();
+          if (sg < 1) { const hx = mix(A.x, B.x, sg), hy = mix(A.y, B.y, sg); g.fillStyle = col.accent; g.globalAlpha = base; g.beginPath(); g.arc(hx, hy, 3, 0, 6.2832); g.fill(); g.globalAlpha = 0.22 * base; g.beginPath(); g.arc(hx, hy, 9, 0, 6.2832); g.fill(); } }
+        g.lineWidth = 1; });
+      // beads
+      cl.nodes.forEach(nd => { if (!nd.here) return; const glow = Math.max(nd.lit, nd.hv * 0.8), dim = inRect(nd.x, nd.y) ? 0.35 : 1; const r = nd.r * (1 + 0.4 * glow) * (1 + 0.25 * nd.zw * Math.sin(t * 6 + nd.ph)) * pop(clamp((t - nd.popT) / 0.4)); if (r < 0.3) return;
+        sphere(nd.x, nd.y, r, 0.2, glow * 0.9, 0.42 + 0.4 * glow, base * dim * (0.55 + 0.45 * nd.z));
+        if (glow > 0.05) { g.fillStyle = col.accent; g.globalAlpha = 0.2 * glow * base * dim; g.beginPath(); g.arc(nd.x, nd.y, r + 6, 0, 6.2832); g.fill(); } }); });
     // the shock ring of a blast
-    mesh.blasts = mesh.blasts.filter(b => t - b.t0 < 0.6); mesh.blasts.forEach(b => { const q = (t - b.t0) / 0.6; g.strokeStyle = col.accent; g.globalAlpha = 0.5 * (1 - q) * alpha; g.lineWidth = 1.5; g.beginPath(); g.arc(b.x, b.y, b.R * smooth(q), 0, 6.2832); g.stroke(); g.lineWidth = 1; });
-    // the shots out of the mark: a bead on a bent path with a short trail; it lands with a pop and strings itself in
-    for (let j = mesh.volleys.length - 1; j >= 0; j--) { const sh = mesh.volleys[j]; if (t < sh.t0) continue; const q = clamp((t - sh.t0) / sh.dur), e = smooth(q); const mx = (sh.x0 + sh.tx) / 2, my = (sh.y0 + sh.ty) / 2, dx = sh.tx - sh.x0, dy = sh.ty - sh.y0, L = Math.hypot(dx, dy) || 1; const cx = mx - dy / L * sh.bend, cy = my + dx / L * sh.bend; const u = 1 - e;
-      const x = u * u * sh.x0 + 2 * u * e * cx + e * e * sh.tx, y = u * u * sh.y0 + 2 * u * e * cy + e * e * sh.ty; sh.trail.push([x, y]); if (sh.trail.length > 9) sh.trail.shift();
+    field.blasts = field.blasts.filter(b => t - b.t0 < 0.6); field.blasts.forEach(b => { const q = (t - b.t0) / 0.6; g.strokeStyle = col.accent; g.globalAlpha = 0.5 * (1 - q) * alpha; g.lineWidth = 1.5; g.beginPath(); g.arc(b.x, b.y, b.R * smooth(q), 0, 6.2832); g.stroke(); g.lineWidth = 1; });
+    // the shots out of the mark: a bead on a bent path with a short trail; it lands with a pop and its strings draw in
+    for (let j = field.volleys.length - 1; j >= 0; j--) { const sh = field.volleys[j]; if (t < sh.t0) continue; const nd = sh.nd, cl = sh.cl, tx = cl.cx + nd.lx, ty = cl.cy + nd.ly; const q = clamp((t - sh.t0) / sh.dur), e = smooth(q); const mx = (sh.x0 + tx) / 2, my = (sh.y0 + ty) / 2, dx = tx - sh.x0, dy = ty - sh.y0, L = Math.hypot(dx, dy) || 1; const cx = mx - dy / L * sh.bend, cy = my + dx / L * sh.bend; const u = 1 - e;
+      const x = u * u * sh.x0 + 2 * u * e * cx + e * e * tx, y = u * u * sh.y0 + 2 * u * e * cy + e * e * ty; sh.trail.push([x, y]); if (sh.trail.length > 9) sh.trail.shift();
       g.strokeStyle = col.accent; g.lineWidth = 1.4; for (let i = 1; i < sh.trail.length; i++) { g.globalAlpha = alpha * 0.55 * i / sh.trail.length; g.beginPath(); g.moveTo(sh.trail[i - 1][0], sh.trail[i - 1][1]); g.lineTo(sh.trail[i][0], sh.trail[i][1]); g.stroke(); }
       g.fillStyle = col.accent; g.globalAlpha = alpha; g.beginPath(); g.arc(x, y, 3, 0, 6.2832); g.fill(); g.globalAlpha = alpha * 0.2; g.beginPath(); g.arc(x, y, 8, 0, 6.2832); g.fill(); g.lineWidth = 1;
-      if (q >= 1) { landNeuron(sh.tx, sh.ty); mesh.volleys.splice(j, 1); } }
+      if (q >= 1) { nd.here = true; nd.x = tx; nd.y = ty; nd.popT = t; nd.lit = 1; nd.out.concat(nd.inn).forEach(ed => { if (ed.A.here && ed.B.here && !ed.born) { ed.born = t; ed.from = ed.A === nd ? ed.B : ed.A; } }); field.volleys.splice(j, 1); if (cl.nodes.every(n => n.here)) firePulse(cl, 0.5); } }
     g.globalAlpha = 1;
   }
 
