@@ -281,55 +281,70 @@
     window.__nodeScreen = (k, i) => ({ x: byL[k][i].p.x, y: byL[k][i].p.y });
   }
 
-  // ───────── the home field: small neural structures floating about, none strung to another, each laid out down and to the
-  // right, with beads the size of the section neurons, drawn faded. They drift and wrap; every few seconds one fires and
-  // the light runs through it. The cursor is a field: beads near it are pushed aside and glow, and any can be dragged. A tap
-  // anywhere blasts a hole through whatever is there and the beads spiral back along contorted helices while the strings
-  // ring. The mark pressed at home does something at random: lights a few up, or shoots the beads of a new one out of the
-  // mark. Coming home from a section, the network you were in is handed over to the field where it stands and floats on as
-  // one of them ─────────
-  const field = { cl: [], blasts: [], volleys: [], nextPulse: 0, W: 0 }; let meshAlpha = 1, dragM = null; const TH = 0.5, CAP = () => (narrow() ? 7 : 14);
+  // ───────── the home field: free radicals. Small fragments of neural structure and lone particles drift about, spread out and
+  // barely connected: a fragment is one to three short layers of one to three beads, strung sparsely, laid out down and to the
+  // right, with beads the size of the section neurons, drawn faded. They wander and wrap, and when two come close they bond: a
+  // string fades in between them and holds them loosely until they drift apart. Every few seconds one fires and the light
+  // runs through it. The cursor pushes and lights beads, any bead can be dragged, a tap blasts a hole that closes along
+  // helices. The mark pressed at home lights a few up, shoots a new fragment out of the mark, or scatters a few particles.
+  // Coming home from a section the network you were in breaks into fragments where it stands (or comes back whole, when it
+  // is small), and they drift apart into the field ─────────
+  const field = { cl: [], bonds: [], blasts: [], volleys: [], nextPulse: 0, W: 0 }; let meshAlpha = 1, dragM = null; const TH = 0.5, CAP = () => (narrow() ? 14 : 28);
   const allNodes = (fn) => field.cl.forEach(cl => cl.nodes.forEach(nd => { if (nd.here) fn(nd, cl); }));
   function link(cl, A, B, born) { const e = { A, B, w: 0.4 + 0.6 * Math.random(), amp: 0, t0: -9, ph: Math.random() * 6.28, born: born || 0, from: A }; cl.edges.push(e); A.out.push(e); B.inn.push(e); return e; }
-  function clusterNode(cl, k, lx, ly, z, here) { const nd = { cl, k, lx, ly, x: cl.cx + lx, y: cl.cy + ly, vx: 0, vy: 0, z, r: (narrow() ? 4 : 7.2) * z, hv: 0, lit: 0, w: 0, wT: -9, zw: 0, popT: -9, here: here !== false, ph: Math.random() * 6.28, out: [], inn: [] }; cl.nodes.push(nd); (cl.cols[k] || (cl.cols[k] = [])).push(nd); return nd; }
-  function newCluster(cx, cy, kind) { const r = Math.random; const cl = { cx, cy, vx0: (r() - 0.5) * 14, vy0: (r() - 0.5) * 10, vx: 0, vy: 0, nodes: [], cols: [], edges: [], pulses: [], born: tNow, kind: kind || 'flo', alpha: 1, state: 'float' }; cl.vx = cl.vx0; cl.vy = cl.vy0; field.cl.push(cl); return cl; }
-  // a small architecture: two to four layers of two to four beads, its layer axis running down and to the right
-  function makeCluster(cx, cy, here) { const r = Math.random, m = narrow(); const cl = newCluster(cx, cy); const nl = 2 + Math.floor(r() * 3); const layers = Array.from({ length: nl }, () => 2 + Math.floor(r() * 3)); const cw = (m ? 66 : 104) * (0.85 + 0.3 * r()), rh = (m ? 38 : 58) * (0.85 + 0.3 * r()); const ca = Math.cos(TH), sa = Math.sin(TH);
-    layers.forEach((n, k) => { for (let i = 0; i < n; i++) { const a = (k - (nl - 1) / 2) * cw + (r() - 0.5) * cw * 0.25, b = (i - (n - 1) / 2) * rh + (r() - 0.5) * rh * 0.3; clusterNode(cl, k, a * ca - b * sa, a * sa + b * ca, 0.8 + 0.4 * r(), here); } });
-    for (let k = 0; k < nl - 1; k++) cl.cols[k].forEach(A => { const nxt = cl.cols[k + 1].slice().sort((p, q) => Math.hypot(p.lx - A.lx, p.ly - A.ly) - Math.hypot(q.lx - A.lx, q.ly - A.ly)); const n = Math.min(nxt.length, 1 + Math.floor(r() * 3)); for (let j = 0; j < n; j++) link(cl, A, nxt[j]); });
+  function clusterNode(cl, k, lx, ly, z, here) { const nd = { cl, k, lx, ly, x: cl.cx + lx, y: cl.cy + ly, vx: 0, vy: 0, z, r: (narrow() ? 4 : 7.2) * z, hv: 0, lit: 0, w: 0, wT: -9, zw: 0, popT: -9, here: here !== false, bonds: 0, ph: Math.random() * 6.28, out: [], inn: [] }; cl.nodes.push(nd); (cl.cols[k] || (cl.cols[k] = [])).push(nd); return nd; }
+  function newCluster(cx, cy, kind) { const r = Math.random; const cl = { cx, cy, vx0: (r() - 0.5) * 16, vy0: (r() - 0.5) * 12, vx: 0, vy: 0, nodes: [], cols: [], edges: [], pulses: [], born: tNow, kind: kind || 'flo', alpha: 1, state: 'float' }; cl.vx = cl.vx0; cl.vy = cl.vy0; field.cl.push(cl); return cl; }
+  // a fragment: one to three short layers of one to three beads, strung sparsely; a third of them are a single particle
+  function makeCluster(cx, cy, here, lone) { const r = Math.random, m = narrow(); const cl = newCluster(cx, cy); const nl = lone ? 1 : 1 + Math.floor(r() * 3); const layers = Array.from({ length: nl }, () => lone ? 1 : 1 + Math.floor(r() * 3)); const cw = (m ? 72 : 112) * (0.85 + 0.3 * r()), rh = (m ? 44 : 64) * (0.85 + 0.3 * r()); const ca = Math.cos(TH), sa = Math.sin(TH);
+    layers.forEach((n, k) => { for (let i = 0; i < n; i++) { const a = (k - (nl - 1) / 2) * cw + (r() - 0.5) * cw * 0.3, b = (i - (n - 1) / 2) * rh + (r() - 0.5) * rh * 0.35; clusterNode(cl, k, a * ca - b * sa, a * sa + b * ca, 0.8 + 0.4 * r(), here); } });
+    for (let k = 0; k < nl - 1; k++) cl.cols[k].forEach(A => { if (r() < 0.2) return; const nxt = cl.cols[k + 1].slice().sort((p, q) => Math.hypot(p.lx - A.lx, p.ly - A.ly) - Math.hypot(q.lx - A.lx, q.ly - A.ly)); const n = Math.min(nxt.length, r() < 0.75 ? 1 : 2); for (let j = 0; j < n; j++) link(cl, A, nxt[j]); });
     return cl; }
-  function seedField() { field.cl = []; field.blasts = []; field.volleys = []; field.W = W; const m = narrow(), n = m ? 5 : 10, cols = m ? 2 : 4, rows = 3; const cells = []; for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) cells.push([i, j]); cells.sort(() => Math.random() - 0.5);
-    for (let q = 0; q < n; q++) { const [i, j] = cells[q % cells.length]; const cw = W / cols, ch = (H - HEAD()) / rows; makeCluster((i + 0.2 + 0.6 * Math.random()) * cw, HEAD() + (j + 0.2 + 0.6 * Math.random()) * ch); } field.nextPulse = tNow + 1 + Math.random() * 2; }
-  // a pulse: a bead in the first layer fires and the light runs forward hop by hop, choosing at random at every bead
-  function firePulse(cl, delay) { if (!cl) { const live = field.cl.filter(c => c.state === 'float'); if (!live.length) return; cl = live[Math.floor(Math.random() * live.length)]; } const c0 = (cl.cols[0] || []).filter(nd => nd.here); if (!c0.length) return; let cur = c0[Math.floor(Math.random() * c0.length)]; const path = [cur]; while (cur.out.length && path.length < 12) { const e = cur.out[Math.floor(Math.random() * cur.out.length)]; if (!e.B.here) break; path.push(e.B); cur = e.B; } if (path.length < 2) return; cl.pulses.push({ path, t0: tNow + (delay || 0), hop: 0.22 + 0.05 * Math.random() }); }
+  const textRects = () => (heroL && heroR) ? [heroL.getBoundingClientRect(), heroR.getBoundingClientRect()] : [];
+  function clearSpot(pad) { const rects = textRects(); let best = null, bd = -1; for (let q = 0; q < 14; q++) { const x = W * (0.04 + 0.92 * Math.random()), y = HEAD() + (H - HEAD()) * (0.05 + 0.9 * Math.random()); let d = 1e9; rects.forEach(rc => { const ex = Math.max(rc.left - x, 0, x - rc.right), ey = Math.max(rc.top - y, 0, y - rc.bottom); d = Math.min(d, Math.hypot(ex, ey)); }); field.cl.forEach(cl => { d = Math.min(d, Math.hypot(cl.cx - x, cl.cy - y) * 0.6); }); if (d > bd) { bd = d; best = { x, y }; } } return best; }
+  function seedField() { field.cl = []; field.bonds = []; field.blasts = []; field.volleys = []; field.W = W; const n = narrow() ? 9 : 18; for (let q = 0; q < n; q++) { const p = clearSpot(); makeCluster(p.x, p.y, true, Math.random() < 0.35); } field.nextPulse = tNow + 1 + Math.random() * 2; }
+  // a pulse: a bead in the first layer of a strung fragment fires and the light runs forward hop by hop
+  function firePulse(cl, delay) { if (!cl) { const live = field.cl.filter(c => c.state === 'float' && c.edges.length); if (!live.length) return; cl = live[Math.floor(Math.random() * live.length)]; } const c0 = cl.nodes.filter(nd => nd.here && nd.out.length && !nd.inn.length); if (!c0.length) return; let cur = c0[Math.floor(Math.random() * c0.length)]; const path = [cur]; while (cur.out.length && path.length < 12) { const e = cur.out[Math.floor(Math.random() * cur.out.length)]; if (!e.B.here) break; path.push(e.B); cur = e.B; } if (path.length < 2) return; cl.pulses.push({ path, t0: tNow + (delay || 0), hop: 0.22 + 0.05 * Math.random() }); }
   // a blast: everything within reach is thrown outward from the point, hardest at the centre, given a swirl to come back on, and its strings ring
   function blast(x, y) { const R = narrow() ? 150 : 230; field.blasts.push({ x, y, t0: tNow, R });
     allNodes(nd => { const dx = nd.x - x, dy = nd.y - y, d = Math.hypot(dx, dy); if (d > R) return; const f = Math.pow(1 - d / R, 1.4), v = 260 + 1100 * f; const nx = d > 0.5 ? dx / d : Math.cos(nd.ph), ny = d > 0.5 ? dy / d : Math.sin(nd.ph);
       nd.vx += nx * v + (Math.random() - 0.5) * 120; nd.vy += ny * v + (Math.random() - 0.5) * 120; nd.w = (Math.random() < 0.5 ? -1 : 1) * (2.2 + 2.6 * Math.random()) * (0.4 + 0.6 * f); nd.wT = tNow; nd.zw = 1;
       nd.out.concat(nd.inn).forEach(e => { const a = 8 + 16 * f; if (e.amp * Math.exp(-2.2 * (tNow - e.t0)) < a) { e.amp = a; e.t0 = tNow; } }); }); }
   function markCentre() { const m = document.querySelector('.brand .mark'); const r = m ? m.getBoundingClientRect() : null; return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 40, y: HEAD() / 2 }; }
-  // the mark pressed at home: at random, a few light up, or a new architecture is shot out of the mark bead by bead
-  function pressHome() { if (Math.random() < 0.5) { const live = field.cl.filter(c => c.state === 'float').sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 3)); live.forEach((cl, j) => firePulse(cl, j * 0.18)); return; }
-    const c0 = markCentre(); let best = null, bd = -1; for (let q = 0; q < 10; q++) { const x = W * (0.12 + 0.76 * Math.random()), y = HEAD() + (H - HEAD()) * (0.12 + 0.76 * Math.random()); let d = 1e9; field.cl.forEach(cl => { d = Math.min(d, Math.hypot(cl.cx - x, cl.cy - y)); }); avoid.forEach(rc => { if (x > rc.left - 60 && x < rc.right + 60 && y > rc.top - 60 && y < rc.bottom + 60) d = 0; }); if (d > bd) { bd = d; best = { x, y }; } }
-    const cl = makeCluster(best.x, best.y, false); cl.vx0 *= 0.5; cl.vy0 *= 0.5; cl.vx = cl.vx0; cl.vy = cl.vy0;
-    cl.nodes.forEach((nd, j) => field.volleys.push({ cl, nd, t0: tNow + j * 0.1, dur: 0.6 + Math.random() * 0.2, x0: c0.x, y0: c0.y, bend: (Math.random() - 0.5) * 320, trail: [] })); trimField(); }
+  function shootCluster(cl) { const c0 = markCentre(); cl.nodes.forEach((nd, j) => { nd.here = false; field.volleys.push({ cl, nd, t0: tNow + j * 0.1, dur: 0.6 + Math.random() * 0.2, x0: c0.x, y0: c0.y, bend: (Math.random() - 0.5) * 320, trail: [] }); }); }
+  // the mark pressed at home: at random, a few light up, a new fragment is shot out of the mark bead by bead, or a few particles are scattered
+  function pressHome() { const dice = Math.random();
+    if (dice < 0.4) { const live = field.cl.filter(c => c.state === 'float' && c.edges.length).sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 3)); live.forEach((cl, j) => firePulse(cl, j * 0.18)); return; }
+    if (dice < 0.75) { const p = clearSpot(); const cl = makeCluster(p.x, p.y, false, false); cl.vx0 *= 0.6; cl.vy0 *= 0.6; cl.vx = cl.vx0; cl.vy = cl.vy0; shootCluster(cl); trimField(); return; }
+    const n = 3 + Math.floor(Math.random() * 3); for (let j = 0; j < n; j++) { const p = clearSpot(); const cl = makeCluster(p.x, p.y, false, true); shootCluster(cl); } trimField(); }
   function trimField() { while (field.cl.filter(c => c.state === 'float').length > CAP()) { const old = field.cl.filter(c => c.state === 'float').sort((a, b) => a.born - b.born)[0]; old.state = 'fading'; old.goneT = tNow; } }
-  function lightUp() { const live = field.cl.filter(c => c.state === 'float').sort(() => Math.random() - 0.5).slice(0, 3); live.forEach((cl, j) => firePulse(cl, 0.4 + j * 0.25)); }
-  // coming home: the network you were in, as it stands on screen, becomes a floating architecture of the field (strings and all)
+  function lightUp() { const live = field.cl.filter(c => c.state === 'float' && c.edges.length).sort(() => Math.random() - 0.5).slice(0, 2); live.forEach((cl, j) => firePulse(cl, 0.5 + j * 0.3)); }
+  // coming home: the network you were in, as it stands on screen, joins the field. Small ones come back whole; a big one breaks
+  // where it stands into fragments of a neuron and one or two of the next layer it was strung to, plus lone particles, and the
+  // pieces drift apart from where the network was
   function adoptNetwork() { const formed = nodes.filter(nd => nd.vis > 0.5); if (formed.length < 2) return; const cx = formed.reduce((a, nd) => a + nd.p.x, 0) / formed.length, cy = formed.reduce((a, nd) => a + nd.p.y, 0) / formed.length;
-    const cl = newCluster(cx, cy, 'cv'); const map = new Map(); formed.forEach(nd => { const m = clusterNode(cl, nd.k, nd.p.x - cx, nd.p.y - cy, 1); m.r = clamp(0.045 * nd.p.s * (nd.out ? 1.5 : nd.k === 0 ? 1.6 : 1), 3, 24); m.x = nd.p.x; m.y = nd.p.y; map.set(nd, m); });
-    edges.forEach(e => { const A = map.get(e.A), B = map.get(e.B); if (A && B) link(cl, A, B); }); firePulse(cl, 0.8); trimField(); return cl; }
+    const rad = (nd) => clamp(0.045 * nd.p.s * (nd.out ? 1.5 : nd.k === 0 ? 1.6 : 1), 3, 24);
+    const place = (group) => { const gx = group.reduce((a, nd) => a + nd.p.x, 0) / group.length, gy = group.reduce((a, nd) => a + nd.p.y, 0) / group.length; const cl = newCluster(gx, gy, 'cv'); const map = new Map(); group.forEach(nd => { const m = clusterNode(cl, nd.k, nd.p.x - gx, nd.p.y - gy, 1); m.r = rad(nd); m.x = nd.p.x; m.y = nd.p.y; map.set(nd, m); });
+      edges.forEach(e => { const A = map.get(e.A), B = map.get(e.B); if (A && B) link(cl, A, B); }); const dx = gx - cx, dy = gy - cy, d = Math.hypot(dx, dy) || 1; const v = 10 + 18 * Math.random(); cl.vx0 = dx / d * v + (Math.random() - 0.5) * 8; cl.vy0 = dy / d * v + (Math.random() - 0.5) * 6; cl.vx = cl.vx0; cl.vy = cl.vy0; return cl; };
+    if (formed.length <= 7 && Math.random() < 0.7) { const cl = place(formed); cl.vx0 *= 0.3; cl.vy0 *= 0.3; cl.vx = cl.vx0; cl.vy = cl.vy0; firePulse(cl, 0.8); trimField(); return; }
+    const taken = new Set(), pieces = []; formed.slice().sort(() => Math.random() - 0.5).forEach(nd => { if (taken.has(nd)) return; const group = [nd]; taken.add(nd); if (Math.random() < 0.7) { const next = edges.filter(e => e.A === nd && !taken.has(e.B) && e.B.vis > 0.5).map(e => e.B).sort(() => Math.random() - 0.5).slice(0, 1 + (Math.random() < 0.35 ? 1 : 0)); next.forEach(b => { taken.add(b); group.push(b); }); } pieces.push(group); });
+    const made = pieces.map(place); made.filter(c => c.edges.length).slice(0, 2).forEach((cl, j) => firePulse(cl, 0.8 + j * 0.3)); trimField(); }
   window.shootNeurons = pressHome; window.__shoot = pressHome; window.__blast = blast; window.__pulse = () => firePulse(null, 0);
-  window.__field = () => { let n = 0, maxDisp = 0, lit = 0, hov = 0, pulses = 0; allNodes(nd => { n++; maxDisp = Math.max(maxDisp, Math.hypot(nd.x - (nd.cl.cx + nd.lx), nd.y - (nd.cl.cy + nd.ly))); if (nd.lit > 0.3) lit++; if (nd.hv > 0.2) hov++; }); field.cl.forEach(cl => { pulses += cl.pulses.length; }); return { clusters: field.cl.length, kinds: field.cl.map(c => c.kind + ':' + c.state + ':' + c.nodes.filter(nd => nd.here).length), n, maxDisp: +maxDisp.toFixed(1), lit, hov, pulses, volleys: field.volleys.length, nearestTo: (x, y) => { let b = null, bd = 1e9; allNodes(nd => { const d = Math.hypot(nd.cl.cx + nd.lx - x, nd.cl.cy + nd.ly - y); if (d < bd) { bd = d; b = nd; } }); return b && { x: +b.x.toFixed(1), y: +b.y.toFixed(1), hx: +(b.cl.cx + b.lx).toFixed(1), hy: +(b.cl.cy + b.ly).toFixed(1) }; } }; };
+  window.__field = () => { let n = 0, maxDisp = 0, lit = 0, hov = 0, pulses = 0; allNodes(nd => { n++; maxDisp = Math.max(maxDisp, Math.hypot(nd.x - (nd.cl.cx + nd.lx), nd.y - (nd.cl.cy + nd.ly))); if (nd.lit > 0.3) lit++; if (nd.hv > 0.2) hov++; }); field.cl.forEach(cl => { pulses += cl.pulses.length; }); return { clusters: field.cl.length, particles: field.cl.filter(c => c.nodes.length === 1).length, bonds: field.bonds.length, kinds: field.cl.map(c => c.kind + ':' + c.state + ':' + c.nodes.filter(nd => nd.here).length + '/' + c.edges.length), n, maxDisp: +maxDisp.toFixed(1), lit, hov, pulses, volleys: field.volleys.length, nearestTo: (x, y) => { let b = null, bd = 1e9; allNodes(nd => { const d = Math.hypot(nd.cl.cx + nd.lx - x, nd.cl.cy + nd.ly - y); if (d < bd) { bd = d; b = nd; } }); return b && { x: +b.x.toFixed(1), y: +b.y.toFixed(1), hx: +(b.cl.cx + b.lx).toFixed(1), hy: +(b.cl.cy + b.ly).toFixed(1) }; } }; };
   function stepMesh(t, dt, alpha) {
     const RH = narrow() ? 64 : 96, inRect = (x, y) => avoid.some(rc => x > rc.left && x < rc.right && y > rc.top && y < rc.bottom), wrapW = W + 240, wrapH = H + 240;
-    // each architecture drifts, keeps clear of the text columns, and wraps round the edges with its beads carried along
+    // each fragment wanders, keeps clear of the text columns, and wraps round the edges with its beads carried along
     field.cl.forEach(cl => { if (cl.state === 'fading') { cl.alpha = Math.max(0, 1 - (t - cl.goneT) / 0.6); if (cl.alpha <= 0) cl.state = 'gone'; }
+      cl.vx0 = clamp(cl.vx0 + (Math.random() - 0.5) * 10 * dt, -20, 20); cl.vy0 = clamp(cl.vy0 + (Math.random() - 0.5) * 8 * dt, -16, 16);
       cl.vx += (cl.vx0 - cl.vx) * 0.8 * dt; cl.vy += (cl.vy0 - cl.vy) * 0.8 * dt;
-      avoid.forEach(rc => { const pad = 70; if (cl.cx > rc.left - pad && cl.cx < rc.right + pad && cl.cy > rc.top - pad && cl.cy < rc.bottom + pad) { const dl = cl.cx - (rc.left - pad), dr = (rc.right + pad) - cl.cx, dtp = cl.cy - (rc.top - pad), db = (rc.bottom + pad) - cl.cy; const mn = Math.min(dl, dr, dtp, db); if (mn === dl) cl.vx -= 90 * dt; else if (mn === dr) cl.vx += 90 * dt; else if (mn === dtp) cl.vy -= 90 * dt; else cl.vy += 90 * dt; } });
+      avoid.forEach(rc => { const pad = 90; if (cl.cx > rc.left - pad && cl.cx < rc.right + pad && cl.cy > rc.top - pad && cl.cy < rc.bottom + pad) { const dl = cl.cx - (rc.left - pad), dr = (rc.right + pad) - cl.cx, dtp = cl.cy - (rc.top - pad), db = (rc.bottom + pad) - cl.cy; const mn = Math.min(dl, dr, dtp, db); if (mn === dl) cl.vx -= 110 * dt; else if (mn === dr) cl.vx += 110 * dt; else if (mn === dtp) cl.vy -= 110 * dt; else cl.vy += 110 * dt; } });
       const sp = Math.hypot(cl.vx, cl.vy); if (sp > 120) { cl.vx *= 120 / sp; cl.vy *= 120 / sp; } cl.cx += cl.vx * dt; cl.cy += cl.vy * dt;
       let sx = 0, sy = 0; if (cl.cx < -120) sx = wrapW; else if (cl.cx > W + 120) sx = -wrapW; if (cl.cy < -120) sy = wrapH; else if (cl.cy > H + 120) sy = -wrapH; if (sx || sy) { cl.cx += sx; cl.cy += sy; cl.nodes.forEach(nd => { nd.x += sx; nd.y += sy; }); } });
     field.cl = field.cl.filter(cl => cl.state !== 'gone');
+    // bonds: two beads of different fragments that drift close string themselves together and hold on loosely; stretched too far, the string lets go
+    { const RB = narrow() ? 46 : 64; const live = []; allNodes((nd, cl) => { if (cl.state === 'float') live.push(nd); });
+      field.bonds = field.bonds.filter(b => !(b.gone && t - b.gone > 0.45) && b.A.cl.state !== 'gone' && b.B.cl.state !== 'gone');
+      field.bonds.forEach(b => { const d = Math.hypot(b.A.x - b.B.x, b.A.y - b.B.y); if (!b.gone && d > RB * 2.3) { b.gone = t; b.A.bonds--; b.B.bonds--; } if (b.gone) return; const nx = (b.B.x - b.A.x) / (d || 1), ny = (b.B.y - b.A.y) / (d || 1), f = (d - RB * 0.8) * 1.6; b.A.cl.vx += nx * f * dt * 0.5; b.A.cl.vy += ny * f * dt * 0.5; b.B.cl.vx -= nx * f * dt * 0.5; b.B.cl.vy -= ny * f * dt * 0.5; });
+      if (live.length < 160) for (let i = 0; i < live.length; i++) for (let j = i + 1; j < live.length; j++) { const A = live[i], B = live[j]; if (A.cl === B.cl || A.bonds >= 2 || B.bonds >= 2) continue; const d = Math.hypot(A.x - B.x, A.y - B.y); if (d < RB && Math.random() < 1.5 * dt && !field.bonds.some(b => !b.gone && ((b.A === A && b.B === B) || (b.A === B && b.B === A)))) { field.bonds.push({ A, B, born: t, gone: 0, ph: Math.random() * 6.28 }); A.bonds++; B.bonds++; } } }
     // physics: a spring home, a dying swirl about home after a blast (the helix), the cursor field, the drag
     allNodes((nd, cl) => { const hx = cl.cx + nd.lx, hy = cl.cy + nd.ly;
       if (nd === dragM) { nd.vx = ptr.vx; nd.vy = ptr.vy; nd.x = ptr.x; nd.y = ptr.y; }
@@ -342,7 +357,9 @@
     // pulses: brief, not frequent; now and then two
     if (t > field.nextPulse && document.visibilityState === 'visible') { firePulse(null, 0); if (Math.random() < 0.3) firePulse(null, 0.4); field.nextPulse = t + 3 + Math.random() * 4; }
     field.cl.forEach(cl => { cl.pulses = cl.pulses.filter(p => (t - p.t0) / p.hop < p.path.length - 1 + 3); cl.pulses.forEach(p => { const q = (t - p.t0) / p.hop; if (q < 0) return; p.path.forEach((nd, j) => { if (q >= j) nd.lit = Math.max(nd.lit, clamp(1 - (q - j) / 3)); }); }); });
-    const base0 = alpha * (narrow() ? 0.6 : 0.85); g.lineWidth = 1;
+    const base0 = alpha * (narrow() ? 0.55 : 0.72); g.lineWidth = 1;
+    // bonds between fragments, fading in and out
+    g.strokeStyle = col.ink; field.bonds.forEach(b => { const k = b.gone ? 1 - (t - b.gone) / 0.45 : clamp((t - b.born) / 0.5); if (k <= 0) return; const dim = inRect((b.A.x + b.B.x) / 2, (b.A.y + b.B.y) / 2) ? 0.3 : 1; g.globalAlpha = 0.1 * k * base0 * dim * Math.min(b.A.cl.alpha, b.B.cl.alpha); g.beginPath(); g.moveTo(b.A.x, b.A.y); g.lineTo(mix(b.A.x, b.B.x, b.gone ? 1 : k), mix(b.A.y, b.B.y, b.gone ? 1 : k)); g.stroke(); });
     field.cl.forEach(cl => { const base = base0 * cl.alpha; if (base <= 0.005) return;
       // strings
       g.strokeStyle = col.ink;
@@ -368,7 +385,7 @@
       const x = u * u * sh.x0 + 2 * u * e * cx + e * e * tx, y = u * u * sh.y0 + 2 * u * e * cy + e * e * ty; sh.trail.push([x, y]); if (sh.trail.length > 9) sh.trail.shift();
       g.strokeStyle = col.accent; g.lineWidth = 1.4; for (let i = 1; i < sh.trail.length; i++) { g.globalAlpha = alpha * 0.55 * i / sh.trail.length; g.beginPath(); g.moveTo(sh.trail[i - 1][0], sh.trail[i - 1][1]); g.lineTo(sh.trail[i][0], sh.trail[i][1]); g.stroke(); }
       g.fillStyle = col.accent; g.globalAlpha = alpha; g.beginPath(); g.arc(x, y, 3, 0, 6.2832); g.fill(); g.globalAlpha = alpha * 0.2; g.beginPath(); g.arc(x, y, 8, 0, 6.2832); g.fill(); g.lineWidth = 1;
-      if (q >= 1) { nd.here = true; nd.x = tx; nd.y = ty; nd.popT = t; nd.lit = 1; nd.out.concat(nd.inn).forEach(ed => { if (ed.A.here && ed.B.here && !ed.born) { ed.born = t; ed.from = ed.A === nd ? ed.B : ed.A; } }); field.volleys.splice(j, 1); if (cl.nodes.every(n => n.here)) firePulse(cl, 0.5); } }
+      if (q >= 1) { nd.here = true; nd.x = tx; nd.y = ty; nd.popT = t; nd.lit = 1; nd.out.concat(nd.inn).forEach(ed => { if (ed.A.here && ed.B.here && !ed.born) { ed.born = t; ed.from = ed.A === nd ? ed.B : ed.A; } }); field.volleys.splice(j, 1); if (cl.nodes.every(n => n.here) && cl.edges.length) firePulse(cl, 0.5); } }
     g.globalAlpha = 1;
   }
 
