@@ -41,7 +41,10 @@
   // ── Experiments run once when their panel is opened ──
   document.querySelectorAll('details.try[data-auto]').forEach(d => { d.addEventListener('toggle', () => { if (!d.open || d.dataset.played) return; d.dataset.played = '1'; const fn = window.AUTO && window.AUTO[d.dataset.auto]; const badge = d.querySelector('[data-auto-badge]'); if (fn) setTimeout(() => fn(() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 200); }); });
 
-  // ── Home: the mark warps home (a fidget when already there) ──
+  // ── The greeting keeps changing ──
+  const hi = $('hello'); if (hi && !reduced) { const HI = ['Hello', 'Namaste', 'Hola', 'Bonjour', 'Ciao', 'Hallo', 'Olá', 'こんにちは', '안녕하세요', 'ನಮಸ್ಕಾರ', 'Salut', 'Hej']; let i = 0; setTimeout(() => setInterval(() => { if (document.visibilityState !== 'visible') return; hi.classList.add('swap'); setTimeout(() => { i = (i + 1) % HI.length; hi.textContent = HI[i]; hi.classList.remove('swap'); }, 330); }, 2400), 3400); }
+
+  // ── Home: the mark warps home; pressed at home it shoots neurons that build up architectures in the field ──
   const goHome = (e) => { e.preventDefault(); if (window.warpHome) window.warpHome(); else window.scrollTo(0, 0); };
   $('brand').addEventListener('click', goHome); $('to-top').addEventListener('click', goHome);
   // the beacon: straight to what's latest (the PACD neuron)
