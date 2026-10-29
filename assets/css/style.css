@@ -87,30 +87,35 @@ html.tldr-open { overflow: hidden; }
 /* ── Hero: two columns. Left: a greeting that keeps changing, the name, the degree, the links. Right: what's latest, what I'm
    seeking, what I work on. Fixed on the left in journey mode; the whole block balls up into a bead on the first scroll. ── */
 .hero { position: relative; max-width: var(--maxw); margin: 0 auto; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; padding: calc(var(--head) + 2rem) var(--gutter) 4rem; }
-.hero-copy { position: relative; z-index: 2; width: 100%; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 2rem clamp(2rem, 6vw, 5rem); align-items: start; }
+.hero-copy { position: relative; z-index: 2; width: 100%; display: grid; grid-template-columns: minmax(0, 1.32fr) minmax(0, .68fr); gap: 2rem clamp(1.6rem, 3.5vw, 3rem); align-items: start; }
+.hero-l { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'name photo' 'lead photo' 'links photo'; column-gap: clamp(1rem, 2vw, 1.8rem); align-items: center; }
+.hero-l h1 { grid-area: name; } .hero-l .lead { grid-area: lead; } .hero-l .links { grid-area: links; }
+.portrait { grid-area: photo; justify-self: end; align-self: center; }
+.portrait img { display: block; width: clamp(120px, 12.5vw, 176px); height: auto; aspect-ratio: 1; border-radius: 50%; object-fit: cover; box-shadow: 0 12px 32px rgba(20, 20, 20, .16), 0 1px 3px rgba(20, 20, 20, .08), inset 0 0 0 1px rgba(255, 255, 255, .5); }
+:root[data-theme="dark"] .portrait img { box-shadow: 0 12px 32px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(255, 255, 255, .12); }
 .hero-l > *, .hero-r > * { opacity: 0; transform: translateY(10px); transition: opacity .7s ease, transform .7s ease; }
 html.ready .hero-l > *, html.ready .hero-r > * { opacity: 1; transform: none; }
-html.ready .hero-l > :nth-child(2) { transition-delay: .08s } html.ready .hero-l > :nth-child(3) { transition-delay: .16s }
+html.ready .hero-l > :nth-child(2) { transition-delay: .08s } html.ready .hero-l > :nth-child(3) { transition-delay: .16s } html.ready .hero-l > :nth-child(4) { transition-delay: .12s }
 html.ready .hero-r > :nth-child(1) { transition-delay: .2s } html.ready .hero-r > :nth-child(2) { transition-delay: .28s } html.ready .hero-r > :nth-child(3) { transition-delay: .34s } html.ready .hero-r > :nth-child(4) { transition-delay: .4s }
-.hero h1 { font-size: clamp(2.3rem, 4.2vw, 3.4rem); line-height: 1.06; letter-spacing: -.035em; margin-bottom: 1rem; }
+.hero h1 { font-size: clamp(2.1rem, 3.3vw, 2.8rem); line-height: 1.06; letter-spacing: -.035em; margin-bottom: .9rem; }
 .hero h1 .hi { display: block; height: 1.12em; line-height: 1.12; color: var(--accent); white-space: nowrap; overflow: visible; }
 .hero h1 .w { display: inline-block; transition: opacity .32s ease, transform .32s ease; }
 .hero h1 .w::after { content: ','; }
 .hero h1 .w.swap { opacity: 0; transform: translateY(.3em); }
-.hero .lead { font-size: clamp(1.02rem, 1.3vw, 1.18rem); line-height: 1.45; color: var(--text); margin-bottom: 1.4rem; max-width: 26rem; }
+.hero .lead { font-size: clamp(1rem, 1.2vw, 1.1rem); line-height: 1.45; color: var(--text); margin-bottom: 1.3rem; max-width: 24rem; }
 .hero .lead em, .hero .lead a.em { font-style: normal; color: var(--accent); }
 .hero .lead a.em:hover { color: var(--accent-2); }
 .links { display: flex; flex-wrap: wrap; gap: .5rem; }
 .hero-r { padding-top: .45rem; }
-.hero .seek { color: var(--text); font-size: .98rem; line-height: 1.5; margin: 1.1rem 0 0; max-width: 24rem; }
+.hero .seek { color: var(--text); font-size: .95rem; line-height: 1.5; margin: 1rem 0 0; max-width: 22rem; }
 .hero .lab { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 1.3rem 0 .5rem; }
 .topics { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem; }
 .topics li { font-size: .8rem; font-weight: 500; padding: .34rem .78rem; border-radius: 999px; color: var(--ink); box-shadow: inset 1px 1px 1px rgba(255, 255, 255, .7), inset -1px -1px 1px rgba(255, 255, 255, .45), inset 0 0 0 .5px rgba(20, 20, 20, .08), 0 3px 10px rgba(20, 20, 20, .05); }
 :root[data-theme="dark"] .topics li { box-shadow: inset 1px 1px 1px rgba(255, 255, 255, .22), inset -1px -1px 1px rgba(255, 255, 255, .1), inset 0 0 0 .5px rgba(255, 255, 255, .08), 0 3px 10px rgba(0, 0, 0, .3); }
 .beacon { display: inline-flex; align-items: center; gap: .55rem; max-width: 100%; padding: .42rem .95rem .42rem .66rem; border-radius: 999px; font-size: .8rem; color: var(--text); }
 .beacon .tag { font-weight: 600; font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); flex: none; }
-.beacon .txt { white-space: normal; }
-.beacon .txt-s { display: none; }
+.beacon .txt { display: none; }
+.beacon .txt-s { display: inline; white-space: nowrap; }
 .beacon .pulse { position: relative; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
 .beacon .pulse::before, .beacon .pulse::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--accent); animation: beacon 2.4s ease-out infinite; }
 .beacon .pulse::after { animation-delay: 1.2s; }
@@ -274,8 +279,11 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
   .tldr-card h2 { font-size: 1.45rem; }
   .top .btn.sm { padding: .4rem .6rem; font-size: .74rem; }
   .hero { min-height: auto; align-items: flex-end; padding: 40vh var(--gutter) 2rem; }
-  html[data-mode="journey"] .hero { min-height: 100dvh; align-items: flex-end; padding: 26vh var(--gutter) 1.1rem; }
+  html[data-mode="journey"] .hero { min-height: 100dvh; align-items: flex-end; padding: 18vh var(--gutter) 1rem; }
   .hero-copy { grid-template-columns: 1fr; gap: 1.1rem; }
+  .hero-l { grid-template-columns: 1fr; grid-template-areas: 'photo' 'name' 'lead' 'links'; align-items: start; }
+  .portrait { justify-self: end; margin-bottom: .7rem; }
+  .portrait img { width: 84px; }
   .hero-r { padding-top: 0; }
   html[data-mode="journey"] .hero h1 { font-size: 2.05rem; margin-bottom: .7rem; }
   html[data-mode="journey"] .hero .lead { font-size: .95rem; margin-bottom: .9rem; }
@@ -283,8 +291,6 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
   .hero .lab { margin: .8rem 0 .4rem; }
   .topics li { font-size: .74rem; padding: .26rem .6rem; }
   .beacon { font-size: .74rem; }
-  .beacon .txt { display: none; }
-  .beacon .txt-s { display: inline; white-space: nowrap; }
   .hero h1 { font-size: 2.6rem; }
   .hero .lead { font-size: 1rem; }
   .hero .seek { font-size: .92rem; }
