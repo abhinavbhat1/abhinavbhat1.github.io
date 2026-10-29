@@ -28,11 +28,20 @@
   document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); e.preventDefault(); if (window.jumpToLayer) window.jumpToLayer(id); }));
 
   // ── TL;DR: the whole thing on one card ──
-  const tldr = $('tldr'); let tldrWas = null;
-  function openTldr() { tldr.classList.add('open'); root.classList.add('tldr-open'); tldr.setAttribute('aria-hidden', 'false'); tldrWas = document.activeElement; $('tldr-close').focus(); }
-  function closeTldr() { tldr.classList.remove('open'); root.classList.remove('tldr-open'); tldr.setAttribute('aria-hidden', 'true'); if (tldrWas && tldrWas.focus) tldrWas.focus(); }
-  $('tldr-toggle').addEventListener('click', () => (tldr.classList.contains('open') ? closeTldr() : openTldr()));
-  $('tldr-close').addEventListener('click', closeTldr);
+  const tldr = $('tldr'), tcard = tldr.querySelector('.tldr-card'), tbtn = $('tldr-toggle'); let tldrWas = null, minimised = false, genieAnim = null;
+  tcard.setAttribute('tabindex', '-1');
+  // the genie: the sheet is drawn into the TL;DR button, squeezing as it goes; reversed when it comes back out
+  function genie(reverse) { const c = tcard.getBoundingClientRect(), b = tbtn.getBoundingClientRect(); const dx = (b.left + b.width / 2) - (c.left + c.width / 2), dy = (b.top + b.height / 2) - c.top, sk = dx > 0 ? -14 : 14;
+    let frames = [{ transform: 'translate(0px, 0px) scale(1, 1) skewX(0deg)', opacity: 1, offset: 0 }, { transform: `translate(${(dx * 0.22).toFixed(1)}px, ${(dy * 0.1).toFixed(1)}px) scale(.78, .92) skewX(${sk * 0.6}deg)`, opacity: 1, offset: 0.4 }, { transform: `translate(${(dx * 0.72).toFixed(1)}px, ${(dy * 0.6).toFixed(1)}px) scale(.22, .38) skewX(${sk}deg)`, opacity: .9, offset: 0.78 }, { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(.04, .03) skewX(0deg)`, opacity: .25, offset: 1 }];
+    if (reverse) frames = frames.map(f => Object.assign({}, f, { offset: 1 - f.offset })).reverse();
+    tcard.style.transformOrigin = '50% 0%'; if (genieAnim) genieAnim.cancel(); genieAnim = tcard.animate(frames, { duration: reverse ? 420 : 460, easing: reverse ? 'cubic-bezier(.2,.8,.25,1)' : 'cubic-bezier(.55,0,.85,.35)', fill: 'none' }); return genieAnim; }
+  function openTldr() { tldr.classList.add('open'); root.classList.add('tldr-open'); tldr.setAttribute('aria-hidden', 'false'); tldrWas = document.activeElement; tcard.focus({ preventScroll: true }); if (minimised && !reduced) genie(true); minimised = false; }
+  function finishClose() { tldr.classList.remove('open'); root.classList.remove('tldr-open'); tldr.setAttribute('aria-hidden', 'true'); if (tldrWas && tldrWas.focus) tldrWas.focus(); }
+  function closeTldr() { if (genieAnim) { genieAnim.cancel(); genieAnim = null; } finishClose(); }
+  function minimiseTldr() { if (reduced) { closeTldr(); minimised = true; return; } const a = genie(false); a.onfinish = () => { genieAnim = null; finishClose(); minimised = true; tbtn.classList.remove('bounce'); void tbtn.offsetWidth; tbtn.classList.add('bounce'); setTimeout(() => tbtn.classList.remove('bounce'), 500); }; }
+  tbtn.addEventListener('click', () => (tldr.classList.contains('open') ? minimiseTldr() : openTldr()));
+  $('tldr-close').addEventListener('click', closeTldr); $('tldr-min').addEventListener('click', minimiseTldr);
+  window.__tldr = () => ({ open: tldr.classList.contains('open'), minimised, animating: !!genieAnim });
   tldr.addEventListener('click', (e) => { if (e.target === tldr) closeTldr(); });
   ['wheel', 'touchmove'].forEach(ev => tldr.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tldr.classList.contains('open')) closeTldr(); });
