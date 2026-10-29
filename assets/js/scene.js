@@ -93,7 +93,7 @@
   const layerWeight = (k, u) => k === 0 ? 0 : smooth((u - (layerStart[k] - 1.0)) / 0.5) * (k === Lmax ? 1 : 1 - smooth((u - (layerStart[k] + counts[k] + 0.2)) / 0.45));
   window.jumpToLayer = (id) => { const k = LAYERS.findIndex(L => L.id === id); if (k < 1) return; startWarp(layerStart[k] + 0.5, byL[k][0]); };
   window.jumpToNeuron = (k, i) => { if (k < 1 || k >= NLy || i >= counts[k]) return; startWarp(layerStart[k] + i + 0.5, byL[k][i]); };
-  window.warpHome = () => { if (warp.on) return; if (sv / BEAT() < 0.05) { lightUp(); return; } startWarp(0, null); };
+  window.warpHome = () => { if (warp.on) return; if (sv / BEAT() < 0.05) { shootNeurons(3); return; } startWarp(0, null); };
   // the fidget: the CV network and a handful of the floating ones light up together
   function lightUp() { if (!build.pending) startPass(false); nextHomePass = tNow + 4 + Math.random() * 4; const picks = flos.slice().sort(() => Math.random() - 0.5).slice(0, Math.min(flos.length, 3 + Math.floor(Math.random() * 3))); picks.forEach((f, j) => { f.nextPass = tNow + j * 0.12; }); }
   window.resetJourney = () => { sv = 0; const p = poseHero(); Object.assign(cam, p); camInit = true; };
@@ -294,7 +294,7 @@
   // ───────── the home field: small MLPs floating behind the home page. They drift, turn in fake 3D and light up along a random path
   // now and then; they wiggle under the pointer, can be dragged, and a tap breaks one into debris that falls, knocks the others
   // (hard hits chain-break), drops off the screen and is replaced from an edge ─────────
-  let flos = [], floAlpha = 1;
+  let flos = [], floAlpha = 1, nursery = null; const volleys = []; const CAP = () => (narrow() ? 12 : 24);
   function layoutFlo(f) { const c = Math.cos(f.yaw), sn = Math.sin(f.yaw); f.nodes.forEach(nd => { const zr = nd.lx * sn; const k = 2.6 / (2.6 + Math.max(-1.2, zr)); nd.rx = f.cx + nd.lx * c * f.sz * k; nd.ry = f.cy + nd.ly * f.sz * k; nd.d = k; }); }
   function makeFlo(fromEdge) { const r = Math.random, m = narrow(); const nl = 3 + Math.floor(r() * 3); const layers = Array.from({ length: nl }, () => 2 + Math.floor(r() * 4)); const nodes = [], byLayer = [];
     layers.forEach((n, k) => { const row = []; for (let i = 0; i < n; i++) { const nd = { k, i, lx: k - (nl - 1) / 2, ly: (i - (n - 1) / 2) * 0.72, x: 0, y: 0, vx: 0, vy: 0, rx: 0, ry: 0, d: 1, lit: 0 }; nodes.push(nd); row.push(nd); } byLayer.push(row); });
@@ -302,31 +302,49 @@
     const sz = (m ? 17 : 23) + 13 * r(); const f = { layers, nodes, byLayer, edges, cx: W * (0.06 + 0.88 * r()), cy: H * (0.08 + 0.84 * r()), vx0: (r() - 0.5) * 14, vy0: (r() - 0.5) * 10, vx: 0, vy: 0, sz, yaw: r() * 6.28, yawV: (r() < 0.5 ? -1 : 1) * (0.1 + 0.16 * r()), pass: null, nextPass: tNow + 0.5 + r() * 6, born: tNow, state: 'float', drag: false, gx: 0, gy: 0, brokeT: 0, linkA: 1 };
     f.vx = f.vx0; f.vy = f.vy0; if (fromEdge) { const side = r(); if (side < 0.5) f.cy = -sz * 2.5; else if (side < 0.75) f.cx = -sz * 2.5; else f.cx = W + sz * 2.5; }
     layoutFlo(f); f.nodes.forEach(nd => { nd.x = nd.rx; nd.y = nd.ry; }); return f; }
-  function seedFlos() { flos = []; const n = narrow() ? 7 : 14; for (let j = 0; j < n; j++) flos.push(makeFlo(false)); }
+  function seedFlos() { flos = []; nursery = null; volleys.length = 0; const n = narrow() ? 7 : 14; for (let j = 0; j < n; j++) flos.push(makeFlo(false)); }
+  // the nursery: pressing the mark at home shoots neurons out of it. Each lands at its place in a planned architecture that stands
+  // alone, half-built, its strings drawn only between the neurons that have arrived; later presses complete it, and then it joins
+  // the field and lights up. The oldest floating one breaks when the field is full.
+  function planNursery() { const f = makeFlo(false); f.state = 'grow'; f.vx0 *= 0.5; f.vy0 *= 0.5; f.yawV *= 0.6; f.nextPass = 1e9; f.nodes.forEach(nd => { nd.here = 0; nd.hereT = -1; nd.shot = false; }); flos.push(f); nursery = f; return f; }
+  function markCentre() { const m = document.querySelector('.brand .mark'); const r = m ? m.getBoundingClientRect() : null; return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 40, y: HEAD() / 2 }; }
+  function shootNeurons(n) { if (!nursery || nursery.state !== 'grow' || nursery.nodes.every(nd => nd.shot)) planNursery(); const c0 = markCentre(); let j = 0;
+    for (const nd of nursery.nodes) { if (nd.hereT >= 0 || nd.shot) continue; if (j >= n) break; nd.shot = true; volleys.push({ f: nursery, nd, t0: tNow + j * 0.1, dur: 0.6 + Math.random() * 0.2, x0: c0.x, y0: c0.y, bend: (Math.random() - 0.5) * 300, trail: [] }); j++; } }
+  window.shootNeurons = shootNeurons; window.__shoot = shootNeurons; window.__nursery = () => nursery ? { state: nursery.state, here: nursery.nodes.filter(nd => nd.hereT >= 0).length, total: nursery.nodes.length, shots: volleys.length } : null;
   function floPass(f) { if (f.state !== 'float') return; f.pass = { t0: tNow, path: f.byLayer.map(row => row[Math.floor(Math.random() * row.length)]) }; }
   function breakFlo(f, hard) { if (f.state !== 'float') return; f.state = 'broken'; f.brokeT = tNow; f.drag = false; f.nodes.forEach(nd => { nd.vx += (Math.random() - 0.5) * (hard ? 700 : 520) + f.vx; nd.vy += -140 - Math.random() * 360 + f.vy; }); }
-  window.__flos = () => flos.map(f => ({ x: Math.round(f.cx), y: Math.round(f.cy), layers: f.layers, lit: !!f.pass, state: f.state, spread: +Math.max(...f.nodes.map(nd => Math.hypot(nd.x - nd.rx, nd.y - nd.ry))).toFixed(1) }));
+  window.__flos = () => flos.map(f => ({ x: Math.round(f.cx), y: Math.round(f.cy), layers: f.layers, lit: !!f.pass, state: f.state, here: f.nodes.filter(nd => nd.hereT >= 0).length, spread: +Math.max(...f.nodes.map(nd => Math.hypot(nd.x - nd.rx, nd.y - nd.ry))).toFixed(1) }));
   window.__breakFlo = (j) => breakFlo(flos[j]); window.__floPass = (j) => floPass(flos[j]);
   function stepFlos(t, dt, alpha) {
     const wrapW = W + 200, wrapH = H + 200;
-    flos.forEach(f => { if (f.state !== 'float') return; if (!f.drag) { f.vx += (f.vx0 - f.vx) * 0.8 * dt; f.vy += (f.vy0 - f.vy) * 0.8 * dt; f.cx += f.vx * dt; f.cy += f.vy * dt; if (f.cx < -100) f.cx += wrapW; else if (f.cx > W + 100) f.cx -= wrapW; if (f.cy < -100) f.cy += wrapH; else if (f.cy > H + 100) f.cy -= wrapH; } f.yaw += f.yawV * dt; layoutFlo(f); });
+    flos.forEach(f => { if (f.state !== 'float' && f.state !== 'grow') return; if (!f.drag) { f.vx += (f.vx0 - f.vx) * 0.8 * dt; f.vy += (f.vy0 - f.vy) * 0.8 * dt; f.cx += f.vx * dt; f.cy += f.vy * dt; if (f.cx < -100) f.cx += wrapW; else if (f.cx > W + 100) f.cx -= wrapW; if (f.cy < -100) f.cy += wrapH; else if (f.cy > H + 100) f.cy -= wrapH; } f.yaw += f.yawV * dt; layoutFlo(f); });
     // gentle bumps between floating neighbours
-    for (let a = 0; a < flos.length; a++) for (let b = a + 1; b < flos.length; b++) { const A = flos[a], B = flos[b]; if (A.state !== 'float' || B.state !== 'float') continue; const dx = B.cx - A.cx, dy = B.cy - A.cy, d = Math.hypot(dx, dy) || 1, min = (A.sz + B.sz) * 1.5; if (d < min) { const push = (min - d) * 1.6 * dt, nx = dx / d, ny = dy / d; if (!A.drag) { A.cx -= nx * push; A.cy -= ny * push; } if (!B.drag) { B.cx += nx * push; B.cy += ny * push; } } }
+    for (let a = 0; a < flos.length; a++) for (let b = a + 1; b < flos.length; b++) { const A = flos[a], B = flos[b]; if ((A.state !== 'float' && A.state !== 'grow') || (B.state !== 'float' && B.state !== 'grow')) continue; const dx = B.cx - A.cx, dy = B.cy - A.cy, d = Math.hypot(dx, dy) || 1, min = (A.sz + B.sz) * 1.5; if (d < min) { const push = (min - d) * 1.6 * dt, nx = dx / d, ny = dy / d; if (!A.drag) { A.cx -= nx * push; A.cy -= ny * push; } if (!B.drag) { B.cx += nx * push; B.cy += ny * push; } } }
     flos.forEach(f => {
       if (!f.pass && t > f.nextPass) floPass(f); const pt = f.pass ? (t - f.pass.t0) / 0.32 : -1; const fade = f.pass ? 1 - smooth((t - f.pass.t0 - 0.32 * f.layers.length - 0.9) / 0.8) : 0; if (f.pass && fade <= 0) { f.pass = null; f.nextPass = t + 2.5 + Math.random() * 6; }
-      const hover = !ptr.down && f.state === 'float' && Math.hypot(f.cx - ptr.x, f.cy - ptr.y) < f.sz * 1.8; const broken = f.state === 'broken'; f.linkA += ((broken ? 0 : 1) - f.linkA) * (1 - Math.exp(-dt * (broken ? 14 : 2.2)));
+      const grow = f.state === 'grow'; const hover = !ptr.down && f.state === 'float' && Math.hypot(f.cx - ptr.x, f.cy - ptr.y) < f.sz * 1.8; const broken = f.state === 'broken'; f.linkA += ((broken ? 0 : 1) - f.linkA) * (1 - Math.exp(-dt * (broken ? 14 : 2.2)));
       let below = 0;
       f.nodes.forEach(nd => {
         if (broken) { nd.vy += 820 * dt; nd.vx *= Math.exp(-dt * 0.35); nd.x += nd.vx * dt; nd.y += nd.vy * dt; if (nd.x < 4 || nd.x > W - 4) { nd.vx *= -0.55; nd.x = clamp(nd.x, 4, W - 4); } if (nd.y > H + 60) below++;
           const sp = Math.hypot(nd.vx, nd.vy); if (sp > 60) flos.forEach(o => { if (o === f || o.state !== 'float') return; const dx = nd.x - o.cx, dy = nd.y - o.cy, d = Math.hypot(dx, dy), R = o.sz * 1.6; if (d < R && d > 0.1) { const nx = dx / d, ny = dy / d, vn = nd.vx * nx + nd.vy * ny; if (vn < 0) { nd.vx -= 1.6 * vn * nx; nd.vy -= 1.6 * vn * ny; o.vx += -vn * nx * 0.35; o.vy += -vn * ny * 0.35; o.nodes.forEach(q => { q.vx += (Math.random() - 0.5) * 90; q.vy += (Math.random() - 0.5) * 90; }); if (-vn > 520 && Math.random() < 0.3) breakFlo(o, true); } } }); }
-        else { const k = f.drag ? 90 : 40; nd.vx += ((nd.rx - nd.x) * k - 7 * nd.vx) * dt; nd.vy += ((nd.ry - nd.y) * k - 7 * nd.vy) * dt; if (hover && Math.random() < 0.12) { nd.vx += (Math.random() - 0.5) * 160; nd.vy += (Math.random() - 0.5) * 160; } nd.x += nd.vx * dt; nd.y += nd.vy * dt; }
+        else { if (grow) { nd.here = nd.hereT < 0 ? 0 : clamp((t - nd.hereT) / 0.4); if (nd.hereT < 0) { nd.x = nd.rx; nd.y = nd.ry; return; } } const k = f.drag ? 90 : 40; nd.vx += ((nd.rx - nd.x) * k - 7 * nd.vx) * dt; nd.vy += ((nd.ry - nd.y) * k - 7 * nd.vy) * dt; if (hover && Math.random() < 0.12) { nd.vx += (Math.random() - 0.5) * 160; nd.vy += (Math.random() - 0.5) * 160; } nd.x += nd.vx * dt; nd.y += nd.vy * dt; }
         const on = f.pass && f.pass.path[nd.k] === nd; nd.lit = on ? smooth(pt - nd.k) * fade : 0; });
       if (broken && (below === f.nodes.length || t - f.brokeT > 6)) f.state = 'gone';
       const a0 = alpha * (narrow() ? 0.5 : 0.85) * clamp((t - f.born) / 0.9);
-      g.strokeStyle = col.ink; g.lineWidth = 1; g.beginPath(); f.edges.forEach(e => { g.moveTo(e.A.x, e.A.y); g.lineTo(e.B.x, e.B.y); }); g.globalAlpha = (0.09 + 0.05 * (hover ? 1 : 0)) * a0 * f.linkA; g.stroke();
+      g.strokeStyle = col.ink; g.lineWidth = 1;
+      if (grow) { f.edges.forEach(e => { if (e.A.hereT < 0 || e.B.hereT < 0) return; const [Pn, Qn] = e.A.hereT <= e.B.hereT ? [e.A, e.B] : [e.B, e.A]; const q = Math.min(e.A.here, e.B.here); g.globalAlpha = 0.11 * a0; g.beginPath(); g.moveTo(Pn.x, Pn.y); g.lineTo(mix(Pn.x, Qn.x, q), mix(Pn.y, Qn.y, q)); g.stroke(); if (q < 0.999) { g.fillStyle = col.accent; g.globalAlpha = 0.7 * a0 * Math.sin(Math.PI * q); g.beginPath(); g.arc(mix(Pn.x, Qn.x, q), mix(Pn.y, Qn.y, q), 1.8, 0, 6.2832); g.fill(); } }); }
+      else { g.beginPath(); f.edges.forEach(e => { g.moveTo(e.A.x, e.A.y); g.lineTo(e.B.x, e.B.y); }); g.globalAlpha = (0.09 + 0.05 * (hover ? 1 : 0)) * a0 * f.linkA; g.stroke(); }
       if (f.pass) { const P = f.pass.path; g.strokeStyle = col.accent; g.lineWidth = 1.4; for (let k = 0; k < P.length - 1; k++) { const sg = clamp(pt - k); if (sg <= 0) break; const A = P[k], B = P[k + 1]; g.globalAlpha = 0.85 * a0 * fade * Math.max(f.linkA, 0.15); g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(mix(A.x, B.x, sg), mix(A.y, B.y, sg)); g.stroke(); if (sg < 1) { g.fillStyle = col.accent; g.beginPath(); g.arc(mix(A.x, B.x, sg), mix(A.y, B.y, sg), 2.2, 0, 6.2832); g.fill(); } } g.lineWidth = 1; }
-      f.nodes.forEach(nd => { const r = 2.3 * nd.d * (1 + 0.5 * nd.lit); g.fillStyle = nd.lit > 0.01 ? mixc('bg', 'accent', nd.lit) : col.bg; g.globalAlpha = a0; g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.fill(); g.strokeStyle = nd.lit > 0.3 ? col.accent : col.ink; g.globalAlpha = (0.38 + 0.5 * nd.lit) * a0 * clamp(nd.d, 0.5, 1); g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.stroke(); if (nd.lit > 0.05) { g.fillStyle = col.accent; g.globalAlpha = 0.18 * nd.lit * a0; g.beginPath(); g.arc(nd.x, nd.y, r + 5, 0, 6.2832); g.fill(); } }); });
+      f.nodes.forEach(nd => { if (grow && nd.hereT < 0) return; const r = 2.3 * nd.d * (1 + 0.5 * nd.lit) * (grow ? pop(nd.here) : 1); if (r <= 0.05) return; g.fillStyle = nd.lit > 0.01 ? mixc('bg', 'accent', nd.lit) : col.bg; g.globalAlpha = a0; g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.fill(); g.strokeStyle = nd.lit > 0.3 ? col.accent : col.ink; g.globalAlpha = (0.38 + 0.5 * nd.lit) * a0 * clamp(nd.d, 0.5, 1); g.beginPath(); g.arc(nd.x, nd.y, r, 0, 6.2832); g.stroke(); if (nd.lit > 0.05) { g.fillStyle = col.accent; g.globalAlpha = 0.18 * nd.lit * a0; g.beginPath(); g.arc(nd.x, nd.y, r + 5, 0, 6.2832); g.fill(); } }); });
     const gone = flos.filter(f => f.state === 'gone').length; if (gone) { flos = flos.filter(f => f.state !== 'gone'); for (let j = 0; j < gone; j++) flos.push(makeFlo(true)); }
+    // the shots: neurons flying out of the mark along a bent path, with a short trail; each lands with a pop and joins the nursery
+    for (let j = volleys.length - 1; j >= 0; j--) { const sh = volleys[j]; if (t < sh.t0) continue; const q = clamp((t - sh.t0) / sh.dur), e = smooth(q); const nd = sh.nd, tx = nd.rx, ty = nd.ry;
+      const mx = (sh.x0 + tx) / 2, my = (sh.y0 + ty) / 2, dx = tx - sh.x0, dy = ty - sh.y0, L = Math.hypot(dx, dy) || 1; const cx = mx - dy / L * sh.bend, cy = my + dx / L * sh.bend; const u = 1 - e;
+      const x = u * u * sh.x0 + 2 * u * e * cx + e * e * tx, y = u * u * sh.y0 + 2 * u * e * cy + e * e * ty; sh.trail.push([x, y]); if (sh.trail.length > 9) sh.trail.shift();
+      g.strokeStyle = col.accent; g.lineWidth = 1.4; for (let i = 1; i < sh.trail.length; i++) { g.globalAlpha = alpha * 0.55 * i / sh.trail.length; g.beginPath(); g.moveTo(sh.trail[i - 1][0], sh.trail[i - 1][1]); g.lineTo(sh.trail[i][0], sh.trail[i][1]); g.stroke(); }
+      g.fillStyle = col.accent; g.globalAlpha = alpha; g.beginPath(); g.arc(x, y, 3, 0, 6.2832); g.fill(); g.globalAlpha = alpha * 0.2; g.beginPath(); g.arc(x, y, 8, 0, 6.2832); g.fill(); g.lineWidth = 1;
+      if (q >= 1) { nd.hereT = t; nd.here = 0; nd.x = tx; nd.y = ty; nd.vx = (Math.random() - 0.5) * 120; nd.vy = (Math.random() - 0.5) * 120; volleys.splice(j, 1); const f = sh.f;
+        if (f.state === 'grow' && f.nodes.every(n => n.hereT >= 0)) { f.state = 'float'; f.born = t - 0.9; f.nextPass = t + 0.45; if (nursery === f) nursery = null; const floating = flos.filter(o => o.state === 'float' && o !== f); if (floating.length + 1 > CAP()) breakFlo(floating[0]); } } }
     g.globalAlpha = 1;
   }
 

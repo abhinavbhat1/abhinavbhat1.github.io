@@ -30,15 +30,16 @@ button { font: inherit; cursor: pointer; color: inherit; background: none; borde
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 strong { font-weight: 600; color: var(--ink); }
 
-#bg { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
+#bg { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity .6s; }
+.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 #boot { position: fixed; inset: 0; z-index: 100; background: var(--bg); }
 #boot canvas { display: block; width: 100%; height: 100%; }
 html.booting .brand .mark { opacity: 0; }
-html.booting #bg { opacity: 0; }
-.tldr { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; padding: 1rem; background: color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+html.booting:not(.ready) #bg { opacity: 0; }
+.tldr { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; padding: 1rem; background: color-mix(in srgb, var(--bg) 42%, transparent); }
 .tldr.open { display: flex; }
 html.tldr-open { overflow: hidden; }
-.tldr-card { position: relative; width: min(760px, 100%); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); overflow: auto; overscroll-behavior: contain; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 1.7rem 1.9rem 1.9rem; box-shadow: 0 24px 60px rgba(20, 20, 20, .1); }
+.tldr-card { position: relative; width: min(760px, 100%); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); overflow: auto; overscroll-behavior: contain; border-radius: 22px; padding: 1.7rem 1.9rem 1.9rem; }
 .tldr-card h2 { font-size: 1.7rem; letter-spacing: -.02em; line-height: 1.1; margin: .05rem 0 .25rem; }
 .tldr-card .kicker { margin-bottom: .3rem; }
 .tldr-sub { font-size: .95rem; color: var(--text); }
@@ -76,14 +77,27 @@ html.tldr-open { overflow: hidden; }
 .btn.sm { padding: .45rem .8rem; font-size: .82rem; }
 #mode-toggle { color: var(--muted); }
 
-/* ── Hero copy (fixed on the left in journey mode, static in boring mode) ── */
+/* ── Hero: two columns. Left: a greeting that keeps changing, the name, the degree, the links. Right: what's latest, what I'm
+   seeking, what I work on. Fixed on the left in journey mode; the whole block balls up into a bead on the first scroll. ── */
 .hero { position: relative; max-width: var(--maxw); margin: 0 auto; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; padding: calc(var(--head) + 2rem) var(--gutter) 4rem; }
-.hero-copy { position: relative; z-index: 2; max-width: 31rem; }
-.hero-copy > * { opacity: 0; transform: translateY(10px); transition: opacity .7s ease, transform .7s ease; }
-html.ready .hero-copy > * { opacity: 1; transform: none; }
-html.ready .hero-copy > :nth-child(2) { transition-delay: .07s } html.ready .hero-copy > :nth-child(3) { transition-delay: .14s } html.ready .hero-copy > :nth-child(4) { transition-delay: .21s } html.ready .hero-copy > :nth-child(5) { transition-delay: .28s } html.ready .hero-copy > :nth-child(6) { transition-delay: .35s }
-.beacon { display: inline-flex; align-items: center; gap: .55rem; max-width: 100%; margin-bottom: 1.1rem; padding: .36rem .85rem .36rem .6rem; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, transparent); font-size: .78rem; color: var(--text); transition: border-color .2s; }
-.beacon:hover { border-color: var(--accent); }
+.hero-copy { position: relative; z-index: 2; width: 100%; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 2rem clamp(2rem, 6vw, 5rem); align-items: center; }
+.hero-l > *, .hero-r > * { opacity: 0; transform: translateY(10px); transition: opacity .7s ease, transform .7s ease; }
+html.ready .hero-l > *, html.ready .hero-r > * { opacity: 1; transform: none; }
+html.ready .hero-l > :nth-child(2) { transition-delay: .08s } html.ready .hero-l > :nth-child(3) { transition-delay: .16s }
+html.ready .hero-r > :nth-child(1) { transition-delay: .2s } html.ready .hero-r > :nth-child(2) { transition-delay: .28s } html.ready .hero-r > :nth-child(3) { transition-delay: .34s } html.ready .hero-r > :nth-child(4) { transition-delay: .4s }
+.hero h1 { font-size: clamp(2.5rem, 4.9vw, 3.9rem); line-height: 1.04; letter-spacing: -.035em; margin-bottom: 1rem; }
+.hero h1 .hi { display: inline-block; color: var(--accent); transition: opacity .32s ease, transform .32s ease; }
+.hero h1 .hi.swap { opacity: 0; transform: translateY(.35em); }
+.hero .lead { font-size: clamp(1.02rem, 1.3vw, 1.18rem); line-height: 1.45; color: var(--text); margin-bottom: 1.4rem; max-width: 26rem; }
+.hero .lead em, .hero .lead a.em { font-style: normal; color: var(--accent); }
+.hero .lead a.em:hover { text-decoration: underline; text-underline-offset: 3px; }
+.links { display: flex; flex-wrap: wrap; gap: .5rem; }
+.hero-r { padding-top: .4rem; }
+.hero .seek { color: var(--text); font-size: .98rem; line-height: 1.5; margin: 1.1rem 0 0; max-width: 24rem; }
+.hero .lab { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 1.3rem 0 .5rem; }
+.topics { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem; }
+.topics li { font-size: .8rem; font-weight: 500; padding: .32rem .72rem; border-radius: 999px; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.beacon { display: inline-flex; align-items: center; gap: .55rem; max-width: 100%; padding: .42rem .95rem .42rem .66rem; border-radius: 999px; font-size: .8rem; color: var(--text); }
 .beacon .tag { font-weight: 600; font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); flex: none; }
 .beacon .txt { white-space: normal; }
 .beacon .txt-s { display: none; }
@@ -92,19 +106,38 @@ html.ready .hero-copy > :nth-child(2) { transition-delay: .07s } html.ready .her
 .beacon .pulse::after { animation-delay: 1.2s; }
 @keyframes beacon { 0% { transform: scale(.45); opacity: .95; } 100% { transform: scale(2.6); opacity: 0; } }
 .kicker { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.1rem; }
-.hero h1 { font-size: clamp(2.9rem, 6.2vw, 4.8rem); line-height: 1.02; letter-spacing: -.035em; margin-bottom: 1.1rem; }
-.hero .lead { font-size: clamp(1.05rem, 1.4vw, 1.22rem); line-height: 1.45; color: var(--text); margin-bottom: .9rem; }
-.hero .lead em, .hero .lead a.em { font-style: normal; color: var(--accent); }
-.hero .lead a.em:hover { text-decoration: underline; text-underline-offset: 3px; }
-.hero .seek { color: var(--muted); margin-bottom: 1.4rem; max-width: 30rem; }
-.links { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.4rem; }
-.school { display: flex; align-items: center; gap: .8rem; font-size: .78rem; color: var(--dim); }
+
+/* ── Liquid glass: the link buttons, the beacon and the TL;DR sheet. Not frosted: the backdrop is bent, not blurred. Where SVG
+   backdrop filters render (Chromium, html.lg) the edges lens the page behind and a slow ripple runs across it; elsewhere a
+   near-clear glass with the same specular rim, sheen and tint. ── */
+.glass { position: relative; isolation: isolate; border: 1px solid rgba(255, 255, 255, .55); background: linear-gradient(135deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .12) 38%, rgba(255, 255, 255, .06) 62%, rgba(255, 255, 255, .3)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .35), inset 1px 0 0 rgba(255, 255, 255, .4), inset -1px 0 0 rgba(255, 255, 255, .3), 0 10px 28px rgba(20, 20, 20, .1), 0 1px 2px rgba(20, 20, 20, .06); backdrop-filter: blur(1.5px) saturate(1.5) brightness(1.04); -webkit-backdrop-filter: blur(1.5px) saturate(1.5) brightness(1.04); }
+.glass::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, .25) 28%, rgba(255, 255, 255, 0) 48%, rgba(255, 255, 255, .3) 76%, rgba(255, 255, 255, .95)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; pointer-events: none; z-index: -1; }
+.glass::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(90% 60% at 22% -10%, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 70%); pointer-events: none; z-index: -1; }
+html.lg .glass.pill { backdrop-filter: url(#lg-pill) saturate(1.6) brightness(1.05); -webkit-backdrop-filter: url(#lg-pill) saturate(1.6) brightness(1.05); }
+html.lg .glass.sheet { backdrop-filter: url(#lg-sheet) saturate(1.5) brightness(1.04); -webkit-backdrop-filter: url(#lg-sheet) saturate(1.5) brightness(1.04); }
+.btn.glass { border-color: rgba(255, 255, 255, .6); color: var(--ink); transition: transform .15s, box-shadow .15s, background .15s; }
+.btn.glass:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -1px 0 rgba(255, 255, 255, .4), 0 14px 32px rgba(20, 20, 20, .14), 0 1px 2px rgba(20, 20, 20, .06); background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .2) 40%, rgba(255, 255, 255, .12) 62%, rgba(255, 255, 255, .4)); }
+.btn.glass:active { transform: translateY(0) scale(.985); }
+.btn.glass.primary { color: #fff; border-color: color-mix(in srgb, var(--accent) 55%, rgba(255, 255, 255, .7)); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 74%, transparent), color-mix(in srgb, var(--accent) 62%, transparent) 60%, color-mix(in srgb, var(--accent) 80%, transparent)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(255, 255, 255, .18), 0 10px 28px color-mix(in srgb, var(--accent) 28%, transparent), 0 1px 2px rgba(20, 20, 20, .08); }
+.btn.glass.primary:hover { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 86%, transparent), color-mix(in srgb, var(--accent) 74%, transparent) 60%, color-mix(in srgb, var(--accent) 90%, transparent)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 -1px 0 rgba(255, 255, 255, .2), 0 14px 32px color-mix(in srgb, var(--accent) 36%, transparent), 0 1px 2px rgba(20, 20, 20, .08); }
+.beacon.glass { background: linear-gradient(135deg, rgba(255, 255, 255, .5), color-mix(in srgb, var(--accent) 9%, rgba(255, 255, 255, .14)) 45%, rgba(255, 255, 255, .1) 65%, rgba(255, 255, 255, .35)); transition: transform .15s, box-shadow .15s; }
+.beacon.glass:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -1px 0 rgba(255, 255, 255, .4), 0 14px 32px rgba(20, 20, 20, .14); }
+.tldr-card.glass { background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 86%, transparent), color-mix(in srgb, var(--surface) 78%, transparent) 50%, color-mix(in srgb, var(--surface) 84%, transparent)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(255, 255, 255, .35), inset 1px 0 0 rgba(255, 255, 255, .45), inset -1px 0 0 rgba(255, 255, 255, .3), 0 30px 80px rgba(20, 20, 20, .16), 0 2px 6px rgba(20, 20, 20, .06); }
+.tldr-card.glass::after { background: radial-gradient(70% 40% at 18% -6%, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 70%); }
+:root[data-theme="dark"] .glass { border-color: rgba(255, 255, 255, .18); background: linear-gradient(135deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .04) 38%, rgba(255, 255, 255, .02) 62%, rgba(255, 255, 255, .1)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -1px 0 rgba(255, 255, 255, .1), inset 1px 0 0 rgba(255, 255, 255, .14), inset -1px 0 0 rgba(255, 255, 255, .1), 0 10px 28px rgba(0, 0, 0, .35), 0 1px 2px rgba(0, 0, 0, .3); }
+:root[data-theme="dark"] .glass::before { background: linear-gradient(135deg, rgba(255, 255, 255, .6), rgba(255, 255, 255, .12) 28%, rgba(255, 255, 255, 0) 48%, rgba(255, 255, 255, .12) 76%, rgba(255, 255, 255, .5)); }
+:root[data-theme="dark"] .glass::after { background: radial-gradient(90% 60% at 22% -10%, rgba(255, 255, 255, .2), rgba(255, 255, 255, 0) 70%); }
+:root[data-theme="dark"] .btn.glass:hover { background: linear-gradient(135deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .07) 40%, rgba(255, 255, 255, .04) 62%, rgba(255, 255, 255, .14)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), inset 0 -1px 0 rgba(255, 255, 255, .12), 0 14px 32px rgba(0, 0, 0, .4); }
+:root[data-theme="dark"] .btn.glass.primary { color: #0f1012; border-color: color-mix(in srgb, var(--accent) 60%, rgba(255, 255, 255, .5)); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 82%, transparent), color-mix(in srgb, var(--accent) 70%, transparent) 60%, color-mix(in srgb, var(--accent) 86%, transparent)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -1px 0 rgba(255, 255, 255, .15), 0 10px 28px color-mix(in srgb, var(--accent) 22%, transparent); }
+:root[data-theme="dark"] .beacon.glass { background: linear-gradient(135deg, rgba(255, 255, 255, .16), color-mix(in srgb, var(--accent) 12%, rgba(255, 255, 255, .05)) 45%, rgba(255, 255, 255, .03) 65%, rgba(255, 255, 255, .1)); }
+:root[data-theme="dark"] .tldr-card.glass { background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 88%, transparent), color-mix(in srgb, var(--surface) 80%, transparent) 50%, color-mix(in srgb, var(--surface) 86%, transparent)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), inset 0 -1px 0 rgba(255, 255, 255, .08), inset 1px 0 0 rgba(255, 255, 255, .12), inset -1px 0 0 rgba(255, 255, 255, .08), 0 30px 80px rgba(0, 0, 0, .5); }
 
 /* ── Journey mode ── */
 html[data-mode="journey"] #main > :not(.hero) { display: none; }
 html[data-mode="journey"] .hero { position: fixed; inset: 0; z-index: 5; margin: 0 auto; pointer-events: none; }
 html[data-mode="journey"] .hero-copy { pointer-events: none; will-change: opacity, transform; transform-origin: 50% 50%; }
 html[data-mode="journey"] .hero-copy a { pointer-events: auto; }
+html[data-mode="journey"] .hero-copy .topics li { pointer-events: none; }
 html[data-mode="boring"] .hero { min-height: 82vh; min-height: 82dvh; }
 html[data-mode="boring"] .hero-copy { max-width: 46rem; }
 html[data-mode="boring"] .hero .lead { max-width: 40rem; }
@@ -231,17 +264,18 @@ html[data-mode="boring"] .sec[data-where="journey"] { display: none; }
   .tldr-sec li .m { white-space: normal; }
   .tldr-card h2 { font-size: 1.45rem; }
   .top .btn.sm { padding: .4rem .6rem; font-size: .74rem; }
-  html[data-mode="journey"] .hero-copy .school { display: none; }
   .hero { min-height: auto; align-items: flex-end; padding: 40vh var(--gutter) 2rem; }
-  html[data-mode="journey"] .hero { min-height: 100dvh; align-items: flex-end; padding: 36vh var(--gutter) 1.2rem; }
-  html[data-mode="journey"] .hero h1 { font-size: 2.3rem; }
-  html[data-mode="journey"] .hero .lead { font-size: .95rem; margin-bottom: .6rem; }
-  html[data-mode="journey"] .hero .seek { font-size: .86rem; margin-bottom: 1rem; }
-  html[data-mode="journey"] .kicker { display: none; }
-  .beacon { font-size: .72rem; margin-bottom: .8rem; }
+  html[data-mode="journey"] .hero { min-height: 100dvh; align-items: flex-end; padding: 26vh var(--gutter) 1.1rem; }
+  .hero-copy { grid-template-columns: 1fr; gap: 1.1rem; }
+  .hero-r { padding-top: 0; }
+  html[data-mode="journey"] .hero h1 { font-size: 2.15rem; margin-bottom: .7rem; }
+  html[data-mode="journey"] .hero .lead { font-size: .95rem; margin-bottom: .9rem; }
+  html[data-mode="journey"] .hero .seek { font-size: .86rem; margin: .7rem 0 0; }
+  .hero .lab { margin: .8rem 0 .4rem; }
+  .topics li { font-size: .74rem; padding: .26rem .6rem; }
+  .beacon { font-size: .74rem; }
   .beacon .txt { display: none; }
   .beacon .txt-s { display: inline; white-space: nowrap; }
-  html[data-mode="journey"] .hero .links { margin-bottom: 0; }
   .hero h1 { font-size: 2.6rem; }
   .hero .lead { font-size: 1rem; }
   .hero .seek { font-size: .92rem; }
