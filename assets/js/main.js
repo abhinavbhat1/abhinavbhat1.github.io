@@ -1,5 +1,5 @@
 /* Theme, the cards that neurons burst into, the TL;DR panel, the home and nav hooks, focus re-weighting, and the small
-   experiments. The drawing and the scroll journey live in scene.js; the boot mark in logo.js. */
+   experiments. The drawing, the floating field and the scroll journey live in scene.js. */
 (function () {
   'use strict';
   const root = document.documentElement, $ = (id) => document.getElementById(id);
@@ -11,7 +11,7 @@
   window.currentTheme = currentTheme;
   function setTheme(t) { root.setAttribute('data-theme', t); try { sessionStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
-  if (!root.classList.contains('booting')) requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
 
   // ── Layers and cards: every entry in the document is one neuron; in journey mode it lives in a card ──
   const cardsHost = $('cards');
@@ -42,7 +42,7 @@
   document.querySelectorAll('details.try[data-auto]').forEach(d => { d.addEventListener('toggle', () => { if (!d.open || d.dataset.played) return; d.dataset.played = '1'; const fn = window.AUTO && window.AUTO[d.dataset.auto]; const badge = d.querySelector('[data-auto-badge]'); if (fn) setTimeout(() => fn(() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 200); }); });
 
   // ── The greeting keeps changing ──
-  const hi = $('hello'); if (hi && !reduced) { const HI = ['Hello', 'Namaste', 'Hola', 'Bonjour', 'Ciao', 'Hallo', 'Olá', 'こんにちは', '안녕하세요', 'ನಮಸ್ಕಾರ', 'Salut', 'Hej']; let i = 0; setTimeout(() => setInterval(() => { if (document.visibilityState !== 'visible') return; hi.classList.add('swap'); setTimeout(() => { i = (i + 1) % HI.length; hi.textContent = HI[i]; hi.classList.remove('swap'); }, 330); }, 2400), 3400); }
+  const hi = $('hello'); if (hi && !reduced) { const HI = ['Hello', 'नमस्ते', 'ನಮಸ್ಕಾರ', 'Hola', 'Bonjour', 'こんにちは', 'Ciao', '안녕하세요', 'Hallo', '你好', 'Olá', 'Привет', 'مرحبا', 'வணக்கம்', 'Γεια σου', 'สวัสดี', 'Hej', 'Salut']; let i = 0; setTimeout(() => setInterval(() => { if (document.visibilityState !== 'visible') return; hi.classList.add('swap'); setTimeout(() => { i = (i + 1) % HI.length; hi.textContent = HI[i]; hi.classList.remove('swap'); }, 330); }, 2600), 2200); }
 
   // ── Home: the mark warps home; pressed at home it shoots neurons that build up architectures in the field ──
   const goHome = (e) => { e.preventDefault(); if (window.warpHome) window.warpHome(); else window.scrollTo(0, 0); };
