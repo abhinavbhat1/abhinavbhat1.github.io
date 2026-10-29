@@ -58,6 +58,10 @@ html.tldr-open { overflow: hidden; }
 .light:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tldr-card { padding-top: 2.5rem; }
 .tldr-card:focus { outline: 0; }
+.tldr.genie { background: transparent; transition: background .5s; }
+.genie { position: fixed; z-index: 90; pointer-events: none; }
+.genie-strip { position: absolute; left: 0; width: 100%; overflow: hidden; transform-origin: 0 0; will-change: transform; backface-visibility: hidden; }
+.genie-clone { position: absolute; left: 0; top: 0; margin: 0; max-height: none !important; overflow: hidden; background: var(--surface) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }
 #tldr-toggle.bounce { animation: popin .45s ease-out; }
 @keyframes popin { 0% { transform: scale(1); } 35% { transform: scale(1.14); } 70% { transform: scale(.96); } 100% { transform: scale(1); } }
 
