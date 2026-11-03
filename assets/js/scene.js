@@ -56,7 +56,9 @@
   function poseHero() { return { fx: 0, fy: 0, ax: hero.cx, ay: hero.cy, s: hero.s, th: 0, ph: 0, rl: 0 }; }
   // each layer is viewed head-on, but the yaw, pitch and roll it is reached at depend on the shots taken on the way (multiples of π / 2π)
   const thL = [0], phL = [0], rlL = [0], shots = [null], shotWin = [];
-  function poseLayer(k) { const m = narrow(), B = band(); const s = m ? Math.min(W * 0.5, B.h * 0.74 / (spanK(k) + 0.4)) : Math.min(W * 0.36, H * 0.58 / (spanK(k) + 0.45)); return { fx: k, fy: 0, ax: W / 2, ay: m ? B.top + B.h * 0.5 : H * 0.5, s, th: thL[k], ph: phL[k], rl: rlL[k] }; }
+  // the accordion panel is docked on the right on desktop, so the network has the left part of the screen
+  const PW = () => Math.min(560, W * 0.44); const netCX = () => narrow() ? W / 2 : (W - PW() - 24) / 2;
+  function poseLayer(k) { const m = narrow(), B = band(); const s = m ? Math.min(W * 0.5, B.h * 0.74 / (spanK(k) + 0.4)) : Math.min((W - PW()) * 0.42, H * 0.58 / (spanK(k) + 0.45)); return { fx: k, fy: 0, ax: netCX(), ay: m ? B.top + B.h * 0.5 : H * 0.5, s, th: thL[k], ph: phL[k], rl: rlL[k] }; }
   function poseNeuron(k, i) { const p = poseLayer(k); p.fy = 0.7 * byL[k][i].y; return p; }
   function poseClose(k, i, mul) { const p = poseLayer(k), nd = byL[k][i]; p.fx = nd.x; p.fy = nd.y; p.s *= mul; return p; }
   const lerpPose = (a, b, f) => ({ fx: mix(a.fx, b.fx, f), fy: mix(a.fy, b.fy, f), ax: mix(a.ax, b.ax, f), ay: mix(a.ay, b.ay, f), s: Math.exp(mix(Math.log(a.s), Math.log(b.s), f)), th: mix(a.th, b.th, f), ph: mix(a.ph || 0, b.ph || 0, f), rl: mix(a.rl || 0, b.rl || 0, f) });
@@ -78,7 +80,7 @@
   { kfs.push({ u: 0, f: poseHero });
     kfs.push({ u: IN0, f: poseHero });
     kfs.push({ u: HOLD, f: () => { const p = poseHero(); p.th = 0.55; p.ph = 0.22; p.s *= 0.88; return p; } });
-    kfs.push({ u: HOLD + STR, f: () => { const B = byL[1][0], L = poseLayer(1); return { fx: 0.5, fy: B.y * 0.5, ax: W / 2, ay: narrow() ? band().top + band().h * 0.5 : H * 0.5, s: Math.min(L.s * 0.85, hero.s * 1.6), th: 0.3, ph: 0.1, rl: 0 }; } });
+    kfs.push({ u: HOLD + STR, f: () => { const B = byL[1][0], L = poseLayer(1); return { fx: 0.5, fy: B.y * 0.5, ax: netCX(), ay: narrow() ? band().top + band().h * 0.5 : H * 0.5, s: Math.min(L.s * 0.85, hero.s * 1.6), th: 0.3, ph: 0.1, rl: 0 }; } });
     let S0 = HOLD + STR, prevF = kfs[kfs.length - 1].f;
     for (let k = 1; k < NLy; k++) { const n = counts[k]; const uE = S0 + (k === 1 ? ZOOM : SHOT); layerStart[k] = uE; const sh = shots[k]; shotWin[k] = [S0, uE];
       if (sh === 'zoom') { /* the ride over from the beads is the shot */ }
@@ -98,6 +100,23 @@
   // the network contorts through every shot: a wobble that peaks mid-shot
   function shotWob(u) { for (let k = 2; k < NLy; k++) { const w = shotWin[k]; if (w && u >= w[0] && u <= w[1]) return 0.7 * Math.sin(Math.PI * (u - w[0]) / (w[1] - w[0])); } return 0; }
   const BEAT = () => H * 0.8;
+  // the accordion panel of a layer slides in as the shot to it ends, and fades as the layer's last row closes
+  const panelK = (k, u) => k === 0 ? 0 : smooth((u - (layerStart[k] - 0.1)) / 0.25) * (k === Lmax ? 1 : 1 - smooth((u - (layerStart[k] + counts[k] + 0.2)) / 0.45));
+  // the statement: the words light up one after another while the strings grow out to the first neuron
+  const stmt = document.getElementById('statement'); const words = stmt ? stmt.textContent.trim().split(/\s+/) : []; if (stmt) stmt.innerHTML = words.map(w => `<span class="w">${w}</span>`).join(' ');
+  const wEls = stmt ? Array.from(stmt.children) : []; let stmtA = -1, stmtQ = -1; const SA = HOLD + 0.05, SB = HOLD + STR + 0.25;
+  function updateStatement(u, Wp) { if (!stmt) return; const a = Wp ? 0 : smooth((u - (IN0 + 0.12)) / 0.3) * (1 - smooth((u - SB) / 0.2));
+    const ar = +a.toFixed(2); if (ar !== stmtA) { stmtA = ar; stmt.style.opacity = ar; stmt.classList.toggle('on', ar > 0); }
+    if (ar <= 0) return; const prog = clamp((u - SA) / (SB - 0.12 - SA)); const q = Math.round(prog * 120); if (q !== stmtQ) { stmtQ = q; const n = words.length; wEls.forEach((w, i) => w.style.setProperty('--lit', clamp(prog * (n + 1.5) - i).toFixed(2))); } }
+  // the title of the layer ahead, large and settling, during the shot that carries you to it
+  const lt = document.getElementById('laytitle'), ltB = lt && lt.querySelector('b'), ltS = lt && lt.querySelector('span'); let ltK = -1;
+  function titleWin(k) { if (k === 1) return [SB + 0.2, layerStart[1] - 0.1]; const w = shotWin[k]; return w ? [w[0] + 0.02, w[1] - 0.3] : null; }
+  function updateTitle(u, Wp) { if (!lt) return; let k = -1, q = 0; if (!Wp) for (let j = 1; j < NLy; j++) { const w = titleWin(j); if (w && u >= w[0] && u <= w[1]) { k = j; q = (u - w[0]) / (w[1] - w[0]); break; } }
+    if (k < 0) { if (ltK >= 0) { lt.classList.remove('on'); lt.style.opacity = '0'; ltK = -1; } return; }
+    if (k !== ltK) { ltK = k; ltB.textContent = LAYERS[k].name; ltS.textContent = LAYERS[k].sub || ''; lt.classList.add('on'); }
+    const lx = narrow() ? '50%' : (W - PW() / 2 - 24) + 'px'; if (lt.style.left !== lx) { lt.style.left = lx; lt.style.width = narrow() ? '' : PW() + 'px'; }
+    const a = smooth(q / 0.3) * (1 - smooth((q - 0.7) / 0.3)), sc = 1.16 - 0.2 * smooth(q), ty = (0.5 - q) * 36;
+    lt.style.opacity = a.toFixed(3); lt.style.transform = `translate(-50%, -50%) translateY(${ty.toFixed(1)}px) scale(${sc.toFixed(4)})`; }
   const spacer = document.getElementById('spacer');
   function layoutSpacer() { if (spacer) spacer.style.height = Math.round(total * BEAT() + H) + 'px'; }
   function poseAt(u) { if (u <= kfs[0].u) return kfs[0].f(); for (let j = 1; j < kfs.length; j++) { if (u <= kfs[j].u) { const a = kfs[j - 1], b = kfs[j]; const f = smooth((u - a.u) / Math.max(1e-6, b.u - a.u)); return lerpPose(a.f(), b.f(), f); } } return kfs[kfs.length - 1].f(); }
@@ -108,9 +127,11 @@
   function journeyC(nd, u) { return nd.k === 0 ? clamp((u - IN0) / INW) : clamp((u - nd.c0) / 0.45); }
   window.jumpToLayer = (id) => { const k = LAYERS.findIndex(L => L.id === id); if (k < 1) return; startWarp(layerStart[k] + 0.5, byL[k][0]); };
   window.jumpToNeuron = (k, i) => { if (k < 1 || k >= NLy || i >= counts[k]) return; startWarp(layerStart[k] + i + 0.5, byL[k][i]); };
+  window.goToNeuron = (k, i) => { if (k < 1 || k >= NLy || i >= counts[k]) return; tapNode(byL[k][i]); };
   window.warpHome = () => { if (warp.on) return; if (sv / BEAT() < 0.05) { shootNeurons(3); return; } startWarp(0, null); };
   window.resetJourney = () => { sv = 0; const p = poseHero(); Object.assign(cam, p); camInit = true; };
   window.__shots = shots;
+  window.__A = () => LAYERS.slice(1).map(L => ({ id: L.id, on: !!(L.panel && L.panel.classList.contains('on')), op: L.panel ? L.panel.style.opacity : '', open: L.open ? [L.open.c.i, +L.open.b.toFixed(2), L.open.c.body.style.height] : null, st: L.panel ? L.panel.scrollTop : 0 }));
   // snapping: after the wheel stops, settle onto the nearest beat (forward-biased)
   let scrollTw = null, settleTimer = null, touching = false, lastY = 0, dir = 1;
   function goTo(to, ms) { const from = window.scrollY; if (scrollTw) cancelAnimationFrame(scrollTw.raf); if (reduced) { window.scrollTo(0, to); return; } const d = ms || Math.min(900, 300 + Math.abs(to - from) * 0.3); const t0 = performance.now(); const step = (now) => { const k = clamp((now - t0) / d); const e = 1 - Math.pow(1 - k, 3); window.scrollTo(0, from + (to - from) * e); if (k < 1) scrollTw.raf = requestAnimationFrame(step); else scrollTw = null; }; scrollTw = { raf: requestAnimationFrame(step) }; }
@@ -164,8 +185,8 @@
       const E = { fx: warp.kMax / 2, fy: 0, ax: warp.hx, ay: warp.hy, s: warp.sOut, th: P0.th, ph: P0.ph, rl: P0.rl || 0 }; pose = wt < 0.08 ? P0 : lerpPose(P0, E, smooth((wt - 0.08) / 0.8));
       return { wt, pose, done: wt >= 1, hf, ht, wob: 0, sep: warp.whole ? 0 : warp.sepMax * smooth((wt - 0.3) / 0.65), cut: warp.whole ? 0 : smooth((wt - 0.25) / 0.4), mk: 1 - smooth((wt - 0.5) / 0.4), flo: smooth((wt - 0.4) / 0.45), heroK: smooth((wt - 0.5) / 0.4), zoomK: mix(smooth((from - 0.5) / 0.7), 0, smooth((wt - 0.08) / 0.4)), lw: (kk) => layerWeight(kk, from) * (1 - smooth((wt - 0.08) / 0.4)), c: (nd) => nd.cStart, burst: (kk, i) => burstOf(kk, i, from) * (1 - smooth(wt / 0.12)) }; }
     if (wt < 0.1) pose = P0;
-    else if (wt < 0.78) { const q = pathPoint(ride), sIn = smooth((wt - 0.1) / 0.2); pose = { fx: q.x, fy: q.y, ax: mix(P0.ax, W / 2, sIn), ay: mix(P0.ay, ayC, sIn), s: Math.exp(mix(Math.log(P0.s), Math.log(warp.sRide), sIn)), th: mix(P0.th, warp.thEnd, ride) + 0.45 * Math.sin(Math.PI * ride) * warp.dir, ph: mix(P0.ph, warp.phEnd, ride) + 0.55 * Math.sin(Math.PI * ride) * warp.pdir, rl: mix(P0.rl || 0, warp.rlEnd, ride) + 0.35 * Math.sin(Math.PI * ride) * warp.dir }; }
-    else { const T = warp.T, A = { fx: T.x, fy: T.y, ax: W / 2, ay: ayC, s: warp.sRide, th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd }, E = Object.assign({}, PT, { th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd });
+    else if (wt < 0.78) { const q = pathPoint(ride), sIn = smooth((wt - 0.1) / 0.2); pose = { fx: q.x, fy: q.y, ax: mix(P0.ax, netCX(), sIn), ay: mix(P0.ay, ayC, sIn), s: Math.exp(mix(Math.log(P0.s), Math.log(warp.sRide), sIn)), th: mix(P0.th, warp.thEnd, ride) + 0.45 * Math.sin(Math.PI * ride) * warp.dir, ph: mix(P0.ph, warp.phEnd, ride) + 0.55 * Math.sin(Math.PI * ride) * warp.pdir, rl: mix(P0.rl || 0, warp.rlEnd, ride) + 0.35 * Math.sin(Math.PI * ride) * warp.dir }; }
+    else { const T = warp.T, A = { fx: T.x, fy: T.y, ax: netCX(), ay: ayC, s: warp.sRide, th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd }, E = Object.assign({}, PT, { th: warp.thEnd, ph: warp.phEnd, rl: warp.rlEnd });
       pose = lerpPose(A, E, smooth((wt - 0.78) / 0.22)); }
     const zk = (u) => smooth((u - 0.5) / 0.7);
     return { wt, pose, done: wt >= 1, hf, ht, wob: Math.sin(Math.PI * clamp((wt - 0.08) / 0.8)),
@@ -185,7 +206,7 @@
 
   // ───────── pointer: beads on strings, and the floating field (hover to push, press to light, drag to move, tap to break) ─────────
   const ptr = { x: -1e4, y: -1e4, px: -1e4, py: -1e4, vx: 0, vy: 0, nx: 0, down: false, t: 0 }; let dragNode = null, downAt = { x: 0, y: 0, t: 0 };
-  const interactive = (t) => !!(t && t.closest && t.closest('a, button, details, summary, input, label, select, .jcard, .top, .focus, .tldr'));
+  const interactive = (t) => !!(t && t.closest && t.closest('a, button, details, summary, input, label, select, .jpanel, .top, .focus, .tldr'));
   window.addEventListener('pointermove', (e) => { ptr.px = ptr.x; ptr.py = ptr.y; ptr.x = e.clientX; ptr.y = e.clientY; ptr.nx = (e.clientX / W) * 2 - 1; const now = performance.now(); const dt = Math.max(8, now - ptr.t) / 1000; ptr.vx = (ptr.x - ptr.px) / dt; ptr.vy = (ptr.y - ptr.py) / dt; ptr.t = now;
     if (dragNode) { const sc = dragNode.p.s || cam.s; dragNode.ox += (ptr.x - ptr.px) / sc; dragNode.oy += (ptr.y - ptr.py) / sc; dragNode.vx = dragNode.vy = 0; pluck(dragNode, clamp(Math.hypot(ptr.vx, ptr.vy) / sc * 0.05, 0, 0.14)); }
     }, { passive: true });
@@ -289,15 +310,32 @@
       const la = focus * zoomK * (1 - bb) * nd.vr * (cam.s > (narrow() ? 80 : 160) ? 1 : 0); if (la > 0.03 && nd.short) { g.fillStyle = col.ink; g.globalAlpha = 0.65 * la; g.font = `500 ${narrow() ? 11 : 12}px ${SANS}`; g.textAlign = narrow() ? 'center' : 'left'; g.fillText(nd.short, narrow() ? s.x : s.x + r + 9, narrow() ? s.y + r + 11 : s.y); } });
     g.globalAlpha = 1;
     setNav(activeK > 0 && zoomK > 0.5 ? LAYERS[activeK].id : ''); updateChrome(u, activeK, zoomK);
-    // cards explode out of their neuron
-    LAYERS.forEach((L, k) => L.cards.forEach((c, i) => { const nd = byL[k][i]; const b = bOf(k, i); const el = c.el;
-      if (b <= 0.002) { if (el.classList.contains('on')) { el.classList.remove('on'); el.style.opacity = '0'; el.querySelectorAll('details.try[open]').forEach(d => { d.open = false; }); el.querySelectorAll('details.try[data-played]').forEach(d => { delete d.dataset.played; const bd = d.querySelector('[data-auto-badge]'); if (bd) { bd.textContent = 'auto-running'; bd.classList.remove('done'); } }); el.scrollTop = 0; } return; }
-      const s = nd.p; const bb = clamp(b); const R = clamp(0.045 * s.s, 3, 16) + b * Rb; el.classList.add('on');
-      let cw, ch, left, top;
-      if (narrow()) { const P = panelRect(); el.style.width = P.width + 'px'; el.style.maxHeight = P.height + 'px'; cw = P.width; ch = Math.min(el.offsetHeight, P.height); left = P.left; top = P.top; }
-      else { el.style.width = ''; el.style.maxHeight = ''; cw = el.offsetWidth; ch = el.offsetHeight; left = s.x + R + 26; if (left + cw > W - 16) left = s.x - R - 26 - cw; top = clamp(s.y - ch / 2, HEAD() + 12, Math.max(HEAD() + 12, H - ch - 12)); }
-      const tx = (s.x - (left + cw / 2)) * (1 - bb), ty = (s.y - (top + ch / 2)) * (1 - bb);
-      el.style.left = left.toFixed(1) + 'px'; el.style.top = top.toFixed(1) + 'px'; el.style.opacity = smooth(bb * 1.3).toFixed(3); el.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${(0.5 + 0.5 * b).toFixed(3)})`; }));
+    updateStatement(u, Wp); updateTitle(u, Wp);
+    // the accordion: each layer's panel slides in as the shot to it ends; the row of the neuron in focus opens with its burst and the
+    // others fold; the panel follows the opening row, then is the visitor's to scroll
+    const closeRow = (c) => { c.b = 0; c.auto = false; c.el.style.setProperty('--open', '0'); c.el.classList.remove('open'); c.head.setAttribute('aria-expanded', 'false'); c.body.style.height = '0px';
+      c.entry.querySelectorAll('details.try[open]').forEach(d => { d.open = false; }); c.entry.querySelectorAll('details.try[data-played]').forEach(d => { delete d.dataset.played; const bd = d.querySelector('[data-auto-badge]'); if (bd) { bd.textContent = 'auto-running'; bd.classList.remove('done'); } }); };
+    LAYERS.forEach((L, k) => { if (!L.panel) return; const pn = L.panel; const pk = (Wp ? clamp(Wp.lw(k)) : panelK(k, u)) * zoomK; L.open = null;
+      if (pk <= 0.01) { if (pn.classList.contains('on')) { pn.classList.remove('on'); pn.style.opacity = '0'; pn.scrollTop = 0; L.cards.forEach(c => { if (c.b) closeRow(c); }); } return; }
+      pn.classList.add('on'); let left, top, pw, mh;
+      if (narrow()) { const P = panelRect(); left = P.left; top = P.top; pw = P.width; mh = P.height; } else { pw = PW(); left = W - pw - 24; top = HEAD() + 16; mh = H - HEAD() - 32; }
+      pn.style.left = left + 'px'; pn.style.top = top + 'px'; pn.style.width = pw + 'px'; pn.style.maxHeight = mh + 'px';
+      const e = smooth(pk); pn.style.opacity = e.toFixed(3); pn.style.transform = `translateY(${((1 - e) * 18).toFixed(1)}px) scale(${(0.97 + 0.03 * e).toFixed(4)})`;
+      let openRow = null, openB = 0;
+      L.cards.forEach((c, i) => { const b = clamp(bOf(k, i)); if (b > openB) { openB = b; openRow = c; }
+        if (b <= 0.002) { if (c.b) closeRow(c); return; }
+        c.b = b; c.el.style.setProperty('--open', b.toFixed(3)); c.el.classList.toggle('open', b > 0.5); c.head.setAttribute('aria-expanded', b > 0.5 ? 'true' : 'false');
+        if (b >= 0.995) { if (c.body.style.height !== 'auto') c.body.style.height = 'auto';
+          if (!c.auto) { c.auto = true; if (!narrow() && !reduced) { const d = c.entry.querySelector('details.try'); if (d && !d.open) setTimeout(() => { if (c.b >= 0.995) d.open = true; }, 420); } } }
+        else c.body.style.height = (b * c.body.scrollHeight).toFixed(1) + 'px'; });
+      if (openRow) { if (openB < 0.995) pn.scrollTop = Math.round(Math.max(0, openRow.el.offsetTop - 6) * smooth(openB)); L.open = { c: openRow, b: openB }; } });
+    // a string from the neuron in focus to its row
+    LAYERS.forEach((L, k) => { const o = L.open; if (!o || !L.panel.classList.contains('on')) return; const a = 0.5 * smooth(o.b) * (parseFloat(L.panel.style.opacity) || 0); if (a < 0.01) return;
+      const nd = byL[k][o.c.i], pr = L.panel.getBoundingClientRect(), hr = o.c.head.getBoundingClientRect(); if (!pr.width) return; const sx = nd.p.x, sy = nd.p.y; let ex, ey;
+      if (narrow()) { ex = sx; ey = pr.top - 1; } else { ex = pr.left - 1; ey = clamp(hr.top + hr.height / 2, pr.top + 12, pr.bottom - 12); }
+      g.strokeStyle = col.accent; g.globalAlpha = a; g.lineWidth = 1; g.beginPath(); g.moveTo(sx, sy);
+      if (narrow()) g.bezierCurveTo(sx, (sy + ey) / 2, ex, (sy + ey) / 2, ex, ey); else g.bezierCurveTo((sx + ex) / 2, sy, (sx + ex) / 2, ey, ex, ey); g.stroke();
+      g.fillStyle = col.accent; g.globalAlpha = a * 1.4; g.beginPath(); g.arc(ex, ey, 3, 0, 6.2832); g.fill(); g.globalAlpha = 1; });
     if (Wp && Wp.done) endWarp();
     window.__J = { u: +u.toFixed(2), activeK, sep: Wp && Wp.sep != null ? +Wp.sep.toFixed(1) : null, pieces: warp.pieces ? warp.pieces.length : 0, zoomK: +zoomK.toFixed(2), heroK: +heroK.toFixed(2), bursts: bursts.map(x => [x.nd.k, x.nd.i, +x.b.toFixed(2)]), cam: { fx: +cam.fx.toFixed(2), fy: +cam.fy.toFixed(2), ax: Math.round(cam.ax), ay: Math.round(cam.ay), s: Math.round(cam.s), th: +cam.th.toFixed(2), ph: +cam.ph.toFixed(2) }, dragging: !!dragNode, maxAmp: +Math.max(0, ...edges.map(e => e.amp * Math.exp(-2.2 * (t - e.t0)))).toFixed(3), maxOff: +Math.max(...nodes.map(n => Math.hypot(n.ox, n.oy))).toFixed(3), total: +total.toFixed(2), beat: Math.round(BEAT()), pois, ls: layerStart, nav: navOn, built: counts.map((_, k) => byL[k].filter(nd => nd.vr > 0.99).length), partial: nodes.filter(nd => nd.c > 0.01 && nd.c < 0.99).map(nd => [nd.k, nd.i, +nd.c.toFixed(2)]), input: byL[0].map(nd => ({ c: +nd.c.toFixed(2), x: Math.round(nd.p.x), y: Math.round(nd.p.y), vis: +nd.vis.toFixed(2) })), traces: nodes.filter(nd => nd.doneT >= 0 && nd.k > 0).map(nd => [nd.k, nd.i, +Math.min(9, t - nd.doneT).toFixed(2)]), shots, mk: +mk.toFixed(2), floA: +floA.toFixed(2), field: { clusters: field.cl.length }, rl: +cam.rl.toFixed(2), hero: { x: Math.round(hero.cx), y: Math.round(hero.cy), s: Math.round(hero.s) }, warp: window.__warp(), zspread: +(Math.max(...nodes.map(n => n.p.z)) - Math.min(...nodes.map(n => n.p.z))).toFixed(2) };
     window.__nodeScreen = (k, i) => ({ x: byL[k][i].p.x, y: byL[k][i].p.y });

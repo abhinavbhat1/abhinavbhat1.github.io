@@ -13,16 +13,28 @@
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
 
-  // ── Layers and cards: every entry in the document is one neuron; in journey mode it lives in a card ──
+  // ── Layers and the accordion: every section is one layer of the network and one panel; every entry is one neuron and one row
+  //    of that panel. The scroll opens the rows one after another, in step with the neurons (scene.js drives it) ──
   const cardsHost = $('cards');
-  const LAYERS = Array.from(document.querySelectorAll('.sec[data-layer]')).map(sec => ({
-    id: sec.id, name: sec.dataset.layer, sec,
-    cards: Array.from(sec.querySelectorAll('.entry')).map(entry => { const el = document.createElement('div'); el.className = 'jcard'; cardsHost.appendChild(el); return { el, entry, short: entry.dataset.short || '', home: entry.parentElement, next: entry.nextElementSibling }; })
-  }));
+  const LAYERS = Array.from(document.querySelectorAll('.sec[data-layer]')).map(sec => {
+    const panel = document.createElement('div'); panel.className = 'jpanel glass sheet'; panel.setAttribute('aria-label', sec.dataset.layer); cardsHost.appendChild(panel);
+    const L = { id: sec.id, name: sec.dataset.layer, sub: sec.dataset.sub || '', sec, panel, cards: [] };
+    L.cards = Array.from(sec.querySelectorAll('.entry')).map((entry, i) => {
+      const el = document.createElement('div'); el.className = 'jrow'; el.style.setProperty('--open', 0);
+      const head = document.createElement('button'); head.type = 'button'; head.className = 'jrow-head'; head.setAttribute('aria-expanded', 'false');
+      const meta = entry.querySelector('.meta .date'); const h3 = entry.querySelector('h3');
+      head.innerHTML = `<span class="jrow-i" aria-hidden="true"></span><span class="jrow-t">${(h3 ? h3.textContent : entry.dataset.short || '').trim()}</span><span class="jrow-m">${meta ? meta.textContent : ''}</span><svg class="jrow-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      const body = document.createElement('div'); body.className = 'jrow-body'; body.appendChild(entry);
+      el.appendChild(head); el.appendChild(body); panel.appendChild(el);
+      return { el, head, body, entry, short: entry.dataset.short || '', k: 0, i };
+    });
+    return L;
+  });
   window.LAYERS = LAYERS;
+  LAYERS.forEach((L, j) => L.cards.forEach(c => { c.k = j + 1; c.head.addEventListener('click', () => { if (window.goToNeuron) window.goToNeuron(c.k, c.i); }); }));
+  // the panel's own scroll should never move the page while a row is still opening
   function currentMode() { return 'journey'; }
   window.currentMode = currentMode;
-  LAYERS.forEach(L => L.cards.forEach(c => { if (c.entry.parentElement !== c.el) c.el.appendChild(c.entry); }));
 
   // ── Nav: a link warps to that layer ──
   document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); e.preventDefault(); if (window.jumpToLayer) window.jumpToLayer(id); }));
