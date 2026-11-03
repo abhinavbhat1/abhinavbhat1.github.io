@@ -21,7 +21,7 @@
   function theme() { const cs = getComputedStyle(root); for (const k of ['ink', 'accent', 'bg', 'dim']) { const v = cs.getPropertyValue('--' + k).trim(); if (v) col[k] = v; rgb[k] = hex(col[k]); } }
   theme(); window.addEventListener('themechange', theme);
   const canvas = document.getElementById('bg'), g = canvas.getContext('2d'); let W = 1, H = 1;
-  const narrow = () => W < 900; const mode = () => 'journey';
+  const narrow = () => W < 900; const mode = () => (root.getAttribute('data-mode') === 'fun' ? 'journey' : 'normal');
   const SANS = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif", MONO = "ui-monospace, 'SF Mono', Menlo, monospace";
   const HEAD = () => (narrow() ? 62 : 70);
   // on phones the sections are in three parts: the network in a band at the top, a one-line bar of the sections under it, and the
@@ -76,7 +76,7 @@
   // (to HOLD + STR + ZOOM). In a layer: each next neuron is created while the camera holds on the previous one, then the camera
   // moves to it and it bursts. Between layers: the card closes, the next layer's first neuron is created (strings from the whole
   // previous layer), then the shot, which sways on every axis.
-  const kfs = [], layerStart = [], pois = [0]; let total = 0; const HOLD = 0.5, STR = 0.4, SHOT = 0.9, ZOOM = 0.9; const IN0 = 0.18, INW = 0.3;
+  const kfs = [], layerStart = [], pois = [0]; let total = 0; const HOLD = 0.5, STR = 0.7, SHOT = 1.2, ZOOM = 0.9; const IN0 = 0.18, INW = 0.3;
   { kfs.push({ u: 0, f: poseHero });
     kfs.push({ u: IN0, f: poseHero });
     kfs.push({ u: HOLD, f: () => { const p = poseHero(); p.th = 0.55; p.ph = 0.22; p.s *= 0.88; return p; } });
@@ -206,12 +206,12 @@
 
   // ───────── pointer: beads on strings, and the floating field (hover to push, press to light, drag to move, tap to break) ─────────
   const ptr = { x: -1e4, y: -1e4, px: -1e4, py: -1e4, vx: 0, vy: 0, nx: 0, down: false, t: 0 }; let dragNode = null, downAt = { x: 0, y: 0, t: 0 };
-  const interactive = (t) => !!(t && t.closest && t.closest('a, button, details, summary, input, label, select, .jpanel, .top, .focus, .tldr'));
+  const interactive = (t) => !!(t && t.closest && t.closest('a, button, details, summary, input, label, select, .jpanel, .dock, .focus, .tldr, .acc, .sec-head, .foot'));
   window.addEventListener('pointermove', (e) => { ptr.px = ptr.x; ptr.py = ptr.y; ptr.x = e.clientX; ptr.y = e.clientY; ptr.nx = (e.clientX / W) * 2 - 1; const now = performance.now(); const dt = Math.max(8, now - ptr.t) / 1000; ptr.vx = (ptr.x - ptr.px) / dt; ptr.vy = (ptr.y - ptr.py) / dt; ptr.t = now;
     if (dragNode) { const sc = dragNode.p.s || cam.s; dragNode.ox += (ptr.x - ptr.px) / sc; dragNode.oy += (ptr.y - ptr.py) / sc; dragNode.vx = dragNode.vy = 0; pluck(dragNode, clamp(Math.hypot(ptr.vx, ptr.vy) / sc * 0.05, 0, 0.14)); }
     }, { passive: true });
   window.addEventListener('pointerdown', (e) => { if (e.button !== 0 || interactive(e.target)) return; ptr.x = e.clientX; ptr.y = e.clientY; ptr.down = true; downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
-    let best = null, bd = 26; nodes.forEach(nd => { if (nd.vis < 0.5) return; const d = Math.hypot(nd.p.x - e.clientX, nd.p.y - e.clientY); if (d < bd) { bd = d; best = nd; } });
+    let best = null, bd = 26; if (mode() === 'journey') nodes.forEach(nd => { if (nd.vis < 0.5) return; const d = Math.hypot(nd.p.x - e.clientX, nd.p.y - e.clientY); if (d < bd) { bd = d; best = nd; } });
     if (best) { dragNode = best; pluck(best, 0.08); e.preventDefault(); return; }
     if (meshAlpha > 0.3) { let mb = null, md = 24; allNodes(nd => { const d = Math.hypot(nd.x - e.clientX, nd.y - e.clientY); if (d < md) { md = d; mb = nd; } }); if (mb) { dragM = mb; mb.lit = 1; e.preventDefault(); } } });
   window.addEventListener('pointerup', (e) => { const wasDown = ptr.down; ptr.down = false; const moved = Math.hypot(ptr.x - downAt.x, ptr.y - downAt.y), held = performance.now() - downAt.t;
@@ -247,7 +247,25 @@
   // ───────── journey ─────────
   const heroCopy = document.getElementById('hero-copy'), heroL = document.querySelector('.hero-l'), heroR = document.querySelector('.hero-r');
   let sv = 0, avoid = [], handOn = false;
+  let lastSY = 0, avoidEls = null;
+  function drawNormal(t, dt) {
+    ptr.vx *= Math.exp(-dt * 9); ptr.vy *= Math.exp(-dt * 9);
+    const sy = window.scrollY, dsy = sy - lastSY; lastSY = sy;
+    if (dsy && Math.abs(dsy) < 400) { const k = -dsy * 0.12; field.cl.forEach(cl => { cl.cy += k; cl.nodes.forEach(nd => { nd.y += k; }); }); }
+    if (!avoidEls) avoidEls = Array.from(document.querySelectorAll('.hero-l, .hero-r, .sec-head, .acc, .foot'));
+    avoid = []; avoidEls.forEach(el => { const r = el.getBoundingClientRect(); if (r.bottom > 0 && r.top < H && r.width) avoid.push(r); });
+    meshAlpha = 1; if (handOn) { handOn = false; document.body.style.cursor = ''; }
+    g.clearRect(0, 0, W, H); stepMesh(t, dt, 1);
+  }
+  window.__pulseAt = (x, y) => { let best = null, bd = 1e9; field.cl.forEach(cl => { if (cl.state !== 'float' || !cl.edges.length) return; const d = Math.hypot(cl.cx - x, cl.cy - y); if (d < bd) { bd = d; best = cl; } }); if (best) firePulse(best, 0.2); };
+  window.onModeChange = (m) => { warp.on = false; cancelTween(); clearTimeout(settleTimer); sv = 0; lastY = 0; lastSY = 0; camInit = false; avoidEls = null;
+    LAYERS.forEach(L => { L.open = null; if (L.panel) { L.panel.classList.remove('on'); L.panel.style.opacity = '0'; } });
+    if (stmt) { stmt.classList.remove('on'); stmt.style.opacity = '0'; stmtA = -1; } if (lt) { lt.classList.remove('on'); lt.style.opacity = '0'; ltK = -1; }
+    secbar.style.opacity = rail.style.opacity = '0'; secbar.style.pointerEvents = rail.style.pointerEvents = 'none'; setNav('');
+    if (heroCopy) { heroCopy.style.opacity = ''; heroCopy.style.transform = ''; heroCopy.style.visibility = ''; }
+    if (m === 'journey') { nodes.forEach(nd => { nd.c = 0; nd.vis = 0; nd.vr = 0; nd.doneT = -1; nd.ox = nd.oy = nd.vx = nd.vy = 0; }); Object.assign(cam, poseHero()); camInit = true; layoutSpacer(); } };
   function drawJourney(t, dt) {
+    if (mode() !== 'journey') { drawNormal(t, dt); return; }
     ptr.vx *= Math.exp(-dt * 9); ptr.vy *= Math.exp(-dt * 9);
     const target = window.scrollY; sv += (target - sv) * (reduced ? 1 : 1 - Math.exp(-dt * 14)); if (Math.abs(target - sv) < 0.3) sv = target;
     // the hinge: the centre of the hero text is the world origin at home, at a scale that fits the input layer to the text block

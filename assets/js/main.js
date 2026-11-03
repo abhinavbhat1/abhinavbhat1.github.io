@@ -31,13 +31,46 @@
     return L;
   });
   window.LAYERS = LAYERS;
-  LAYERS.forEach((L, j) => L.cards.forEach(c => { c.k = j + 1; c.head.addEventListener('click', () => { if (window.goToNeuron) window.goToNeuron(c.k, c.i); }); }));
-  // the panel's own scroll should never move the page while a row is still opening
-  function currentMode() { return 'journey'; }
+  // ── Modes. normal: the document; the rows live in their section's accordion and open on a click. fun: the journey; the rows
+  //    live in the layer's panel and open with the scroll ──
+  function currentMode() { return root.getAttribute('data-mode') === 'fun' ? 'journey' : 'normal'; }
   window.currentMode = currentMode;
+  const resetExp = (entry) => { entry.querySelectorAll('details.try[open]').forEach(d => { d.open = false; }); entry.querySelectorAll('details.try[data-played]').forEach(d => { delete d.dataset.played; const bd = d.querySelector('[data-auto-badge]'); if (bd) { bd.textContent = 'auto-running'; bd.classList.remove('done'); } }); };
+  function setRow(c, open) { c.el.classList.toggle('open', open); c.el.style.setProperty('--open', open ? '1' : '0'); c.head.setAttribute('aria-expanded', open ? 'true' : 'false'); if (!open) resetExp(c.entry); }
+  LAYERS.forEach((L, j) => { L.body = L.sec.querySelector('.sec-body'); L.body.classList.add('acc', 'frost', 'rv'); const head = L.sec.querySelector('.sec-head'); head.classList.add('rv');
+    if (L.sub) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = L.sub; head.appendChild(p); }
+    const ex = document.createElement('button'); ex.type = 'button'; ex.className = 'expand'; head.appendChild(ex); L.expand = ex;
+    const setEx = () => { const all = L.cards.every(c => c.el.classList.contains('open')); ex.textContent = all ? 'Collapse all' : 'Expand all'; }; L.setEx = setEx;
+    ex.addEventListener('click', () => { const all = L.cards.every(c => c.el.classList.contains('open')); L.cards.forEach(c => setRow(c, !all)); setEx(); });
+    L.cards.forEach((c, i) => { c.k = j + 1; c.el.style.setProperty('--i', i); c.el.classList.add('rv');
+      c.head.addEventListener('click', () => { if (currentMode() === 'journey') { if (window.goToNeuron) window.goToNeuron(c.k, c.i); return; } setRow(c, !c.el.classList.contains('open')); setEx(); }); }); });
+  function placeRows(m) { LAYERS.forEach(L => { const host = m === 'journey' ? L.panel : L.body; L.cards.forEach(c => { if (c.el.parentElement !== host) host.appendChild(c.el); c.body.style.height = ''; c.b = 0; c.auto = false; resetExp(c.entry);
+      setRow(c, m === 'normal' && (c.i === 0 || L.id === 'skills' || L.id === 'contact')); }); if (L.setEx) L.setEx(); }); }
+  const modeSw = $('mode-toggle');
+  function setMode(m, remember) { root.setAttribute('data-mode', m); if (remember) { try { localStorage.setItem('mode', m); } catch (e) { } }
+    modeSw.setAttribute('aria-checked', m === 'fun' ? 'true' : 'false'); placeRows(m === 'fun' ? 'journey' : 'normal'); window.scrollTo(0, 0); root.classList.remove('scrolled');
+    if (window.onModeChange) window.onModeChange(m === 'fun' ? 'journey' : 'normal'); }
+  placeRows(currentMode()); modeSw.setAttribute('aria-checked', currentMode() === 'journey' ? 'true' : 'false');
+  modeSw.addEventListener('click', () => setMode(currentMode() === 'journey' ? 'normal' : 'fun', true));
+  const hint = $('fun-hint'); if (hint) hint.addEventListener('click', () => setMode(currentMode() === 'journey' ? 'normal' : 'fun', true));
+  window.setMode = setMode;
+  // the dock folds the name away once the page is scrolled
+  let scrolledOn = false; const onScroll = () => { const on = window.scrollY > 40; if (on !== scrolledOn) { scrolledOn = on; root.classList.toggle('scrolled', on); } }; window.addEventListener('scroll', onScroll, { passive: true });
+  // in the document the nav follows the section on screen, the rows and heads rise in as they arrive, the experiment of an open row
+  // starts on its own when it comes into view, and a fragment of the field lights up as each section arrives
+  const navA = Array.from(document.querySelectorAll('.nav a'));
+  const secIO = new IntersectionObserver((es) => { if (currentMode() !== 'normal') return; es.forEach(e => { if (!e.isIntersecting) return; navA.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); }); }, { rootMargin: '-35% 0px -55% 0px' });
+  LAYERS.forEach(L => secIO.observe(L.sec));
+  const rvIO = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); rvIO.unobserve(e.target); } }), { rootMargin: '0px 0px -6% 0px', threshold: 0.02 });
+  document.querySelectorAll('.rv').forEach(el => rvIO.observe(el));
+  const headIO = new IntersectionObserver((es) => es.forEach(e => { if (!e.isIntersecting || currentMode() !== 'normal') return; const r = e.target.getBoundingClientRect(); if (window.__pulseAt) window.__pulseAt(r.left + r.width / 2, r.top + r.height / 2); }), { threshold: 0.5 });
+  document.querySelectorAll('.sec-head').forEach(h => headIO.observe(h));
+  const reducedMotion = reduced;
+  const tryIO = new IntersectionObserver((es) => es.forEach(e => { if (!e.isIntersecting || currentMode() !== 'normal' || reducedMotion || window.innerWidth < 900) return; const d = e.target; const row = d.closest('.jrow'); if (!row || !row.classList.contains('open') || d.open || d.dataset.played) return; setTimeout(() => { if (row.classList.contains('open') && currentMode() === 'normal' && !d.open) d.open = true; }, 500); }), { threshold: 0.6 });
+  document.querySelectorAll('details.try').forEach(d => tryIO.observe(d));
 
-  // ── Nav: a link warps to that layer ──
-  document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); e.preventDefault(); if (window.jumpToLayer) window.jumpToLayer(id); }));
+  // ── Nav: a link warps to that layer in fun mode, scrolls to the section in the document ──
+  document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); e.preventDefault(); if (currentMode() === 'journey') { if (window.jumpToLayer) window.jumpToLayer(id); } else { const sec = document.getElementById(id); if (sec) sec.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); } }));
 
   // ── TL;DR: the whole thing on one card ──
   const tldr = $('tldr'), tcard = tldr.querySelector('.tldr-card'), tbtn = $('tldr-toggle'); let tldrWas = null, minimised = false, genieOn = null;
@@ -88,10 +121,10 @@
   const hi = $('hello'); if (hi && !reduced) { const HI = ['Hello', 'नमस्ते', 'ನಮಸ್ಕಾರ', 'Hola', 'Bonjour', 'こんにちは', 'Ciao', '안녕하세요', 'Hallo', '你好', 'Olá', 'Привет', 'مرحبا', 'வணக்கம்', 'Γεια σου', 'สวัสดี', 'Hej', 'Salut']; let i = 0; setTimeout(() => setInterval(() => { if (document.visibilityState !== 'visible') return; hi.classList.add('swap'); setTimeout(() => { i = (i + 1) % HI.length; hi.textContent = HI[i]; hi.classList.remove('swap'); }, 330); }, 2600), 2200); }
 
   // ── Home: the mark warps home; pressed at home it shoots neurons that build up architectures in the field ──
-  const goHome = (e) => { e.preventDefault(); if (window.warpHome) window.warpHome(); else window.scrollTo(0, 0); };
+  const goHome = (e) => { e.preventDefault(); if (currentMode() === 'journey' && window.warpHome) window.warpHome(); else window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); };
   $('brand').addEventListener('click', goHome); $('to-top').addEventListener('click', goHome);
-  // the beacon: straight to what's latest (the PACD neuron)
-  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (window.jumpToNeuron) window.jumpToNeuron(1, 2); });
+  // the beacon: straight to what's latest (the PACD neuron, or its row in the document)
+  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (currentMode() === 'journey') { if (window.jumpToNeuron) window.jumpToNeuron(1, 2); return; } const L = LAYERS[0], c = L && L.cards[2]; if (!c) return; setRow(c, true); L.setEx(); c.el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); });
 
   // ── "What are you looking for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe'];
