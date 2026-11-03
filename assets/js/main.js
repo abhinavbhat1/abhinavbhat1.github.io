@@ -13,39 +13,48 @@
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
 
-  // ── Layers and the accordion: every section is one layer of the network and one panel; every entry is one neuron and one row
-  //    of that panel. The scroll opens the rows one after another, in step with the neurons (scene.js drives it) ──
-  const cardsHost = $('cards');
-  const LAYERS = Array.from(document.querySelectorAll('.sec[data-layer]')).map(sec => {
-    const panel = document.createElement('div'); panel.className = 'jpanel glass sheet'; panel.setAttribute('aria-label', sec.dataset.layer); cardsHost.appendChild(panel);
-    const L = { id: sec.id, name: sec.dataset.layer, sub: sec.dataset.sub || '', sec, panel, cards: [] };
+  // ── Layers, rows, cards. Every section is one layer of the network and one panel in fun mode; every entry is one neuron, one row
+  //    of that panel, and in the document one row of the section (a stage row, or a card). Each entry is split in two: the top (meta,
+  //    title, org) stays with its row; the rest (logos, lines, experiment) sits in the stage card on desktop, inside the row elsewhere ──
+  const cardsHost = $('cards'); const desk = () => window.innerWidth >= 900;
+  const LAYERS = Array.from(document.querySelectorAll('[data-layer]')).map(sec => {
+    const panel = document.createElement('div'); panel.className = 'jpanel frost'; panel.setAttribute('aria-label', sec.dataset.layer); cardsHost.appendChild(panel);
+    const L = { id: sec.id, name: sec.dataset.layer, sub: sec.dataset.sub || '', sec, panel, cards: [], stage: sec.classList.contains('stage'), body: sec.querySelector('.sec-body'), cardsEl: sec.querySelector('.stage-cards'), active: -1 };
     L.cards = Array.from(sec.querySelectorAll('.entry')).map((entry, i) => {
+      // split the entry
+      const top = document.createElement('div'); top.className = 'e-top'; const rest = document.createElement('div'); rest.className = 'e-rest';
+      const bodyEl = entry.querySelector(':scope > .body'); const meta = entry.querySelector(':scope > .meta'); if (meta) top.appendChild(meta);
+      if (bodyEl) { Array.from(bodyEl.children).forEach(ch => { if (ch.tagName === 'H3' || ch.classList.contains('org')) top.appendChild(ch); else rest.appendChild(ch); }); bodyEl.remove(); }
+      entry.appendChild(top); entry.appendChild(rest);
       const el = document.createElement('div'); el.className = 'jrow'; el.style.setProperty('--open', 0);
       const head = document.createElement('button'); head.type = 'button'; head.className = 'jrow-head'; head.setAttribute('aria-expanded', 'false');
-      const meta = entry.querySelector('.meta .date'); const h3 = entry.querySelector('h3');
-      head.innerHTML = `<span class="jrow-i" aria-hidden="true"></span><span class="jrow-t">${(h3 ? h3.textContent : entry.dataset.short || '').trim()}</span><span class="jrow-m">${meta ? meta.textContent : ''}</span><svg class="jrow-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      const date = top.querySelector('.meta .date'); const h3 = top.querySelector('h3');
+      head.innerHTML = `<span class="jrow-i" aria-hidden="true"></span><span class="jrow-t">${(h3 ? h3.textContent : entry.dataset.short || '').trim()}</span><span class="jrow-m">${date ? date.textContent : ''}</span><svg class="jrow-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       const body = document.createElement('div'); body.className = 'jrow-body'; body.appendChild(entry);
-      el.appendChild(head); el.appendChild(body); panel.appendChild(el);
-      return { el, head, body, entry, short: entry.dataset.short || '', k: 0, i };
+      el.appendChild(head); el.appendChild(body);
+      let scard = null; if (L.cardsEl) { scard = document.createElement('div'); scard.className = 'scard frost'; L.cardsEl.appendChild(scard); }
+      return { el, head, body, entry, top, rest, scard, short: entry.dataset.short || '', k: 0, i };
     });
+    L.sec.style.setProperty('--n', L.cards.length);
+    const head = sec.querySelector('.sec-head'); head.classList.add('rv'); if (L.sub) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = L.sub; head.appendChild(p); }
     return L;
   });
   window.LAYERS = LAYERS;
-  // ── Modes. normal: the document; the rows live in their section's accordion and open on a click. fun: the journey; the rows
-  //    live in the layer's panel and open with the scroll ──
   function currentMode() { return root.getAttribute('data-mode') === 'fun' ? 'journey' : 'normal'; }
   window.currentMode = currentMode;
   const resetExp = (entry) => { entry.querySelectorAll('details.try[open]').forEach(d => { d.open = false; }); entry.querySelectorAll('details.try[data-played]').forEach(d => { delete d.dataset.played; const bd = d.querySelector('[data-auto-badge]'); if (bd) { bd.textContent = 'auto-running'; bd.classList.remove('done'); } }); };
-  function setRow(c, open) { c.el.classList.toggle('open', open); c.el.style.setProperty('--open', open ? '1' : '0'); c.head.setAttribute('aria-expanded', open ? 'true' : 'false'); if (!open) resetExp(c.entry); }
-  LAYERS.forEach((L, j) => { L.body = L.sec.querySelector('.sec-body'); L.body.classList.add('acc', 'frost', 'rv'); const head = L.sec.querySelector('.sec-head'); head.classList.add('rv');
-    if (L.sub) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = L.sub; head.appendChild(p); }
-    const ex = document.createElement('button'); ex.type = 'button'; ex.className = 'expand'; head.appendChild(ex); L.expand = ex;
-    const setEx = () => { const all = L.cards.every(c => c.el.classList.contains('open')); ex.textContent = all ? 'Collapse all' : 'Expand all'; }; L.setEx = setEx;
-    ex.addEventListener('click', () => { const all = L.cards.every(c => c.el.classList.contains('open')); L.cards.forEach(c => setRow(c, !all)); setEx(); });
-    L.cards.forEach((c, i) => { c.k = j + 1; c.el.style.setProperty('--i', i); c.el.classList.add('rv');
-      c.head.addEventListener('click', () => { if (currentMode() === 'journey') { if (window.goToNeuron) window.goToNeuron(c.k, c.i); return; } setRow(c, !c.el.classList.contains('open')); setEx(); }); }); });
-  function placeRows(m) { LAYERS.forEach(L => { const host = m === 'journey' ? L.panel : L.body; L.cards.forEach(c => { if (c.el.parentElement !== host) host.appendChild(c.el); c.body.style.height = ''; c.b = 0; c.auto = false; resetExp(c.entry);
-      setRow(c, m === 'normal' && (c.i === 0 || L.id === 'skills' || L.id === 'contact')); }); if (L.setEx) L.setEx(); }); }
+  function setRow(c, open) { c.el.classList.toggle('open', open); c.el.style.setProperty('--open', open ? '1' : '0'); c.head.setAttribute('aria-expanded', open ? 'true' : 'false'); if (c.scard) c.scard.classList.toggle('on', open); if (!open) { resetExp(c.rest); c.ran = false; } }
+  // the experiment of the row in focus starts on its own, a beat after it arrives
+  function autoRun(c) { if (reduced || c.ran) return; c.ran = true; const d = c.rest.querySelector('details.try'); if (!d || d.open || d.dataset.played) return; setTimeout(() => { if (c.el.classList.contains('open') && currentMode() === 'normal' && !d.open) d.open = true; }, 450); }
+  function activate(L, i, run) { if (L.active !== i) { L.active = i; L.cards.forEach((c, j) => setRow(c, j === i)); } if (run && i >= 0) autoRun(L.cards[i]); }
+  // where the pieces live: fun mode, the panel rows hold everything; the document on desktop, a stage row holds the top and its card the rest;
+  // elsewhere the row holds everything
+  let placed = '';
+  function placeRows(m) { const key = m + (desk() ? ':d' : ':m'); if (key === placed) return; placed = key;
+    LAYERS.forEach(L => { const host = m === 'journey' ? L.panel : L.body; L.active = -1;
+      L.cards.forEach(c => { if (c.el.parentElement !== host) host.appendChild(c.el); const restHost = (m === 'normal' && L.stage && desk() && c.scard) ? c.scard : c.entry; if (c.rest.parentElement !== restHost) restHost.appendChild(c.rest);
+        c.body.style.height = ''; c.b = 0; c.auto = false; resetExp(c.rest); setRow(c, false); });
+      if (m === 'normal') { if (L.stage) activate(L, 0, false); else L.cards.forEach(c => setRow(c, true)); } }); }
   const modeSw = $('mode-toggle');
   function setMode(m, remember) { root.setAttribute('data-mode', m); if (remember) { try { localStorage.setItem('mode', m); } catch (e) { } }
     modeSw.setAttribute('aria-checked', m === 'fun' ? 'true' : 'false'); placeRows(m === 'fun' ? 'journey' : 'normal'); window.scrollTo(0, 0); root.classList.remove('scrolled');
@@ -54,21 +63,33 @@
   modeSw.addEventListener('click', () => setMode(currentMode() === 'journey' ? 'normal' : 'fun', true));
   const hint = $('fun-hint'); if (hint) hint.addEventListener('click', () => setMode(currentMode() === 'journey' ? 'normal' : 'fun', true));
   window.setMode = setMode;
-  // the dock folds the name away once the page is scrolled
-  let scrolledOn = false; const onScroll = () => { const on = window.scrollY > 40; if (on !== scrolledOn) { scrolledOn = on; root.classList.toggle('scrolled', on); } }; window.addEventListener('scroll', onScroll, { passive: true });
-  // in the document the nav follows the section on screen, the rows and heads rise in as they arrive, the experiment of an open row
-  // starts on its own when it comes into view, and a fragment of the field lights up as each section arrives
+  window.addEventListener('resize', () => placeRows(currentMode()));
+  // the row heads: in fun mode they go to the neuron; on a desktop stage they scroll to the row's beat; elsewhere they toggle the row
+  const stageTop = (L) => L.sec.getBoundingClientRect().top + window.scrollY;
+  const beatOf = (L, i) => stageTop(L) + (i + 0.5) / L.cards.length * (L.sec.offsetHeight - window.innerHeight);
+  LAYERS.forEach((L, j) => L.cards.forEach((c, i) => { c.k = j + 1;
+    c.head.addEventListener('click', () => { if (currentMode() === 'journey') { if (window.goToNeuron) window.goToNeuron(c.k, c.i); return; } if (L.stage && desk()) { window.scrollTo({ top: Math.round(beatOf(L, i)), behavior: reduced ? 'auto' : 'smooth' }); return; } const open = !c.el.classList.contains('open'); if (open) activate(L, i, true); else { setRow(c, false); L.active = -1; } }); }));
+  // ── Scroll: on desktop the stages pick their open row from how far they are scrolled; the statement lights up word by word ──
+  const stmt = $('stmt'); const words = stmt ? stmt.textContent.trim().split(/\s+/) : []; if (stmt) stmt.innerHTML = words.map(w => `<span class="w">${w}</span>`).join(' ');
+  const wEls = stmt ? Array.from(stmt.children) : []; const stmtSec = stmt ? stmt.closest('.stmt') : null; let stmtQ = -1;
+  let ticking = false;
+  function scrollFrame() { ticking = false; if (currentMode() !== 'normal') return; const vh = window.innerHeight;
+    if (stmtSec) { const r = stmtSec.getBoundingClientRect(); const total = stmtSec.offsetHeight - vh; const p = Math.max(0, Math.min(1, -r.top / Math.max(1, total))); const q = Math.round(p * 120); if (q !== stmtQ) { stmtQ = q; const n = words.length; const prog = Math.max(0, Math.min(1, (p - 0.12) / 0.7)); wEls.forEach((w, k) => w.style.setProperty('--lit', reduced ? 1 : Math.max(0, Math.min(1, prog * (n + 1.5) - k)).toFixed(2))); } }
+    if (desk()) LAYERS.forEach(L => { if (!L.stage) return; const r = L.sec.getBoundingClientRect(); const total = L.sec.offsetHeight - vh; if (r.top > vh || r.bottom < 0) return; const p = Math.max(0, Math.min(0.999, -r.top / Math.max(1, total))); const i = Math.floor(p * L.cards.length); activate(L, i, r.top < vh * 0.4); }); }
+  const onScroll = () => { const on = window.scrollY > 40; if (on !== scrolledOn) { scrolledOn = on; root.classList.toggle('scrolled', on); } if (!ticking) { ticking = true; requestAnimationFrame(scrollFrame); } };
+  let scrolledOn = false; window.addEventListener('scroll', onScroll, { passive: true }); window.addEventListener('resize', onScroll); requestAnimationFrame(scrollFrame);
+  // on phones a stage row opens as it reaches the middle of the screen
+  const rowIO = new IntersectionObserver((es) => { if (currentMode() !== 'normal' || desk()) return; es.forEach(e => { if (!e.isIntersecting) return; const L = LAYERS.find(l => l.stage && l.cards.some(c => c.el === e.target)); if (!L) return; const i = L.cards.findIndex(c => c.el === e.target); activate(L, i, true); }); }, { rootMargin: '-42% 0px -42% 0px', threshold: 0 });
+  LAYERS.forEach(L => { if (L.stage) L.cards.forEach(c => rowIO.observe(c.el)); });
+  // the nav follows the section on screen; chapter heads and cards rise in as they arrive; a fragment of the field lights up as each chapter arrives
   const navA = Array.from(document.querySelectorAll('.nav a'));
-  const secIO = new IntersectionObserver((es) => { if (currentMode() !== 'normal') return; es.forEach(e => { if (!e.isIntersecting) return; navA.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); }); }, { rootMargin: '-35% 0px -55% 0px' });
+  const secIO = new IntersectionObserver((es) => { if (currentMode() !== 'normal') return; es.forEach(e => { if (!e.isIntersecting) return; navA.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); }); }, { rootMargin: '-30% 0px -60% 0px' });
   LAYERS.forEach(L => secIO.observe(L.sec));
-  const rvIO = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); rvIO.unobserve(e.target); } }), { rootMargin: '0px 0px -6% 0px', threshold: 0.02 });
+  LAYERS.forEach(L => { if (!L.stage) L.cards.forEach((c, i) => { c.el.classList.add('rv'); c.el.style.setProperty('--i', i); }); });
+  const rvIO = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); rvIO.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.02 });
   document.querySelectorAll('.rv').forEach(el => rvIO.observe(el));
   const headIO = new IntersectionObserver((es) => es.forEach(e => { if (!e.isIntersecting || currentMode() !== 'normal') return; const r = e.target.getBoundingClientRect(); if (window.__pulseAt) window.__pulseAt(r.left + r.width / 2, r.top + r.height / 2); }), { threshold: 0.5 });
   document.querySelectorAll('.sec-head').forEach(h => headIO.observe(h));
-  const reducedMotion = reduced;
-  const tryIO = new IntersectionObserver((es) => es.forEach(e => { if (!e.isIntersecting || currentMode() !== 'normal' || reducedMotion || window.innerWidth < 900) return; const d = e.target; const row = d.closest('.jrow'); if (!row || !row.classList.contains('open') || d.open || d.dataset.played) return; setTimeout(() => { if (row.classList.contains('open') && currentMode() === 'normal' && !d.open) d.open = true; }, 500); }), { threshold: 0.6 });
-  document.querySelectorAll('details.try').forEach(d => tryIO.observe(d));
-
   // ── Nav: a link warps to that layer in fun mode, scrolls to the section in the document ──
   document.querySelectorAll('.nav a[href^="#"]').forEach(a => a.addEventListener('click', (e) => { const id = a.getAttribute('href').slice(1); e.preventDefault(); if (currentMode() === 'journey') { if (window.jumpToLayer) window.jumpToLayer(id); } else { const sec = document.getElementById(id); if (sec) sec.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); } }));
 
@@ -124,7 +145,7 @@
   const goHome = (e) => { e.preventDefault(); if (currentMode() === 'journey' && window.warpHome) window.warpHome(); else window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); };
   $('brand').addEventListener('click', goHome); $('to-top').addEventListener('click', goHome);
   // the beacon: straight to what's latest (the PACD neuron, or its row in the document)
-  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (currentMode() === 'journey') { if (window.jumpToNeuron) window.jumpToNeuron(1, 2); return; } const L = LAYERS[0], c = L && L.cards[2]; if (!c) return; setRow(c, true); L.setEx(); c.el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); });
+  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (currentMode() === 'journey') { if (window.jumpToNeuron) window.jumpToNeuron(1, 2); return; } const L = LAYERS[0], c = L && L.cards[2]; if (!c) return; if (desk()) window.scrollTo({ top: Math.round(beatOf(L, 2)), behavior: reduced ? 'auto' : 'smooth' }); else { activate(L, 2, true); c.el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); } });
 
   // ── "What are you looking for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe'];

@@ -252,8 +252,8 @@
     ptr.vx *= Math.exp(-dt * 9); ptr.vy *= Math.exp(-dt * 9);
     const sy = window.scrollY, dsy = sy - lastSY; lastSY = sy;
     if (dsy && Math.abs(dsy) < 400) { const k = -dsy * 0.12; field.cl.forEach(cl => { cl.cy += k; cl.nodes.forEach(nd => { nd.y += k; }); }); }
-    if (!avoidEls) avoidEls = Array.from(document.querySelectorAll('.hero-l, .hero-r, .sec-head, .acc, .foot'));
-    avoid = []; avoidEls.forEach(el => { const r = el.getBoundingClientRect(); if (r.bottom > 0 && r.top < H && r.width) avoid.push(r); });
+    if (!avoidEls) avoidEls = Array.from(document.querySelectorAll('.hero-l, .hero-r, .stmt-text, .sec-head, .sec-body, .scard, .foot'));
+    avoid = []; avoidEls.forEach(el => { if (el.classList.contains('scard') && !el.classList.contains('on')) return; const r = el.getBoundingClientRect(); if (r.bottom > 0 && r.top < H && r.width) avoid.push(r); });
     meshAlpha = 1; if (handOn) { handOn = false; document.body.style.cursor = ''; }
     g.clearRect(0, 0, W, H); stepMesh(t, dt, 1);
   }
