@@ -120,7 +120,7 @@
   const spacer = document.getElementById('spacer');
   function layoutSpacer() { if (spacer) spacer.style.height = Math.round(total * BEAT() + H) + 'px'; }
   function poseAt(u) { if (u <= kfs[0].u) return kfs[0].f(); for (let j = 1; j < kfs.length; j++) { if (u <= kfs[j].u) { const a = kfs[j - 1], b = kfs[j]; const f = smooth((u - a.u) / Math.max(1e-6, b.u - a.u)); return lerpPose(a.f(), b.f(), f); } } return kfs[kfs.length - 1].f(); }
-  const burstOf = (k, i, u) => { if (k === 0) return 0; const local = u - (layerStart[k] + i); if (local < 0) return 0; if (k === Lmax) return backOut(local / 0.32); if (local >= 1) return 0; return backOut(local / 0.32) * (1 - smooth((local - 0.7) / 0.3)); };
+  const burstOf = (k, i, u) => { if (k === 0) return 0; const local = u - (layerStart[k] + i); if (local < 0) return 0; if (k === Lmax) return backOut(local / 0.3); if (local >= 1) return 0; return backOut(local / 0.3) * (1 - smooth((local - 0.78) / 0.22)); };
   const layerWeight = (k, u) => k === 0 ? 0 : smooth((u - (layerStart[k] - 1.0)) / 0.5) * (k === Lmax ? 1 : 1 - smooth((u - (layerStart[k] + counts[k] + 0.2)) / 0.45));
   // creation along the scroll: the input beads burst out of the collapsing text (IN0 to IN0 + INW); every other neuron is created at its
   // own moment (nd.c0, set with the keyframes): strings first, then the pop. Scrolling back reverses all of it
@@ -132,16 +132,14 @@
   window.resetJourney = () => { sv = 0; const p = poseHero(); Object.assign(cam, p); camInit = true; };
   window.__shots = shots;
   window.__A = () => LAYERS.slice(1).map(L => ({ id: L.id, on: !!(L.panel && L.panel.classList.contains('on')), op: L.panel ? L.panel.style.opacity : '', open: L.open ? [L.open.c.i, +L.open.b.toFixed(2), L.open.c.body.style.height] : null, st: L.panel ? L.panel.scrollTop : 0 }));
-  // snapping: after the wheel stops, settle onto the nearest beat (forward-biased)
+  // the scroll is never fought: a nav warp or a key glides, and any wheel or touch cancels the glide at once
   let scrollTw = null, settleTimer = null, touching = false, lastY = 0, dir = 1;
   function goTo(to, ms) { const from = window.scrollY; if (scrollTw) cancelAnimationFrame(scrollTw.raf); if (reduced) { window.scrollTo(0, to); return; } const d = ms || Math.min(900, 300 + Math.abs(to - from) * 0.3); const t0 = performance.now(); const step = (now) => { const k = clamp((now - t0) / d); const e = 1 - Math.pow(1 - k, 3); window.scrollTo(0, from + (to - from) * e); if (k < 1) scrollTw.raf = requestAnimationFrame(step); else scrollTw = null; }; scrollTw = { raf: requestAnimationFrame(step) }; }
   function cancelTween() { if (scrollTw) { cancelAnimationFrame(scrollTw.raf); scrollTw = null; } }
-  function settle() { if (mode() !== 'journey' || touching || dragNode || warp.on) return; const u = window.scrollY / BEAT(); let ahead = pois.find(p => p > u + 0.02), behind = [...pois].reverse().find(p => p <= u + 0.02); if (ahead == null || behind == null) return; const frac = (u - behind) / Math.max(1e-6, ahead - behind); const target = dir > 0 ? (frac > 0.3 ? ahead : behind) : (frac < 0.7 ? behind : ahead); if (Math.abs(target - u) > 0.01) goTo(Math.round(target * BEAT()), 520); }
-  function scheduleSettle() { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 170); }
   window.addEventListener('scroll', () => { const y = window.scrollY; if (y !== lastY) dir = y > lastY ? 1 : -1; lastY = y; }, { passive: true });
-  window.addEventListener('wheel', () => { if (mode() === 'journey') { cancelTween(); scheduleSettle(); } }, { passive: true });
+  window.addEventListener('wheel', () => { if (mode() === 'journey') cancelTween(); }, { passive: true });
   window.addEventListener('touchstart', () => { touching = true; cancelTween(); }, { passive: true });
-  window.addEventListener('touchend', () => { touching = false; if (mode() === 'journey') scheduleSettle(); }, { passive: true });
+  window.addEventListener('touchend', () => { touching = false; }, { passive: true });
   window.addEventListener('keydown', (e) => { if (mode() !== 'journey' || warp.on || (e.target && /input|textarea|select/i.test(e.target.tagName))) return; const u = window.scrollY / BEAT(); if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { const n = pois.find(p => p > u + 0.05); if (n != null) { e.preventDefault(); goTo(Math.round(n * BEAT()), 600); } } if (['ArrowUp', 'PageUp'].includes(e.key)) { const p = [...pois].reverse().find(p => p < u - 0.05); e.preventDefault(); goTo(Math.round((p == null ? 0 : p) * BEAT()), 600); } });
 
   // ───────── warps. Nav clicks: the open card balls up, the camera rides the wires from the current neuron to the target,
@@ -206,7 +204,7 @@
 
   // ───────── pointer: beads on strings, and the floating field (hover to push, press to light, drag to move, tap to break) ─────────
   const ptr = { x: -1e4, y: -1e4, px: -1e4, py: -1e4, vx: 0, vy: 0, nx: 0, down: false, t: 0 }; let dragNode = null, downAt = { x: 0, y: 0, t: 0 };
-  const interactive = (t) => !!(t && t.closest && t.closest('a, button, details, summary, input, label, select, .jpanel, .dock, .focus, .tldr, .acc, .sec-head, .foot'));
+  const interactive = (t) => !!(t && t.closest && t.closest('a, button, input, label, select, .jpanel, .dock, .focus, .tldr, .try, .scard, .jrow, .sec-head, .foot'));
   window.addEventListener('pointermove', (e) => { ptr.px = ptr.x; ptr.py = ptr.y; ptr.x = e.clientX; ptr.y = e.clientY; ptr.nx = (e.clientX / W) * 2 - 1; const now = performance.now(); const dt = Math.max(8, now - ptr.t) / 1000; ptr.vx = (ptr.x - ptr.px) / dt; ptr.vy = (ptr.y - ptr.py) / dt; ptr.t = now;
     if (dragNode) { const sc = dragNode.p.s || cam.s; dragNode.ox += (ptr.x - ptr.px) / sc; dragNode.oy += (ptr.y - ptr.py) / sc; dragNode.vx = dragNode.vy = 0; pluck(dragNode, clamp(Math.hypot(ptr.vx, ptr.vy) / sc * 0.05, 0, 0.14)); }
     }, { passive: true });
@@ -247,13 +245,13 @@
   // ───────── journey ─────────
   const heroCopy = document.getElementById('hero-copy'), heroL = document.querySelector('.hero-l'), heroR = document.querySelector('.hero-r');
   let sv = 0, avoid = [], handOn = false;
-  let lastSY = 0, avoidEls = null;
+  let lastSY = 0, avoidEls = null, avoidT = 0;
   function drawNormal(t, dt) {
     ptr.vx *= Math.exp(-dt * 9); ptr.vy *= Math.exp(-dt * 9);
     const sy = window.scrollY, dsy = sy - lastSY; lastSY = sy;
     if (dsy && Math.abs(dsy) < 400) { const k = -dsy * 0.12; field.cl.forEach(cl => { cl.cy += k; cl.nodes.forEach(nd => { nd.y += k; }); }); }
     if (!avoidEls) avoidEls = Array.from(document.querySelectorAll('.hero-l, .hero-r, .stmt-text, .sec-head, .sec-body, .scard, .foot'));
-    avoid = []; avoidEls.forEach(el => { if (el.classList.contains('scard') && !el.classList.contains('on')) return; const r = el.getBoundingClientRect(); if (r.bottom > 0 && r.top < H && r.width) avoid.push(r); });
+    if (dsy || t - avoidT > 0.25) { avoidT = t; avoid = []; avoidEls.forEach(el => { if (el.classList.contains('scard') && !el.classList.contains('on')) return; const r = el.getBoundingClientRect(); if (r.bottom > 0 && r.top < H && r.width) avoid.push(r); }); }
     meshAlpha = 1; if (handOn) { handOn = false; document.body.style.cursor = ''; }
     g.clearRect(0, 0, W, H); stepMesh(t, dt, 1);
   }
@@ -331,8 +329,7 @@
     updateStatement(u, Wp); updateTitle(u, Wp);
     // the accordion: each layer's panel slides in as the shot to it ends; the row of the neuron in focus opens with its burst and the
     // others fold; the panel follows the opening row, then is the visitor's to scroll
-    const closeRow = (c) => { c.b = 0; c.auto = false; c.el.style.setProperty('--open', '0'); c.el.classList.remove('open'); c.head.setAttribute('aria-expanded', 'false'); c.body.style.height = '0px';
-      c.entry.querySelectorAll('details.try[open]').forEach(d => { d.open = false; }); c.entry.querySelectorAll('details.try[data-played]').forEach(d => { delete d.dataset.played; const bd = d.querySelector('[data-auto-badge]'); if (bd) { bd.textContent = 'auto-running'; bd.classList.remove('done'); } }); };
+    const closeRow = (c) => { c.b = 0; c.auto = false; c.el.style.setProperty('--open', '0'); c.el.classList.remove('open'); c.head.setAttribute('aria-expanded', 'false'); c.body.style.height = '0px'; if (window.resetExp) window.resetExp(c.entry); };
     LAYERS.forEach((L, k) => { if (!L.panel) return; const pn = L.panel; const pk = (Wp ? clamp(Wp.lw(k)) : panelK(k, u)) * zoomK; L.open = null;
       if (pk <= 0.01) { if (pn.classList.contains('on')) { pn.classList.remove('on'); pn.style.opacity = '0'; pn.scrollTop = 0; L.cards.forEach(c => { if (c.b) closeRow(c); }); } return; }
       pn.classList.add('on'); let left, top, pw, mh;
@@ -344,7 +341,7 @@
         if (b <= 0.002) { if (c.b) closeRow(c); return; }
         c.b = b; c.el.style.setProperty('--open', b.toFixed(3)); c.el.classList.toggle('open', b > 0.5); c.head.setAttribute('aria-expanded', b > 0.5 ? 'true' : 'false');
         if (b >= 0.995) { if (c.body.style.height !== 'auto') c.body.style.height = 'auto';
-          if (!c.auto) { c.auto = true; if (!narrow() && !reduced) { const d = c.entry.querySelector('details.try'); if (d && !d.open) setTimeout(() => { if (c.b >= 0.995) d.open = true; }, 420); } } }
+          if (!c.auto) { c.auto = true; const d = c.entry.querySelector('.try'); if (d && window.runExp) setTimeout(() => { if (c.b >= 0.995 && mode() === 'journey') window.runExp(d, 0); }, 420); } }
         else c.body.style.height = (b * c.body.scrollHeight).toFixed(1) + 'px'; });
       if (openRow) { if (openB < 0.995) pn.scrollTop = Math.round(Math.max(0, openRow.el.offsetTop - 6) * smooth(openB)); L.open = { c: openRow, b: openB }; } });
     // a string from the neuron in focus to its row

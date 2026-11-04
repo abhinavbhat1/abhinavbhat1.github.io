@@ -83,7 +83,7 @@
       </div>
       <div class="hero-r">
         <div class="portrait"><img src="assets/portrait.jpg" alt="Abhinav Bhat" width="720" height="720" decoding="async"></div>
-        <a class="beacon glass pill" id="beacon" href="#research"><span class="pulse" aria-hidden="true"></span><span class="tag">Latest</span><span class="txt">PACD poster at AMIA 2026 · Dallas · Nov 9</span><span class="txt-s">PACD poster at AMIA 2026 · Dallas · Nov 9</span></a>
+        <a class="beacon glass pill" id="beacon" href="#research"><span class="pulse" aria-hidden="true"></span><span class="tag">Latest</span><span class="txt">PACD poster at AMIA 2026 · Dallas · Nov 9</span><span class="txt-s">AMIA 2026 poster · Nov 9</span></a>
         <ul class="topics"><li class="glass pill">Machine learning</li><li class="glass pill">Healthcare AI</li><li class="glass pill">Data engineering</li><li class="glass pill">JEPA</li><li class="glass pill">World models</li></ul>
         <p class="fun-hint"><button type="button" class="linkish" id="fun-hint"><span class="to-fun">Or ride the network through this CV</span><span class="to-normal">Back to the page</span><svg class="arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></p>
       </div>
@@ -100,10 +100,10 @@
   </div>
 
   <section class="chap stmt" id="about" aria-label="In one sentence">
-    <div class="stmt-pin"><p class="stmt-text" id="stmt">Machine learning for healthcare, built with the care of a data engineer and the honesty of a good evaluation.</p></div>
+    <div class="stmt-pin"><p class="stmt-text" id="stmt">I build machine learning systems. For the real world.</p></div>
   </section>
 
-  <section class="chap stage" id="research" data-layer="Research" data-sub="Five projects in healthcare AI, each with something to try" data-where="both">
+  <section class="chap stage" id="research" data-layer="Research" data-sub="Better lives through machine learning, one noisy dataset at a time." data-where="both">
     <div class="stage-pin">
       <div class="sec-head"><span class="num">01</span><h2>Research</h2></div>
       <div class="sec-body">
@@ -116,14 +116,14 @@
 <ul class="lines">
         <li data-w="1,1,0.2,0.3,0">Research assistant on the lab's project: self-supervised <strong>LeJEPA</strong> representations of 3D MRI that learn to predict contrast enhancement, so that fewer scans need a gadolinium injection.</li>
       </ul>
-          <details class="try" data-auto="jepa"><summary>Try the lab's idea: hide part of a scan, predict the rest</summary>
+          <div class="try" data-auto="jepa">
+            <p class="try-h"><span class="t">Try it: hide part of a scan, predict the rest</span><span class="auto" data-auto-badge>Runs on its own</span></p>
 <div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">The lab's idea in one picture: hide part of a scan, learn to predict the hidden part from what is visible.</span></div>
-        <svg id="jepa-svg" role="img" aria-label="Masked prediction demo"></svg>
+        <p class="what">The lab's idea in one picture: hide part of a scan, learn to predict the hidden part from what is visible.</p>        <svg id="jepa-svg" role="img" aria-label="Masked prediction demo"></svg>
         <div class="row"><label>Training <input type="range" id="jepa-prog" min="0" max="1" step="0.02" value="0"><output id="jepa-val">0%</output></label></div>
         <div class="out" id="jepa-out"></div>
       </div>
-          </details>
+          </div>
         </div>
       </article>
       <article class="entry" data-short="LUMINA">
@@ -136,14 +136,14 @@
         <li data-w="0.5,1,1,0.8,0.3">Own work package 3 of LUMINA, the <a href="https://www.dcinetwork.org/" target="_blank" rel="noopener">DCI Network</a>'s reference architecture for a longitudinal, multimodal patient record: a raw-readings archive, device sync and daily derivation into OMOP, delivered as pull requests to <strong><a href="https://arxiv.org/abs/2607.13947" target="_blank" rel="noopener">PRomop</a></strong>, <a href="https://www.healthkey.ai/" target="_blank" rel="noopener">HealthKey</a>'s open-source patient record.</li>
         <li data-w="0.8,1,0.6,0.2,0.3">Found five concept-mapping issues for the OMOP work package, including the heart-rate-variability mix-up (SDNN vs RMSSD) that became my semantic-drift research question.</li>
       </ul>
-          <details class="try" data-auto="vol"><summary>Try it: why the archive needs a daily derivation step</summary>
+          <div class="try" data-auto="vol">
+            <p class="try-h"><span class="t">Try it: why the archive needs a daily derivation step</span><span class="auto" data-auto-badge>Runs on its own</span></p>
 <div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Why the archive needs a daily derivation step: raw wearable data is enormous.</span></div>
-        <div class="row"><label>Patients <input type="range" id="vol-n" min="2" max="5" step="0.05" value="3"><output id="vol-val">1,000</output></label></div>
+        <p class="what">Why the archive needs a daily derivation step: raw wearable data is enormous.</p>        <div class="row"><label>Patients <input type="range" id="vol-n" min="2" max="5" step="0.05" value="3"><output id="vol-val">1,000</output></label></div>
         <svg id="vol-svg" role="img" aria-label="Rows per year: raw vs daily"></svg>
         <div class="out" id="vol-out"></div>
       </div>
-          </details>
+          </div>
         </div>
       </article>
       <article class="entry" data-short="PACD">
@@ -155,10 +155,10 @@
 <ul class="lines">
         <li data-w="1,1,0.1,0.3,0.2">Personalises cardiovascular adherence interventions while only ever choosing from a clinician-approved set. <span class="st live"><i class="blip" aria-hidden="true"></i>Accepted poster, <a href="https://amia.org/education-events/amia-2026-annual-symposium" target="_blank" rel="noopener">AMIA 2026 Annual Symposium</a> · Dallas · Nov 9</span></li>
       </ul>
-          <details class="try" data-auto="bandit"><summary>Try it: let the system learn which option keeps patients on their medication</summary>
+          <div class="try" data-auto="bandit">
+            <p class="try-h"><span class="t">Try it: let the system learn which option keeps patients on their medication</span><span class="auto" data-auto-badge>Runs on its own</span></p>
 <div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Tick what the clinician allows, then let the system learn which option keeps patients on their medication.</span></div>
-        <div class="row" id="bandit-ok">
+        <p class="what">Tick what the clinician allows, then let the system learn which option keeps patients on their medication.</p>        <div class="row" id="bandit-ok">
           <label class="check"><input type="checkbox" data-i="0" checked>SMS reminder</label>
           <label class="check"><input type="checkbox" data-i="1" checked>Pharmacist call</label>
           <label class="check"><input type="checkbox" data-i="2" checked>App nudge</label>
@@ -166,10 +166,10 @@
           <button class="btn sm primary" id="bandit-play">Simulate 40 patients</button>
           <button class="btn sm" id="bandit-reset">Reset</button>
         </div>
-        <svg id="bandit-svg" role="img" aria-label="Estimated adherence per option" style="margin-top:.4rem"></svg>
+        <svg id="bandit-svg" role="img" aria-label="Estimated adherence per option"></svg>
         <div class="out" id="bandit-out"></div>
       </div>
-          </details>
+          </div>
         </div>
       </article>
       <article class="entry" data-short="Scoping review">
@@ -192,18 +192,15 @@
         <li data-w="1,0.8,0.1,0.2,0">Multimodal depression detection (AVEC 2017): showed a 72%-accuracy model found only 7% of depressed patients, and set balanced reporting metrics · <a href="https://www.manipal.edu/mit-manipal" target="_blank" rel="noopener">Manipal Institute of Technology</a> &amp; <a href="https://www.deakin.edu.au/" target="_blank" rel="noopener">Deakin University</a>. <span class="st">Manuscript ready</span></li>
         <li data-w="0.8,0.9,0,0,0.2">First-author systematic review of automated mitotic-figure detection in breast histopathology · <a href="https://manipal.edu/msis.html" target="_blank" rel="noopener">Manipal School of Information Sciences</a>. <span class="st">Manuscript ready for submission</span></li>
       </ul>
-          <details class="try" data-auto="metrics"><summary>Try it: why accuracy lies</summary>
+          <div class="try" data-auto="metrics">
+            <p class="try-h"><span class="t">Try it: why accuracy lies</span><span class="auto" data-auto-badge>Runs on its own</span></p>
 <div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Move the decision threshold: accuracy barely changes while the share of depressed patients actually found collapses.</span></div>
-        <svg id="metrics-svg" role="img" aria-label="Score distributions and threshold"></svg>
-        <div class="row">
-          <label>Threshold <input type="range" id="m-thr" min="0.1" max="0.9" step="0.01" value="0.78"></label>
-          <span class="ro">Accuracy<b id="m-acc">–</b></span>
-          <span class="ro" id="m-rec-ro">Depressed found<b id="m-rec">–</b></span>
-        </div>
+        <p class="what">Move the decision threshold: accuracy barely changes while the share of depressed patients actually found collapses.</p>        <svg id="metrics-svg" role="img" aria-label="Score distributions and threshold"></svg>
+        <div class="row"><label>Threshold <input type="range" id="m-thr" min="0.1" max="0.9" step="0.01" value="0.78"></label></div>
+        <div class="row"><span class="ro">Accuracy<b id="m-acc">–</b></span><span class="ro" id="m-rec-ro">Depressed found<b id="m-rec">–</b></span></div>
         <div class="out" id="metrics-out"></div>
       </div>
-          </details>
+          </div>
         </div>
       </article>
     
@@ -212,7 +209,7 @@
     </div>
   </section>
 
-  <section class="chap stage" id="experience" data-layer="Experience" data-sub="Four and a half years at Honeywell, intern to tech lead" data-where="both">
+  <section class="chap stage" id="experience" data-layer="Experience" data-sub="Four and a half years at Honeywell, Intern to Tech Lead." data-where="both">
     <div class="stage-pin">
       <div class="sec-head"><span class="num">02</span><h2>Experience</h2></div>
       <div class="sec-body">
@@ -223,14 +220,14 @@
           <p class="org"><a href="https://www.honeywell.com/" target="_blank" rel="noopener">Honeywell Technologies</a></p>
           <div class="logos"><span class="logo"><img src="assets/logos/honeywell.svg" alt="Honeywell"></span></div>
 <ul class="lines"><li data-w="0.4,0,1,0.6,1">Promoted from Data Validation Engineer to Tech Lead in May 2026; led five engineers on pipeline design, test strategy and release readiness for two enterprise platforms.</li><li data-w="0.2,0,1,0.5,0.3">Built Snowflake and dbt validation frameworks that catch schema drift, silent corruption and data leakage before release; validated GenAI data migrations with integrity checks, coverage analysis and root-cause analysis.</li><li data-w="0,0,0.9,0.4,0.2">Automated warehouse log ingestion and validation across platforms, with health metrics reported in Power BI.</li></ul>
-          <details class="try" data-auto="drift"><summary>Try it: silent data corruption and the checks that catch it</summary>
+          <div class="try" data-auto="drift">
+            <p class="try-h"><span class="t">Try it: silent corruption and the checks that catch it</span><span class="auto" data-auto-badge>Runs on its own</span></p>
 <div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Pick what goes wrong in today's data and see which check catches it.</span></div>
-        <div class="row"><div class="seg" id="drift-mode" role="group" aria-label="Failure"><button data-v="none" aria-pressed="true">Healthy</button><button data-v="unit" aria-pressed="false">Unit change ×1000</button><button data-v="null" aria-pressed="false">Null spike</button><button data-v="shift" aria-pressed="false">Quiet drift</button></div></div>
-        <div class="two" style="margin-top:.6rem"><svg id="drift-svg" role="img" aria-label="Reference vs today"></svg><div class="checks" id="drift-checks"></div></div>
+        <p class="what">Pick what goes wrong in today's data and see which check catches it.</p>        <div class="row"><div class="seg" id="drift-mode" role="group" aria-label="Failure"><button data-v="none" aria-pressed="true">Healthy</button><button data-v="unit" aria-pressed="false">Units ×1000</button><button data-v="null" aria-pressed="false">Null spike</button><button data-v="shift" aria-pressed="false">Quiet drift</button></div></div>
+        <div class="two"><svg id="drift-svg" role="img" aria-label="Last month vs today"></svg><div class="checks" id="drift-checks"></div></div>
         <div class="out" id="drift-out"></div>
       </div>
-          </details>
+          </div>
         </div>
       </article>
       <article class="entry" data-short="Performance">
@@ -255,7 +252,7 @@
     </div>
   </section>
 
-  <section class="chap grid" id="education" data-layer="Education" data-sub="NYU Courant, Manipal, and the honours along the way" data-where="both">
+  <section class="chap grid" id="education" data-layer="Education" data-sub="NYU Courant, Manipal, and the honours along the way." data-where="both">
     <div class="sec-head"><span class="num">03</span><h2>Education</h2></div>
     <div class="sec-body">
       <article class="entry" data-short="NYU Courant">
@@ -283,14 +280,14 @@
         <li data-w="0,0,0,0,1"><strong>National Board Member, <a href="https://iaeste.org/" target="_blank" rel="noopener">IAESTE India</a></strong>: national operations and international relations across 10+ committees <span class="dt">2019 – 2021</span></li>
         <li data-w="0,0,0,0,0.9"><strong>Content &amp; Marketing Head, <a href="https://iaeste.manipal.edu/" target="_blank" rel="noopener">IAESTE Manipal</a></strong>: grew engagement to 1,500+ followers <span class="dt">2018 – 2019</span></li>
       </ul>
-          <div class="logos" style="margin-top:1rem"><span class="logo"><img src="assets/logos/iaeste.png" alt="IAESTE"></span></div>
+          <div class="logos"><span class="logo"><img src="assets/logos/iaeste.png" alt="IAESTE"></span></div>
         </div>
       </article>
     
     </div>
   </section>
 
-  <section class="chap grid" id="skills" data-layer="Skills" data-sub="The toolkit, grouped the way the work is" data-where="both">
+  <section class="chap grid" id="skills" data-layer="Skills" data-sub="The toolkit, grouped the way the work is." data-where="both">
     <div class="sec-head"><span class="num">04</span><h2>Skills</h2></div>
     <div class="sec-body">
       <article class="entry" data-short="ML &amp; AI">
@@ -325,7 +322,7 @@
     </div>
   </section>
 
-  <section class="chap grid one" id="contact" data-layer="Contact" data-sub="Summer 2027, and research collaborations" data-where="both">
+  <section class="chap grid one" id="contact" data-layer="Contact" data-sub="Summer 2027, and research collaborations." data-where="both">
     <div class="sec-head"><span class="num">05</span><h2>Contact</h2></div>
     <div class="sec-body">
       <article class="entry" data-short="Contact">
@@ -352,7 +349,7 @@
 <div id="journey" aria-hidden="false">
   <div id="spacer"></div>
   <div id="cards"></div>
-  <p id="statement" aria-hidden="true">Machine learning for healthcare, built with the care of a data engineer and the honesty of a good evaluation.</p>
+  <p id="statement" aria-hidden="true">I build machine learning systems. For the real world.</p>
   <div id="laytitle" aria-hidden="true"><b></b><span></span></div>
 </div>
 

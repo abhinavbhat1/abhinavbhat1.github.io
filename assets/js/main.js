@@ -1,10 +1,10 @@
-/* Theme, the cards that neurons burst into, the TL;DR panel, the home and nav hooks, focus re-weighting, and the small
-   experiments. The drawing, the floating field and the scroll journey live in scene.js. */
+/* Theme, the modes, the rows and the stage cards, the document's scroll-driven pieces (the lit statement, the pinned stages),
+   the TL;DR and its genie, the greeting, the focus lens, and the five experiments. The drawing, the floating field and the
+   scroll journey live in scene.js. */
 (function () {
   'use strict';
   const root = document.documentElement, $ = (id) => document.getElementById(id);
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   // ── Theme ──
   function currentTheme() { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
@@ -12,6 +12,15 @@
   function setTheme(t) { root.setAttribute('data-theme', t); try { sessionStorage.setItem('theme', t); } catch (e) {} window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t } })); }
   $('theme-toggle').addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
+
+  // ── Experiments run themselves once, when they arrive; after that they are the visitor's. A row that closes resets its experiment ──
+  window.AUTO = {};
+  function runExp(d, delay) { if (!d || d.dataset.played) return; d.dataset.played = '1'; d.classList.add('played'); const badge = d.querySelector('[data-auto-badge]'); const fn = window.AUTO[d.dataset.auto];
+    const done = () => { if (badge) { badge.textContent = 'Your turn'; badge.classList.add('done'); } };
+    if (!fn || reduced) { done(); return; }
+    clearTimeout(d._t); d._t = setTimeout(() => { if (d.dataset.played) d._cancel = fn(done); }, delay == null ? 350 : delay); }
+  function resetExp(scope) { scope.querySelectorAll('.try[data-played]').forEach(d => { clearTimeout(d._t); if (d._cancel) { d._cancel(); d._cancel = null; } delete d.dataset.played; d.classList.remove('played'); const bd = d.querySelector('[data-auto-badge]'); if (bd) { bd.textContent = 'Runs on its own'; bd.classList.remove('done'); } }); }
+  window.runExp = runExp; window.resetExp = resetExp;
 
   // ── Layers, rows, cards. Every section is one layer of the network and one panel in fun mode; every entry is one neuron, one row
   //    of that panel, and in the document one row of the section (a stage row, or a card). Each entry is split in two: the top (meta,
@@ -21,7 +30,6 @@
     const panel = document.createElement('div'); panel.className = 'jpanel frost'; panel.setAttribute('aria-label', sec.dataset.layer); cardsHost.appendChild(panel);
     const L = { id: sec.id, name: sec.dataset.layer, sub: sec.dataset.sub || '', sec, panel, cards: [], stage: sec.classList.contains('stage'), body: sec.querySelector('.sec-body'), cardsEl: sec.querySelector('.stage-cards'), active: -1 };
     L.cards = Array.from(sec.querySelectorAll('.entry')).map((entry, i) => {
-      // split the entry
       const top = document.createElement('div'); top.className = 'e-top'; const rest = document.createElement('div'); rest.className = 'e-rest';
       const bodyEl = entry.querySelector(':scope > .body'); const meta = entry.querySelector(':scope > .meta'); if (meta) top.appendChild(meta);
       if (bodyEl) { Array.from(bodyEl.children).forEach(ch => { if (ch.tagName === 'H3' || ch.classList.contains('org')) top.appendChild(ch); else rest.appendChild(ch); }); bodyEl.remove(); }
@@ -33,7 +41,7 @@
       const body = document.createElement('div'); body.className = 'jrow-body'; body.appendChild(entry);
       el.appendChild(head); el.appendChild(body);
       let scard = null; if (L.cardsEl) { scard = document.createElement('div'); scard.className = 'scard frost'; L.cardsEl.appendChild(scard); }
-      return { el, head, body, entry, top, rest, scard, short: entry.dataset.short || '', k: 0, i };
+      return { el, head, body, entry, top, rest, scard, short: entry.dataset.short || '', k: 0, i, ran: false };
     });
     L.sec.style.setProperty('--n', L.cards.length);
     const head = sec.querySelector('.sec-head'); head.classList.add('rv'); if (L.sub) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = L.sub; head.appendChild(p); }
@@ -42,19 +50,19 @@
   window.LAYERS = LAYERS;
   function currentMode() { return root.getAttribute('data-mode') === 'fun' ? 'journey' : 'normal'; }
   window.currentMode = currentMode;
-  const resetExp = (entry) => { entry.querySelectorAll('details.try[open]').forEach(d => { d.open = false; }); entry.querySelectorAll('details.try[data-played]').forEach(d => { delete d.dataset.played; const bd = d.querySelector('[data-auto-badge]'); if (bd) { bd.textContent = 'auto-running'; bd.classList.remove('done'); } }); };
   function setRow(c, open) { c.el.classList.toggle('open', open); c.el.style.setProperty('--open', open ? '1' : '0'); c.head.setAttribute('aria-expanded', open ? 'true' : 'false'); if (c.scard) c.scard.classList.toggle('on', open); if (!open) { resetExp(c.rest); c.ran = false; } }
-  // the experiment of the row in focus starts on its own, a beat after it arrives
-  function autoRun(c) { if (reduced || c.ran) return; c.ran = true; const d = c.rest.querySelector('details.try'); if (!d || d.open || d.dataset.played) return; setTimeout(() => { if (c.el.classList.contains('open') && currentMode() === 'normal' && !d.open) d.open = true; }, 450); }
+  // the experiment of the row in focus starts on its own, a beat after its card has arrived
+  function autoRun(c) { if (c.ran) return; c.ran = true; const d = c.rest.querySelector('.try'); if (!d) return; setTimeout(() => { if (c.el.classList.contains('open') && currentMode() === 'normal' && desk()) runExp(d, 0); }, 500); }
   function activate(L, i, run) { if (L.active !== i) { L.active = i; L.cards.forEach((c, j) => setRow(c, j === i)); } if (run && i >= 0) autoRun(L.cards[i]); }
-  // where the pieces live: fun mode, the panel rows hold everything; the document on desktop, a stage row holds the top and its card the rest;
-  // elsewhere the row holds everything
+  // where the pieces live. Fun mode: the panel rows hold everything and the heads go to the neuron. The document on a desktop: a stage
+  // row holds the top, its card the rest, and the heads scroll to the row's beat. Everywhere else (the card chapters, and every section
+  // on a phone) the rows are plain cards, all open, with static heads
   let placed = '';
   function placeRows(m) { const key = m + (desk() ? ':d' : ':m'); if (key === placed) return; placed = key;
-    LAYERS.forEach(L => { const host = m === 'journey' ? L.panel : L.body; L.active = -1;
+    LAYERS.forEach(L => { const host = m === 'journey' ? L.panel : L.body; L.active = -1; const live = m === 'journey' || (L.stage && desk());
       L.cards.forEach(c => { if (c.el.parentElement !== host) host.appendChild(c.el); const restHost = (m === 'normal' && L.stage && desk() && c.scard) ? c.scard : c.entry; if (c.rest.parentElement !== restHost) restHost.appendChild(c.rest);
-        c.body.style.height = ''; c.b = 0; c.auto = false; resetExp(c.rest); setRow(c, false); });
-      if (m === 'normal') { if (L.stage) activate(L, 0, false); else L.cards.forEach(c => setRow(c, true)); } }); }
+        c.body.style.height = ''; c.b = 0; c.auto = false; setRow(c, false); c.el.classList.toggle('static', !live); c.head.tabIndex = live ? 0 : -1; });
+      if (m === 'normal') { if (live) activate(L, 0, false); else L.cards.forEach(c => setRow(c, true)); } }); }
   const modeSw = $('mode-toggle');
   function setMode(m, remember) { root.setAttribute('data-mode', m); if (remember) { try { localStorage.setItem('mode', m); } catch (e) { } }
     modeSw.setAttribute('aria-checked', m === 'fun' ? 'true' : 'false'); placeRows(m === 'fun' ? 'journey' : 'normal'); window.scrollTo(0, 0); root.classList.remove('scrolled');
@@ -64,28 +72,28 @@
   const hint = $('fun-hint'); if (hint) hint.addEventListener('click', () => setMode(currentMode() === 'journey' ? 'normal' : 'fun', true));
   window.setMode = setMode;
   window.addEventListener('resize', () => placeRows(currentMode()));
-  // the row heads: in fun mode they go to the neuron; on a desktop stage they scroll to the row's beat; elsewhere they toggle the row
   const stageTop = (L) => L.sec.getBoundingClientRect().top + window.scrollY;
   const beatOf = (L, i) => stageTop(L) + (i + 0.5) / L.cards.length * (L.sec.offsetHeight - window.innerHeight);
   LAYERS.forEach((L, j) => L.cards.forEach((c, i) => { c.k = j + 1;
-    c.head.addEventListener('click', () => { if (currentMode() === 'journey') { if (window.goToNeuron) window.goToNeuron(c.k, c.i); return; } if (L.stage && desk()) { window.scrollTo({ top: Math.round(beatOf(L, i)), behavior: reduced ? 'auto' : 'smooth' }); return; } const open = !c.el.classList.contains('open'); if (open) activate(L, i, true); else { setRow(c, false); L.active = -1; } }); }));
-  // ── Scroll: on desktop the stages pick their open row from how far they are scrolled; the statement lights up word by word ──
+    c.head.addEventListener('click', () => { if (currentMode() === 'journey') { if (window.goToNeuron) window.goToNeuron(c.k, c.i); return; } if (L.stage && desk()) window.scrollTo({ top: Math.round(beatOf(L, i)), behavior: reduced ? 'auto' : 'smooth' }); }); }));
+  // ── Scroll: on a desktop the stages pick their open row from how far they are scrolled; the statement lights up word by word ──
   const stmt = $('stmt'); const words = stmt ? stmt.textContent.trim().split(/\s+/) : []; if (stmt) stmt.innerHTML = words.map(w => `<span class="w">${w}</span>`).join(' ');
   const wEls = stmt ? Array.from(stmt.children) : []; const stmtSec = stmt ? stmt.closest('.stmt') : null; let stmtQ = -1;
   let ticking = false;
   function scrollFrame() { ticking = false; if (currentMode() !== 'normal') return; const vh = window.innerHeight;
-    if (stmtSec) { const r = stmtSec.getBoundingClientRect(); const total = stmtSec.offsetHeight - vh; const p = Math.max(0, Math.min(1, -r.top / Math.max(1, total))); const q = Math.round(p * 120); if (q !== stmtQ) { stmtQ = q; const n = words.length; const prog = Math.max(0, Math.min(1, (p - 0.12) / 0.7)); wEls.forEach((w, k) => w.style.setProperty('--lit', reduced ? 1 : Math.max(0, Math.min(1, prog * (n + 1.5) - k)).toFixed(2))); } }
+    if (stmtSec) { const r = stmtSec.getBoundingClientRect(); if (r.bottom >= 0 && r.top <= vh) { const total = stmtSec.offsetHeight - vh; const p = Math.max(0, Math.min(1, -r.top / Math.max(1, total))); const q = Math.round(p * 160); if (q !== stmtQ) { stmtQ = q; const n = words.length; const prog = Math.max(0, Math.min(1, (p - 0.1) / 0.72)); wEls.forEach((w, k) => w.style.setProperty('--lit', reduced ? 1 : Math.max(0, Math.min(1, prog * (n + 1.5) - k)).toFixed(2))); } } }
     if (desk()) LAYERS.forEach(L => { if (!L.stage) return; const r = L.sec.getBoundingClientRect(); const total = L.sec.offsetHeight - vh; if (r.top > vh || r.bottom < 0) return; const p = Math.max(0, Math.min(0.999, -r.top / Math.max(1, total))); const i = Math.floor(p * L.cards.length); activate(L, i, r.top < vh * 0.4); }); }
+  let scrolledOn = false;
   const onScroll = () => { const on = window.scrollY > 40; if (on !== scrolledOn) { scrolledOn = on; root.classList.toggle('scrolled', on); } if (!ticking) { ticking = true; requestAnimationFrame(scrollFrame); } };
-  let scrolledOn = false; window.addEventListener('scroll', onScroll, { passive: true }); window.addEventListener('resize', onScroll); requestAnimationFrame(scrollFrame);
-  // on phones a stage row opens as it reaches the middle of the screen
-  const rowIO = new IntersectionObserver((es) => { if (currentMode() !== 'normal' || desk()) return; es.forEach(e => { if (!e.isIntersecting) return; const L = LAYERS.find(l => l.stage && l.cards.some(c => c.el === e.target)); if (!L) return; const i = L.cards.findIndex(c => c.el === e.target); activate(L, i, true); }); }, { rootMargin: '-42% 0px -42% 0px', threshold: 0 });
-  LAYERS.forEach(L => { if (L.stage) L.cards.forEach(c => rowIO.observe(c.el)); });
+  window.addEventListener('scroll', onScroll, { passive: true }); window.addEventListener('resize', onScroll); requestAnimationFrame(scrollFrame);
+  // an experiment in the flow (a phone, or a card chapter) runs when half of it is on screen
+  const tryIO = new IntersectionObserver((es) => es.forEach(e => { if (!e.isIntersecting || currentMode() !== 'normal' || e.target.closest('.scard')) return; runExp(e.target, 250); }), { threshold: 0.5 });
+  document.querySelectorAll('.try[data-auto]').forEach(d => tryIO.observe(d));
   // the nav follows the section on screen; chapter heads and cards rise in as they arrive; a fragment of the field lights up as each chapter arrives
   const navA = Array.from(document.querySelectorAll('.nav a'));
   const secIO = new IntersectionObserver((es) => { if (currentMode() !== 'normal') return; es.forEach(e => { if (!e.isIntersecting) return; navA.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); }); }, { rootMargin: '-30% 0px -60% 0px' });
   LAYERS.forEach(L => secIO.observe(L.sec));
-  LAYERS.forEach(L => { if (!L.stage) L.cards.forEach((c, i) => { c.el.classList.add('rv'); c.el.style.setProperty('--i', i); }); });
+  LAYERS.forEach(L => L.cards.forEach((c, i) => { c.el.classList.add('rv'); c.el.style.setProperty('--i', L.stage ? 0 : i); }));
   const rvIO = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); rvIO.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.02 });
   document.querySelectorAll('.rv').forEach(el => rvIO.observe(el));
   const headIO = new IntersectionObserver((es) => es.forEach(e => { if (!e.isIntersecting || currentMode() !== 'normal') return; const r = e.target.getBoundingClientRect(); if (window.__pulseAt) window.__pulseAt(r.left + r.width / 2, r.top + r.height / 2); }), { threshold: 0.5 });
@@ -135,9 +143,6 @@
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tldr.classList.contains('open')) closeTldr(); });
   window.openTldr = openTldr; window.closeTldr = closeTldr;
 
-  // ── Experiments run once when their panel is opened ──
-  document.querySelectorAll('details.try[data-auto]').forEach(d => { d.addEventListener('toggle', () => { if (!d.open || d.dataset.played) return; d.dataset.played = '1'; const fn = window.AUTO && window.AUTO[d.dataset.auto]; const badge = d.querySelector('[data-auto-badge]'); if (fn) setTimeout(() => fn(() => { if (badge) { badge.textContent = 'try it yourself'; badge.classList.add('done'); } }), 200); }); });
-
   // ── The greeting keeps changing ──
   const hi = $('hello'); if (hi && !reduced) { const HI = ['Hello', 'नमस्ते', 'ನಮಸ್ಕಾರ', 'Hola', 'Bonjour', 'こんにちは', 'Ciao', '안녕하세요', 'Hallo', '你好', 'Olá', 'Привет', 'مرحبا', 'வணக்கம்', 'Γεια σου', 'สวัสดี', 'Hej', 'Salut']; let i = 0; setTimeout(() => setInterval(() => { if (document.visibilityState !== 'visible') return; hi.classList.add('swap'); setTimeout(() => { i = (i + 1) % HI.length; hi.textContent = HI[i]; hi.classList.remove('swap'); }, 330); }, 2600), 2200); }
 
@@ -145,7 +150,7 @@
   const goHome = (e) => { e.preventDefault(); if (currentMode() === 'journey' && window.warpHome) window.warpHome(); else window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); };
   $('brand').addEventListener('click', goHome); $('to-top').addEventListener('click', goHome);
   // the beacon: straight to what's latest (the PACD neuron, or its row in the document)
-  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (currentMode() === 'journey') { if (window.jumpToNeuron) window.jumpToNeuron(1, 2); return; } const L = LAYERS[0], c = L && L.cards[2]; if (!c) return; if (desk()) window.scrollTo({ top: Math.round(beatOf(L, 2)), behavior: reduced ? 'auto' : 'smooth' }); else { activate(L, 2, true); c.el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); } });
+  const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (currentMode() === 'journey') { if (window.jumpToNeuron) window.jumpToNeuron(1, 2); return; } const L = LAYERS[0], c = L && L.cards[2]; if (!c) return; if (desk()) window.scrollTo({ top: Math.round(beatOf(L, 2)), behavior: reduced ? 'auto' : 'smooth' }); else c.el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); });
 
   // ── "What are you looking for?" ── every line carries data-w="ml,health,data,swe,lead" in [0,1]
   const TOPICS = ['ml', 'health', 'data', 'swe'];
@@ -164,10 +169,8 @@
   }
   document.querySelectorAll('#focus-chips .chip').forEach(c => c.addEventListener('click', () => { document.querySelectorAll('#focus-chips .chip').forEach(x => x.setAttribute('aria-pressed', 'false')); c.setAttribute('aria-pressed', 'true'); applyFocus(c.dataset.f); }));
 
-  window.AUTO = {};
-  const tween = (from, to, ms, step, done) => { const t0 = performance.now(); (function f(now) { const k = Math.max(0, Math.min(1, (now - t0) / ms)); step(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); else if (done) done(); })(t0); };
-
-  // ── helpers ──
+  // ── The experiments. Each one builds its picture once and then only moves what changes, so a slider or a self-run is one smooth
+  //    motion; the discrete ones (the bandit's rounds, the corruption modes) glide through CSS transitions on their bars ──
   const css = (n) => getComputedStyle(root).getPropertyValue(n).trim();
   const redraw = []; window.addEventListener('themechange', () => redraw.forEach(fn => fn()));
   function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -176,7 +179,12 @@
   const Phi = (z) => 0.5 * (1 + erf(z / Math.SQRT2));
   const SVGNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const setA = (e, attrs) => { for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]); };
   const fmtN = (n) => n >= 1e9 ? (n / 1e9).toFixed(1) + ' billion' : n >= 1e6 ? (n / 1e6).toFixed(0) + ' million' : n >= 1e3 ? Math.round(n / 1e3).toLocaleString() + ' thousand' : String(Math.round(n));
+  // a cancellable ease-out tween; returns the cancel
+  const tween = (from, to, ms, step, done) => { let raf = 0; const t0 = performance.now(); const f = (now) => { const k = Math.max(0, Math.min(1, (now - t0) / ms)); step(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) raf = requestAnimationFrame(f); else if (done) done(); }; raf = requestAnimationFrame(f); return () => cancelAnimationFrame(raf); };
+  // a cancellable sequence of timed steps
+  const seq = (steps) => { const ts = steps.map(([ms, fn]) => setTimeout(fn, ms)); return () => ts.forEach(clearTimeout); };
 
   // ── JEPA: hide part of a scan, predict it from the rest ──
   (function () {
@@ -184,105 +192,87 @@
     const G = 8, C = 22, r0 = rng(7);
     const img = []; for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const x = i / (G - 1), y = j / (G - 1); const v = 0.42 + 0.22 * Math.sin(3 * x + 1) * Math.cos(2.3 * y) + 0.55 * Math.exp(-((x - 0.6) ** 2 + (y - 0.4) ** 2) / 0.03) - 0.2 * Math.exp(-((x - 0.2) ** 2 + (y - 0.75) ** 2) / 0.06); img.push(Math.max(0, Math.min(1, v + 0.03 * gauss(r0)))); }
     const targets = new Set(); { const r = rng(101); let g = 0; while (targets.size < 18 && g++ < 100) { const w = 2 + Math.floor(r() * 2), h = 2 + Math.floor(r() * 2), x0 = Math.floor(r() * (G - w + 1)), y0 = Math.floor(r() * (G - h + 1)); for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (targets.size < 18) targets.add(y * G + x); } }
-    let prog = 0;
+    const guess = []; { const r = rng(900); for (let k = 0; k < G * G; k++) guess.push(0.5 + 0.35 * gauss(r)); }
+    let prog = 0; const shade = (v) => { const a = Math.round(30 + v * 200); return `rgb(${a},${a},${a})`; };
     svg.setAttribute('viewBox', `0 0 ${G * C * 2 + 44} ${G * C + 18}`);
-    function draw() {
-      svg.innerHTML = ''; const bg = css('--surface-2'), hl = css('--accent-2'), ar = css('--accent');
-      const shade = (v) => { const a = Math.round(30 + v * 200); return `rgb(${a},${a},${a})`; };
-      const r = rng(900);
-      el('text', { x: 0, y: 10 }, svg).textContent = 'Scan with hidden blocks';
-      el('text', { x: G * C + 44, y: 10 }, svg).textContent = `Prediction · ${Math.round(prog * 100)}% trained`;
-      for (let k = 0; k < G * G; k++) {
-        const x = (k % G) * C, y = Math.floor(k / G) * C + 16, hid = targets.has(k);
-        el('rect', { x, y, width: C - 2, height: C - 2, rx: 3, fill: hid ? bg : shade(img[k]), stroke: hid ? hl : null, 'stroke-width': 1.5, 'stroke-dasharray': hid ? '3 2' : null }, svg);
-        let v = img[k]; if (hid) { const guess = 0.5 + 0.35 * gauss(r); v = Math.max(0, Math.min(1, guess + (img[k] - guess) * Math.min(1, prog * 1.15))); }
-        el('rect', { x: x + G * C + 44, y, width: C - 2, height: C - 2, rx: 3, fill: shade(v), stroke: hid ? hl : null, 'stroke-width': 1.2, 'stroke-opacity': 0.8 }, svg);
-      }
-      el('path', { d: `M${G * C + 8},${G * C / 2 + 16} h26 m-6,-6 l6,6 l-6,6`, stroke: ar, 'stroke-width': 2, fill: 'none' }, svg);
+    el('text', { x: 0, y: 10 }, svg).textContent = 'Scan with hidden blocks'; const tR = el('text', { x: G * C + 44, y: 10 }, svg);
+    const left = [], right = [];
+    for (let k = 0; k < G * G; k++) { const x = (k % G) * C, y = Math.floor(k / G) * C + 16, hid = targets.has(k);
+      left.push(el('rect', { x, y, width: C - 2, height: C - 2, rx: 3, 'stroke-width': 1.5, 'stroke-dasharray': hid ? '3 2' : null, 'data-hid': hid ? 1 : null }, svg));
+      right.push(el('rect', { x: x + G * C + 44, y, width: C - 2, height: C - 2, rx: 3, 'stroke-width': 1.2, 'stroke-opacity': 0.8, 'data-hid': hid ? 1 : null, fill: shade(img[k]) }, svg)); }
+    const arrow = el('path', { d: `M${G * C + 8},${G * C / 2 + 16} h26 m-6,-6 l6,6 l-6,6`, 'stroke-width': 2, fill: 'none' }, svg);
+    function paint() { const bg = css('--surface-2'), hl = css('--accent-2'); arrow.setAttribute('stroke', css('--accent')); for (let k = 0; k < G * G; k++) { const hid = targets.has(k); setA(left[k], { fill: hid ? bg : shade(img[k]), stroke: hid ? hl : 'none' }); setA(right[k], { stroke: hid ? hl : 'none' }); } }
+    function draw() { tR.textContent = `Prediction · ${Math.round(prog * 100)}% trained`; const m = Math.min(1, prog * 1.15);
+      targets.forEach(k => right[k].setAttribute('fill', shade(Math.max(0, Math.min(1, guess[k] + (img[k] - guess[k]) * m)))));
       $('jepa-val').textContent = Math.round(prog * 100) + '%';
-      $('jepa-out').innerHTML = prog < 0.05 ? 'Untrained: the hidden blocks are guesses.' : prog < 0.85 ? 'Learning what the hidden anatomy <b>should</b> look like from its surroundings.' : 'Trained: hidden blocks are predicted from context. On real scans this is done in 3D and in a learned feature space, so the model captures anatomy rather than noise.';
-    }
+      $('jepa-out').innerHTML = prog < 0.05 ? 'Untrained: the hidden blocks are guesses.' : prog < 0.85 ? 'Learning what the hidden anatomy <b>should</b> look like from its surroundings.' : 'Trained: hidden blocks are predicted from context. On real scans this is done in 3D and in a learned feature space, so the model captures anatomy rather than noise.'; }
     $('jepa-prog').addEventListener('input', e => { prog = +e.target.value; draw(); });
-    window.AUTO.jepa = (done) => { prog = 0; draw(); tween(0, 0.92, 1800, v => { prog = v; $('jepa-prog').value = v.toFixed(2); draw(); }, done); };
-    draw(); redraw.push(draw);
+    window.AUTO.jepa = (done) => { prog = 0; draw(); return tween(0, 0.92, 2000, v => { prog = v; $('jepa-prog').value = v.toFixed(2); draw(); }, done); };
+    paint(); draw(); redraw.push(paint);
   })();
 
   // ── Wearables volume: raw minute-level readings vs daily derived values ──
   (function () {
     const svg = $('vol-svg'); if (!svg) return;
-    let n = 1000;
-    function draw() {
-      const raw = n * 525600, daily = n * 365; // one heart-rate reading per minute vs one value per day
-      svg.innerHTML = ''; const W = 440, H = 64; svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      const lmax = Math.log10(5.3e9), x = (v) => 150 + (Math.log10(Math.max(1, v)) / lmax) * (W - 160);
-      [['Raw archive', raw, css('--accent-2')], ['Daily derivation', daily, css('--accent')]].forEach(([lab, v, c], i) => {
-        const y = 8 + i * 28;
-        el('text', { x: 0, y: y + 12 }, svg).textContent = lab;
-        el('rect', { x: 150, y, width: W - 160, height: 16, rx: 8, fill: css('--surface-2') }, svg);
-        el('rect', { x: 150, y, width: Math.max(6, x(v) - 150), height: 16, rx: 8, fill: c }, svg);
-        const inside = x(v) > W - 120; const t = el('text', { x: inside ? x(v) - 8 : x(v) + 6, y: y + 12, 'text-anchor': inside ? 'end' : 'start', 'font-weight': 600 }, svg); t.textContent = fmtN(v) + ' rows / yr'; if (inside) t.style.fill = '#fff';
-      });
-      el('text', { x: 150, y: H - 2, 'font-size': 9 }, svg).textContent = 'log scale';
+    let n = 1000; const W = 440, H = 64, X0 = 150; svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const lmax = Math.log10(5.3e9), x = (v) => X0 + (Math.log10(Math.max(1, v)) / lmax) * (W - X0 - 10);
+    const rows = [['Raw archive', '--accent-2'], ['Daily derivation', '--accent']].map(([lab, c], i) => { const y = 8 + i * 28; el('text', { x: 0, y: y + 12 }, svg).textContent = lab; const bg = el('rect', { x: X0, y, width: W - X0 - 10, height: 16, rx: 8 }, svg); const bar = el('rect', { x: X0, y, width: 6, height: 16, rx: 8 }, svg); const t = el('text', { x: X0 + 6, y: y + 12, 'font-weight': 600 }, svg); return { c, bg, bar, t }; });
+    el('text', { x: X0, y: H - 2, 'font-size': 9 }, svg).textContent = 'log scale';
+    function paint() { rows.forEach(r => { r.bg.setAttribute('fill', css('--surface-2')); r.bar.setAttribute('fill', css(r.c)); }); }
+    function draw() { const raw = n * 525600, daily = n * 365; // one heart-rate reading per minute vs one value per day
+      [raw, daily].forEach((v, i) => { const r = rows[i], xe = x(v), inside = xe > W - 120; r.bar.setAttribute('width', Math.max(6, xe - X0)); setA(r.t, { x: inside ? xe - 8 : xe + 6, 'text-anchor': inside ? 'end' : 'start' }); r.t.textContent = fmtN(v) + ' rows / yr'; r.t.style.fill = inside ? '#fff' : ''; });
       $('vol-val').textContent = n.toLocaleString();
-      $('vol-out').innerHTML = `Minute-level heart rate alone is <b>${fmtN(raw)}</b> rows a year for ${n.toLocaleString()} patients. The archive keeps every reading as delivered; the derivation step turns them into one value per patient, metric and day for approved types only, which is the only route into the OMOP record.`;
-    }
+      $('vol-out').innerHTML = `Minute-level heart rate alone is <b>${fmtN(raw)}</b> rows a year for ${n.toLocaleString()} patients. The archive keeps every reading as delivered; the derivation step turns them into one value per patient, metric and day for approved types only, which is the only route into the OMOP record.`; }
     $('vol-n').addEventListener('input', e => { n = Math.round(Math.pow(10, +e.target.value) / 10) * 10; draw(); });
-    window.AUTO.vol = (done) => tween(2, 4.3, 1800, v => { n = Math.round(Math.pow(10, v) / 10) * 10; $('vol-n').value = v.toFixed(2); draw(); }, done);
-    draw(); redraw.push(draw);
+    window.AUTO.vol = (done) => tween(2, 4.3, 2000, v => { n = Math.round(Math.pow(10, v) / 10) * 10; $('vol-n').value = v.toFixed(2); draw(); }, done);
+    paint(); draw(); redraw.push(paint);
   })();
 
   // ── Bandit: learn which approved option keeps patients on their medication ──
   (function () {
     const host = $('bandit-svg'); if (!host) return;
     const ARMS = ['SMS reminder', 'Pharmacist call', 'App nudge', 'Caregiver alert'], TRUE = [0.52, 0.47, 0.71, 0.38];
-    let ab, rounds, approved = [true, true, true, true], rnd;
+    let ab, rounds, approved = [true, true, true, true], rnd; const W = 440, H = 104, X0 = 118, BW = 250; host.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const rows = ARMS.map((a, i) => { const y = 4 + i * 25; const name = el('text', { x: 0, y: y + 12 }, host); name.textContent = a; const bg = el('rect', { x: X0, y: y + 3, width: BW, height: 12, rx: 6 }, host); const bar = el('rect', { class: 'tr', x: X0, y: y + 3, width: BW * 0.5, height: 12, rx: 6 }, host); const sd = el('rect', { class: 'tr', x: X0, y: y + 8, width: 0, height: 2, rx: 1 }, host); const val = el('text', { x: 376, y: y + 12 }, host); return { name, bg, bar, sd, val }; });
+    function paint() { rows.forEach(r => { r.bg.setAttribute('fill', css('--surface-2')); r.bar.setAttribute('fill', css('--accent')); r.sd.setAttribute('fill', css('--ink')); }); }
     function reset() { ab = ARMS.map(() => [1, 1]); rounds = 0; rnd = rng((Date.now() & 0xffff) + 1); draw(); }
     function beta(a, b) { const g = (k) => { if (k < 1) return g(k + 1) * Math.pow(rnd(), 1 / k); const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d); for (;;) { let x, v; do { x = gauss(rnd); v = 1 + c * x; } while (v <= 0); v = v * v * v; const u = rnd(); if (u < 1 - 0.0331 * x ** 4) return d * v; if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v; } }; const x = g(a), y = g(b); return x / (x + y); }
     function play(n) { for (let t = 0; t < n; t++) { const allowed = ARMS.map((_, i) => i).filter(i => approved[i]); if (!allowed.length) break; let best = -1, bv = -1; allowed.forEach(i => { const v = beta(ab[i][0], ab[i][1]); if (v > bv) { bv = v; best = i; } }); ab[best][rnd() < TRUE[best] ? 0 : 1]++; rounds++; } draw(); }
-    function draw() {
-      host.innerHTML = ''; const W = 440, H = 104; host.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      let bestI = -1, bestM = -1;
-      ARMS.forEach((a, i) => { const [al, be] = ab[i]; const m = al / (al + be), k = al + be - 2, ok = approved[i], y = 4 + i * 25; if (ok && k > 0 && m > bestM) { bestM = m; bestI = i; }
-        el('text', { x: 0, y: y + 12, opacity: ok ? 1 : 0.4 }, host).textContent = a;
-        el('rect', { x: 118, y: y + 3, width: 250, height: 12, rx: 6, fill: css('--surface-2') }, host);
-        el('rect', { x: 118, y: y + 3, width: 250 * m, height: 12, rx: 6, fill: css('--accent'), opacity: ok ? 0.95 : 0.2 }, host);
-        const sd = Math.sqrt(al * be / ((al + be) ** 2 * (al + be + 1)));
-        el('line', { x1: 118 + 250 * Math.max(0, m - sd), x2: 118 + 250 * Math.min(1, m + sd), y1: y + 9, y2: y + 9, stroke: css('--ink'), 'stroke-width': 1.5, opacity: ok ? 0.55 : 0.1 }, host);
-        el('text', { x: 376, y: y + 12, opacity: ok ? 1 : 0.4 }, host).textContent = `${Math.round(m * 100)}% · ${k} tried`;
-      });
-      $('bandit-out').innerHTML = rounds === 0 ? 'Every option starts equally uncertain. Bars are the estimated chance a patient stays on their medication; the dark line is how unsure the system still is.' : `After <b>${rounds}</b> patients the system favours <b>${bestI >= 0 ? ARMS[bestI] : 'nothing (no approved options)'}</b>. Unticked options are never chosen, however good they might be: the clinician's approved set is a hard limit. Simulated patients, not clinical data.`;
-    }
+    function draw() { let bestI = -1, bestM = -1;
+      ARMS.forEach((a, i) => { const [al, be] = ab[i]; const m = al / (al + be), k = al + be - 2, ok = approved[i]; if (ok && k > 0 && m > bestM) { bestM = m; bestI = i; } const r = rows[i];
+        r.name.setAttribute('opacity', ok ? 1 : 0.4); r.val.setAttribute('opacity', ok ? 1 : 0.4); setA(r.bar, { width: BW * m, opacity: ok ? 0.95 : 0.2 });
+        const sd = Math.sqrt(al * be / ((al + be) ** 2 * (al + be + 1))); const lo = Math.max(0, m - sd), hi = Math.min(1, m + sd); setA(r.sd, { x: X0 + BW * lo, width: BW * (hi - lo), opacity: ok ? 0.55 : 0.1 });
+        r.val.textContent = `${Math.round(m * 100)}% · ${k} tried`; });
+      $('bandit-out').innerHTML = rounds === 0 ? 'Every option starts equally uncertain. Bars are the estimated chance a patient stays on their medication; the dark line is how unsure the system still is.' : `After <b>${rounds}</b> patients the system favours <b>${bestI >= 0 ? ARMS[bestI] : 'nothing (no approved options)'}</b>. Unticked options are never chosen, however good they might be: the clinician's approved set is a hard limit. Simulated patients, not clinical data.`; }
     document.querySelectorAll('#bandit-ok input').forEach(c => c.addEventListener('change', e => { approved[+e.target.dataset.i] = e.target.checked; draw(); }));
     $('bandit-play').addEventListener('click', () => play(40)); $('bandit-reset').addEventListener('click', reset);
-    window.AUTO.bandit = (done) => { reset(); let i = 0; const go = () => { play(5); if (++i < 8) setTimeout(go, 160); else if (done) done(); }; setTimeout(go, 200); };
-    reset(); redraw.push(draw);
+    window.AUTO.bandit = (done) => { reset(); const steps = []; for (let i = 0; i < 10; i++) steps.push([250 + i * 150, () => play(4)]); steps.push([250 + 10 * 150, () => { if (done) done(); }]); return seq(steps); };
+    paint(); reset(); redraw.push(paint);
   })();
 
   // ── Threshold: accuracy vs patients actually found ──
   (function () {
     const host = $('metrics-svg'); if (!host) return;
     let thr = 0.78; const prev = 0.28, mn = 0.42, mp = 0.58, sd = 0.14;
-    function draw() {
-      host.innerHTML = ''; const W = 440, H = 110, M = { l: 6, r: 6, t: 14, b: 16 }; host.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      const x = (t) => M.l + t * (W - M.l - M.r), pdf = (mu) => (t) => Math.exp(-0.5 * ((t - mu) / sd) ** 2), ymax = (1 - prev) * 1.05, y = (v) => H - M.b - (v / ymax) * (H - M.t - M.b);
-      [[mn, 1 - prev, css('--accent'), 'not depressed'], [mp, prev, css('--accent-2'), 'depressed']].forEach(([mu, w, c, lab]) => {
-        let d = ''; for (let t = 0; t <= 1.0001; t += 0.01) d += (t === 0 ? 'M' : 'L') + x(t).toFixed(1) + ',' + y(w * pdf(mu)(t)).toFixed(1) + ' ';
-        el('path', { d: d + `L${x(1)},${y(0)} L${x(0)},${y(0)} Z`, fill: c, opacity: 0.15 }, host); el('path', { d, fill: 'none', stroke: c, 'stroke-width': 2 }, host);
-        el('text', { x: x(mu), y: y(w) - 3, 'text-anchor': 'middle' }, host).textContent = lab;
-      });
-      el('line', { x1: x(thr), x2: x(thr), y1: M.t - 6, y2: H - M.b, stroke: css('--ink'), 'stroke-width': 2 }, host);
-      el('text', { x: x(thr) + 4, y: H - 4 }, host).textContent = `threshold ${thr.toFixed(2)} → "depressed"`;
+    const W = 440, H = 110, M = { l: 6, r: 6, t: 14, b: 16 }; host.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const x = (t) => M.l + t * (W - M.l - M.r), pdf = (mu) => (t) => Math.exp(-0.5 * ((t - mu) / sd) ** 2), ymax = (1 - prev) * 1.05, y = (v) => H - M.b - (v / ymax) * (H - M.t - M.b);
+    const curves = [[mn, 1 - prev, '--accent', 'not depressed'], [mp, prev, '--accent-2', 'depressed']].map(([mu, w, c, lab]) => {
+      let d = ''; for (let t = 0; t <= 1.0001; t += 0.01) d += (t === 0 ? 'M' : 'L') + x(t).toFixed(1) + ',' + y(w * pdf(mu)(t)).toFixed(1) + ' ';
+      const fill = el('path', { d: d + `L${x(1)},${y(0)} L${x(0)},${y(0)} Z`, opacity: 0.15 }, host); const line = el('path', { d, fill: 'none', 'stroke-width': 2 }, host);
+      el('text', { x: x(mu), y: y(w) - 3, 'text-anchor': 'middle' }, host).textContent = lab; return { c, fill, line }; });
+    const cut = el('line', { y1: M.t - 6, y2: H - M.b, 'stroke-width': 2 }, host); const cutT = el('text', { y: H - 4 }, host);
+    function paint() { curves.forEach(c => { c.fill.setAttribute('fill', css(c.c)); c.line.setAttribute('stroke', css(c.c)); }); cut.setAttribute('stroke', css('--ink')); }
+    function draw() { setA(cut, { x1: x(thr), x2: x(thr) }); const flip = thr > 0.6; setA(cutT, { x: x(thr) + (flip ? -4 : 4), 'text-anchor': flip ? 'end' : 'start' }); cutT.textContent = flip ? `"depressed" ← threshold ${thr.toFixed(2)}` : `threshold ${thr.toFixed(2)} → "depressed"`;
       const tpr = 1 - Phi((thr - mp) / sd), fpr = 1 - Phi((thr - mn) / sd), acc = prev * tpr + (1 - prev) * (1 - fpr);
       $('m-acc').textContent = (acc * 100).toFixed(0) + '%'; $('m-rec').textContent = (tpr * 100).toFixed(0) + '%';
       $('m-rec-ro').className = 'ro ' + (tpr < 0.3 ? 'bad' : tpr > 0.65 ? 'good' : '');
-      $('metrics-out').innerHTML = tpr < 0.2 ? `Accuracy looks fine at <b>${(acc * 100).toFixed(0)}%</b>, yet only <span class="bad">${(tpr * 100).toFixed(0)}%</span> of depressed patients are found. The model is mostly saying "not depressed" to everyone.` : `Now <span class="good">${(tpr * 100).toFixed(0)}%</span> of depressed patients are found and accuracy barely moved. That is why we report per-class recall, not accuracy alone.`;
-    }
+      $('metrics-out').innerHTML = tpr < 0.2 ? `Accuracy looks fine at <b>${(acc * 100).toFixed(0)}%</b>, yet only <span class="bad">${(tpr * 100).toFixed(0)}%</span> of depressed patients are found. The model is mostly saying "not depressed" to everyone.` : `Now <span class="good">${(tpr * 100).toFixed(0)}%</span> of depressed patients are found and accuracy barely moved. That is why we report per-class recall, not accuracy alone.`; }
     $('m-thr').addEventListener('input', e => { thr = +e.target.value; draw(); });
-    window.AUTO.metrics = (done) => { thr = 0.5; draw(); tween(0.5, 0.8, 1700, v => { thr = v; $('m-thr').value = v.toFixed(2); draw(); }, done); };
-    draw(); redraw.push(draw);
+    window.AUTO.metrics = (done) => { thr = 0.5; draw(); return tween(0.5, 0.8, 1800, v => { thr = v; $('m-thr').value = v.toFixed(2); draw(); }, done); };
+    paint(); draw(); redraw.push(paint);
   })();
 
-  // ── Silent data corruption ──
+  // ── Silent data corruption: last month's values against today's, on last month's scale; anything off the scale piles up at the edge ──
   (function () {
     const host = $('drift-svg'); if (!host) return;
     let mode = 'none'; const r = rng(3), ref = Array.from({ length: 1500 }, () => 50 + 10 * gauss(r));
@@ -290,22 +280,22 @@
     const sorted = ref.slice().sort((a, b) => a - b), edges = Array.from({ length: 11 }, (_, i) => sorted[Math.min(sorted.length - 1, Math.floor(i / 10 * sorted.length))]);
     function shares(vals) { const c = new Array(10).fill(0); vals.forEach(v => { let b = 0; while (b < 9 && v >= edges[b + 1]) b++; c[b]++; }); const n = vals.length || 1; return c.map(x => Math.max(x / n, 1e-4)); }
     const pr = shares(ref);
-    function draw() {
-      const b = batch(), q = shares(b.vals), psi = pr.reduce((a, p, i) => a + (p - q[i]) * Math.log(p / q[i]), 0);
-      host.innerHTML = ''; const W = 300, H = 70; host.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      const lo = Math.min(0, ...b.vals), hi = Math.max(100, ...b.vals), nb = 22, bw = (W - 6) / nb;
-      const hist = (vals) => { const c = new Array(nb).fill(0); vals.forEach(v => { c[Math.min(nb - 1, Math.max(0, Math.floor((v - lo) / (hi - lo) * nb)))]++; }); const n = vals.length || 1; return c.map(x => x / n); };
-      const hr = hist(ref), hb = hist(b.vals), ymax = Math.max(...hr, ...hb) || 1;
-      for (let k = 0; k < nb; k++) { el('rect', { x: 3 + k * bw + 1, y: H - 14 - hr[k] / ymax * (H - 22), width: bw / 2 - 1.5, height: hr[k] / ymax * (H - 22), rx: 2, fill: css('--accent'), opacity: 0.55 }, host); el('rect', { x: 3 + k * bw + bw / 2, y: H - 14 - hb[k] / ymax * (H - 22), width: bw / 2 - 1.5, height: hb[k] / ymax * (H - 22), rx: 2, fill: css('--accent-2') }, host); }
-      el('text', { x: 3, y: H - 2, 'font-size': 9 }, host).textContent = `■ last month   ■ today   (values ${lo.toFixed(0)} → ${hi >= 1000 ? (hi / 1000).toFixed(0) + 'k' : hi.toFixed(0)})`;
+    const W = 300, H = 70, NB = 20, X0 = 3, PW = W - 6 - 28, bw = PW / NB, OX = X0 + PW + 6; host.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const hist = (vals) => { const c = new Array(NB + 1).fill(0); vals.forEach(v => { c[v < 0 || v > 100 ? NB : Math.min(NB - 1, Math.floor(v / 100 * NB))]++; }); const n = vals.length || 1; return c.map(x => x / n); };
+    const hr = hist(ref), ymax = Math.max(...hr) || 1; const bh = (p) => Math.min(H - 22, p / ymax * (H - 22));
+    const bars = []; for (let k = 0; k <= NB; k++) { const x0 = k < NB ? X0 + k * bw : OX; const a = el('rect', { class: 'tr', x: x0 + 1, y: H - 14 - bh(hr[k]), width: bw / 2 - 1.5, height: bh(hr[k]), rx: 2, opacity: 0.55 }, host); const b = el('rect', { class: 'tr', x: x0 + bw / 2, y: H - 14, width: bw / 2 - 1.5, height: 0, rx: 2 }, host); bars.push([a, b]); }
+    const legend = el('text', { x: X0, y: H - 2, 'font-size': 9 }, host); const offT = el('text', { x: OX + bw / 2, y: H - 2, 'font-size': 9, 'text-anchor': 'middle' }, host); offT.textContent = 'off scale';
+    const checks = $('drift-checks'); const CHK = [['No missing values'], ['Values within 0–100'], ['Same distribution as last month']].map(([l]) => { const d = document.createElement('div'); d.innerHTML = `<span class="ic"></span><span class="l">${l}</span><span class="v"></span>`; checks.appendChild(d); return { d, ic: d.querySelector('.ic'), v: d.querySelector('.v') }; });
+    function paint() { bars.forEach(([a, b]) => { a.setAttribute('fill', css('--accent')); b.setAttribute('fill', css('--accent-2')); }); }
+    function draw() { const b = batch(), q = shares(b.vals), psi = pr.reduce((a, p, i) => a + (p - q[i]) * Math.log(p / q[i]), 0); const hb = hist(b.vals);
+      bars.forEach(([, bar], k) => setA(bar, { y: H - 14 - bh(hb[k]), height: bh(hb[k]) }));
+      legend.textContent = `■ last month   ■ today`;
       const inRange = b.vals.every(v => v >= 0 && v <= 100);
-      const checks = [['No missing values', b.nulls / 400 < 0.01, (b.nulls / 4).toFixed(1) + '% missing'], ['Values within 0–100', inRange, inRange ? 'ok' : 'out of range'], ['Same distribution as last month', psi < 0.2, 'drift ' + psi.toFixed(2)]];
-      $('drift-checks').innerHTML = checks.map(([l, ok, v]) => `<div class="${ok ? 'pass' : 'fail'}"><span class="ic">${ok ? '✓' : '✕'}</span>${l}<span class="v">${ok ? 'pass' : 'fail'}</span></div>`).join('');
-      $('drift-out').innerHTML = mode === 'none' ? 'A healthy day: every check passes.' : mode === 'unit' ? 'Someone upstream changed units. Nothing crashed and nothing is missing, so only the range and distribution checks notice. This is the kind of silent corruption my validation frameworks catch before release.' : mode === 'null' ? 'A spike of missing values: caught by the simplest check, before it reaches a report or a model.' : 'The values quietly drifted upward. Only the distribution check fires, and a model trained on last month would now be wrong without anyone noticing.';
-    }
+      [[b.nulls / 400 < 0.01, (b.nulls / 4).toFixed(1) + '% missing'], [inRange, inRange ? 'all in range' : 'out of range'], [psi < 0.2, 'drift ' + psi.toFixed(2)]].forEach(([ok, v], i) => { const c = CHK[i]; c.d.className = ok ? 'pass' : 'fail'; c.ic.textContent = ok ? '✓' : '✕'; c.v.textContent = v; });
+      $('drift-out').innerHTML = mode === 'none' ? 'A healthy day: every check passes.' : mode === 'unit' ? 'Someone upstream changed units. Nothing crashed and nothing is missing, so only the range and distribution checks notice. This is the kind of silent corruption my validation frameworks catch before release.' : mode === 'null' ? 'A spike of missing values: caught by the simplest check, before it reaches a report or a model.' : 'The values quietly drifted upward. Only the distribution check fires, and a model trained on last month would now be wrong without anyone noticing.'; }
     const setMode = (m) => { document.querySelectorAll('#drift-mode button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === m ? 'true' : 'false')); mode = m; draw(); };
     document.querySelectorAll('#drift-mode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.v)));
-    window.AUTO.drift = (done) => { setMode('none'); setTimeout(() => setMode('unit'), 900); setTimeout(() => { if (done) done(); }, 1500); };
-    draw(); redraw.push(draw);
+    window.AUTO.drift = (done) => { setMode('none'); return seq([[1100, () => setMode('unit')], [2600, () => setMode('shift')], [3400, () => { if (done) done(); }]]); };
+    paint(); draw(); redraw.push(paint);
   })();
 })();
