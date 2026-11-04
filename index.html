@@ -16,7 +16,7 @@
 <link rel="icon" type="image/png" sizes="64x64" href="assets/logos/mark-64.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/logos/mark-180.png">
 <link rel="stylesheet" href="assets/css/style.css">
-<script>var __t = 'light'; try { var s = sessionStorage.getItem('theme'); if (s === 'dark' || s === 'light') __t = s; } catch (e) {} document.documentElement.setAttribute('data-theme', __t); document.documentElement.setAttribute('data-mode', 'journey'); if (/(Chrome|Chromium)\/\d/.test(navigator.userAgent) && !/iPhone|iPad|iPod/.test(navigator.userAgent)) document.documentElement.classList.add('lg');</script>
+<script>var __t = 'light'; try { var s = sessionStorage.getItem('theme'); if (s === 'dark' || s === 'light') __t = s; } catch (e) {} document.documentElement.setAttribute('data-theme', __t); var __m = 'normal'; try { var m = localStorage.getItem('mode'); if (m === 'fun' || m === 'normal') __m = m; } catch (e) {} document.documentElement.setAttribute('data-mode', __m); if (/(Chrome|Chromium)\/\d/.test(navigator.userAgent) && !/iPhone|iPad|iPod/.test(navigator.userAgent)) document.documentElement.classList.add('lg');</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Person","name":"Abhinav Bhat","url":"https://abhinavbhat1.github.io/","email":"mailto:abhinavbhat@nyu.edu",
  "affiliation":[{"@type":"CollegeOrUniversity","name":"New York University, Courant Institute of Mathematical Sciences"}],
@@ -49,14 +49,20 @@
   </filter>
 </svg>
 
-<header class="top" id="top">
-  <a class="brand" id="brand" href="#top" aria-label="Home"><svg class="mark" viewBox="112 180 356 260" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M188.5 195.83C192.44 195.97 198.5 194.65 202.16 196.08C203.84 196.74 205.31 199.42 206.54 200.7C210.55 204.87 214.45 209.13 218.42 213.34C232.08 227.81 245.56 242.61 259.62 256.62C265.22 262.2 270.54 268.05 275.95 273.8C278.16 276.15 281.13 278.42 282.67 281.25C281.03 283.79 276.37 288.3 273.41 289.01C248.99 262.79 224.56 236.57 200.13 210.35C199.34 209.95 198.54 209.55 197.75 209.14C194.92 214.73 193.72 221.71 191.94 227.72C187.83 241.58 183.1 255.33 178.89 269.19C168.2 304.33 156.58 339.23 145.57 374.28C142.85 382.94 140.31 391.62 137.4 400.2C136.24 403.61 135.9 408.13 133.84 411.1C131.68 414.23 127.54 416.97 124.6 419.35C122.17 421.32 118.61 426.17 115.49 426.37C139.24 349.69 163 273 186.75 196.32C187.33 196.16 187.92 196 188.5 195.83ZM457.92 310.19C458.91 311.38 459.91 312.56 460.91 313.75C419.59 310.75 378.28 307.75 336.96 304.75C340.43 299.95 343.89 295.14 347.36 290.34C374.94 294.98 402.53 299.61 430.12 304.25C429.19 301.96 424.73 298.98 422.46 297.81C402.97 282.79 383.48 267.77 363.98 252.75C366.82 243.83 369.65 234.92 372.49 226C373.02 225.16 373.19 224.04 373.97 223.23C377.39 219.71 391.8 207.56 395.75 205.5C396.36 208.82 393.46 214.75 392.28 218.01C390.01 224.32 383.31 242.01 383.07 247.75C408.02 268.56 432.97 289.38 457.92 310.19ZM346.04 347.16C345.94 347.73 345.85 348.29 345.75 348.86C342.42 351.04 339.08 353.22 335.75 355.4C318.71 337.41 301.67 319.43 284.63 301.44C283.58 300.27 282.54 299.09 281.49 297.92C280.02 296.28 278.54 294.63 277.07 292.99C277.91 290.26 283.63 285.64 286.25 284.79C306.18 305.58 326.11 326.37 346.04 347.16Z"/><path fill="var(--accent)" fill-rule="evenodd" d="M457.92 310.19C432.97 289.38 408.02 268.56 383.07 247.75C383.31 242.01 390.01 224.32 392.28 218.01C393.46 214.75 396.36 208.82 395.75 205.5C391.8 207.56 377.39 219.71 373.97 223.23C373.19 224.04 373.02 225.16 372.49 226C369.17 226.5 358.81 237.05 355.53 239.77C341.8 251.16 328.56 263.13 315.07 274.81C311.75 277.69 299.89 286.51 298.61 289.75C315.54 307.75 332.47 325.75 349.4 343.75C348.28 344.89 347.16 346.02 346.04 347.16C326.11 326.37 306.18 305.58 286.25 284.79C283.63 285.64 277.91 290.26 277.07 292.99C273.17 293.58 268.71 299.42 265.7 301.97C256.07 310.16 246.71 318.62 237.12 326.86C209.36 350.71 181.48 374.56 154.21 398.96C145.85 406.44 137.27 413.68 128.83 421.07C125.3 424.16 121.48 428.78 117.25 430.79C116.42 430.36 115.58 429.93 114.75 429.5C115 428.46 115.24 427.41 115.49 426.37C118.61 426.17 122.17 421.32 124.6 419.35C127.54 416.97 131.68 414.23 133.84 411.1C135.9 408.13 136.24 403.61 137.4 400.2C140.31 391.62 142.85 382.94 145.57 374.28C156.58 339.23 168.2 304.33 178.89 269.19C183.1 255.33 187.83 241.58 191.94 227.72C193.72 221.71 194.92 214.73 197.75 209.14C198.54 209.55 199.34 209.95 200.13 210.35C197.29 211.82 196.83 218.62 195.8 221.58C191.97 232.55 188.52 243.73 185.17 254.86C178.24 277.9 171.08 300.93 163.45 323.74C159.31 336.12 156.07 348.8 151.86 361.14C148.36 371.44 145.43 381.92 141.99 392.23C140.96 395.3 137.51 403.69 138.25 406.35C142.3 404.14 145.53 400.25 149.07 397.33C157.72 390.18 166.13 382.73 174.62 375.37C196.51 356.43 218.47 337.57 240.32 318.56C248.43 311.51 256.63 304.57 264.68 297.45C267.25 295.18 272.33 292.28 273.41 289.01C276.37 288.3 281.03 283.79 282.67 281.25C281.13 278.42 278.16 276.15 275.95 273.8C270.54 268.05 265.22 262.2 259.62 256.62C245.56 242.61 232.08 227.81 218.42 213.34C214.45 209.13 210.55 204.87 206.54 200.7C205.31 199.42 203.84 196.74 202.16 196.08C198.5 194.65 192.44 195.97 188.5 195.83C189.08 194.51 189.67 193.19 190.25 191.87C192.9 191.45 203.49 191.04 205.65 192.07C207.69 193.03 209.84 196.68 211.38 198.37C215.6 202.99 219.96 207.46 224.26 212C238.85 227.38 253.44 242.8 268.19 258.07C272.15 262.17 283.15 275.56 287.25 277.56C323.75 246.01 360.25 214.47 396.75 182.93C397.45 183.7 398.15 184.48 398.85 185.25C397.59 188.45 392.83 191.24 390.22 193.47C383.29 199.36 376.63 205.57 369.65 211.42C352.01 226.19 334.97 241.75 317.59 256.82C310.72 262.78 303.83 268.73 297.03 274.77C294.84 276.71 292.17 278.39 290.44 280.75C292.04 282.54 293.65 284.33 295.25 286.12C300.15 284.07 313.83 270.37 318.85 266.1C337.65 250.11 356.05 233.59 374.9 217.65C381.13 212.38 387.26 207 393.31 201.56C395.35 199.73 398.59 195.89 400.75 199.17C395.88 213.86 391 228.56 386.13 243.25C388.26 247.27 399.41 254.93 403.42 258.32C417.89 270.52 432.49 282.59 446.97 294.78C450.82 298.02 462.2 305.88 464.04 309.75C462 309.9 459.96 310.05 457.92 310.19ZM422.46 297.81C424.73 298.98 429.19 301.96 430.12 304.25C402.53 299.61 374.94 294.98 347.36 290.34C348.32 289.06 349.29 287.79 350.25 286.51C356.69 285.86 364.67 288.44 371.03 289.73C381.59 291.87 392.31 293.32 402.9 295.28C407.33 296.11 411.86 296.53 416.25 297.53C418.12 297.95 420.82 298.92 422.46 297.81ZM281.49 297.92C282.54 299.09 283.58 300.27 284.63 301.44C232 346.77 179.38 392.09 126.75 437.42C126.07 436.53 125.39 435.64 124.71 434.75C176.97 389.14 229.23 343.53 281.49 297.92Z"/></svg><span>Abhinav Bhat</span></a>
+<header class="dock" id="top">
+  <a class="brand" id="brand" href="#top" aria-label="Home"><svg class="mark" viewBox="112 180 356 260" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M188.5 195.83C192.44 195.97 198.5 194.65 202.16 196.08C203.84 196.74 205.31 199.42 206.54 200.7C210.55 204.87 214.45 209.13 218.42 213.34C232.08 227.81 245.56 242.61 259.62 256.62C265.22 262.2 270.54 268.05 275.95 273.8C278.16 276.15 281.13 278.42 282.67 281.25C281.03 283.79 276.37 288.3 273.41 289.01C248.99 262.79 224.56 236.57 200.13 210.35C199.34 209.95 198.54 209.55 197.75 209.14C194.92 214.73 193.72 221.71 191.94 227.72C187.83 241.58 183.1 255.33 178.89 269.19C168.2 304.33 156.58 339.23 145.57 374.28C142.85 382.94 140.31 391.62 137.4 400.2C136.24 403.61 135.9 408.13 133.84 411.1C131.68 414.23 127.54 416.97 124.6 419.35C122.17 421.32 118.61 426.17 115.49 426.37C139.24 349.69 163 273 186.75 196.32C187.33 196.16 187.92 196 188.5 195.83ZM457.92 310.19C458.91 311.38 459.91 312.56 460.91 313.75C419.59 310.75 378.28 307.75 336.96 304.75C340.43 299.95 343.89 295.14 347.36 290.34C374.94 294.98 402.53 299.61 430.12 304.25C429.19 301.96 424.73 298.98 422.46 297.81C402.97 282.79 383.48 267.77 363.98 252.75C366.82 243.83 369.65 234.92 372.49 226C373.02 225.16 373.19 224.04 373.97 223.23C377.39 219.71 391.8 207.56 395.75 205.5C396.36 208.82 393.46 214.75 392.28 218.01C390.01 224.32 383.31 242.01 383.07 247.75C408.02 268.56 432.97 289.38 457.92 310.19ZM346.04 347.16C345.94 347.73 345.85 348.29 345.75 348.86C342.42 351.04 339.08 353.22 335.75 355.4C318.71 337.41 301.67 319.43 284.63 301.44C283.58 300.27 282.54 299.09 281.49 297.92C280.02 296.28 278.54 294.63 277.07 292.99C277.91 290.26 283.63 285.64 286.25 284.79C306.18 305.58 326.11 326.37 346.04 347.16Z"/><path fill="var(--accent)" fill-rule="evenodd" d="M457.92 310.19C432.97 289.38 408.02 268.56 383.07 247.75C383.31 242.01 390.01 224.32 392.28 218.01C393.46 214.75 396.36 208.82 395.75 205.5C391.8 207.56 377.39 219.71 373.97 223.23C373.19 224.04 373.02 225.16 372.49 226C369.17 226.5 358.81 237.05 355.53 239.77C341.8 251.16 328.56 263.13 315.07 274.81C311.75 277.69 299.89 286.51 298.61 289.75C315.54 307.75 332.47 325.75 349.4 343.75C348.28 344.89 347.16 346.02 346.04 347.16C326.11 326.37 306.18 305.58 286.25 284.79C283.63 285.64 277.91 290.26 277.07 292.99C273.17 293.58 268.71 299.42 265.7 301.97C256.07 310.16 246.71 318.62 237.12 326.86C209.36 350.71 181.48 374.56 154.21 398.96C145.85 406.44 137.27 413.68 128.83 421.07C125.3 424.16 121.48 428.78 117.25 430.79C116.42 430.36 115.58 429.93 114.75 429.5C115 428.46 115.24 427.41 115.49 426.37C118.61 426.17 122.17 421.32 124.6 419.35C127.54 416.97 131.68 414.23 133.84 411.1C135.9 408.13 136.24 403.61 137.4 400.2C140.31 391.62 142.85 382.94 145.57 374.28C156.58 339.23 168.2 304.33 178.89 269.19C183.1 255.33 187.83 241.58 191.94 227.72C193.72 221.71 194.92 214.73 197.75 209.14C198.54 209.55 199.34 209.95 200.13 210.35C197.29 211.82 196.83 218.62 195.8 221.58C191.97 232.55 188.52 243.73 185.17 254.86C178.24 277.9 171.08 300.93 163.45 323.74C159.31 336.12 156.07 348.8 151.86 361.14C148.36 371.44 145.43 381.92 141.99 392.23C140.96 395.3 137.51 403.69 138.25 406.35C142.3 404.14 145.53 400.25 149.07 397.33C157.72 390.18 166.13 382.73 174.62 375.37C196.51 356.43 218.47 337.57 240.32 318.56C248.43 311.51 256.63 304.57 264.68 297.45C267.25 295.18 272.33 292.28 273.41 289.01C276.37 288.3 281.03 283.79 282.67 281.25C281.13 278.42 278.16 276.15 275.95 273.8C270.54 268.05 265.22 262.2 259.62 256.62C245.56 242.61 232.08 227.81 218.42 213.34C214.45 209.13 210.55 204.87 206.54 200.7C205.31 199.42 203.84 196.74 202.16 196.08C198.5 194.65 192.44 195.97 188.5 195.83C189.08 194.51 189.67 193.19 190.25 191.87C192.9 191.45 203.49 191.04 205.65 192.07C207.69 193.03 209.84 196.68 211.38 198.37C215.6 202.99 219.96 207.46 224.26 212C238.85 227.38 253.44 242.8 268.19 258.07C272.15 262.17 283.15 275.56 287.25 277.56C323.75 246.01 360.25 214.47 396.75 182.93C397.45 183.7 398.15 184.48 398.85 185.25C397.59 188.45 392.83 191.24 390.22 193.47C383.29 199.36 376.63 205.57 369.65 211.42C352.01 226.19 334.97 241.75 317.59 256.82C310.72 262.78 303.83 268.73 297.03 274.77C294.84 276.71 292.17 278.39 290.44 280.75C292.04 282.54 293.65 284.33 295.25 286.12C300.15 284.07 313.83 270.37 318.85 266.1C337.65 250.11 356.05 233.59 374.9 217.65C381.13 212.38 387.26 207 393.31 201.56C395.35 199.73 398.59 195.89 400.75 199.17C395.88 213.86 391 228.56 386.13 243.25C388.26 247.27 399.41 254.93 403.42 258.32C417.89 270.52 432.49 282.59 446.97 294.78C450.82 298.02 462.2 305.88 464.04 309.75C462 309.9 459.96 310.05 457.92 310.19ZM422.46 297.81C424.73 298.98 429.19 301.96 430.12 304.25C402.53 299.61 374.94 294.98 347.36 290.34C348.32 289.06 349.29 287.79 350.25 286.51C356.69 285.86 364.67 288.44 371.03 289.73C381.59 291.87 392.31 293.32 402.9 295.28C407.33 296.11 411.86 296.53 416.25 297.53C418.12 297.95 420.82 298.92 422.46 297.81ZM281.49 297.92C282.54 299.09 283.58 300.27 284.63 301.44C232 346.77 179.38 392.09 126.75 437.42C126.07 436.53 125.39 435.64 124.71 434.75C176.97 389.14 229.23 343.53 281.49 297.92Z"/></svg><span class="brand-name"><span>Abhinav Bhat</span></span></a>
   <nav class="nav" aria-label="Sections">
     <a href="#research">Research</a><a href="#experience">Experience</a><a href="#education">Education</a><a href="#skills">Skills</a><a href="#contact">Contact</a>
   </nav>
-  <div class="top-right">
+  <div class="dock-r">
+    <button class="mascot" id="mode-toggle" type="button" role="switch" aria-checked="false" aria-label="Fun mode: ride the network through this CV" title="Ride the network">
+      <svg class="nbs" viewBox="0 0 28 22" aria-hidden="true">
+        <path class="nb-str" d="M10 8 L18 8 M10 8 L10 14 M10 8 L18 14 M18 8 L10 14 M18 8 L18 14 M10 14 L18 14"/>
+        <circle class="nb-ring" cx="10" cy="8" r="3.4"/><circle class="nb-ring" cx="18" cy="8" r="3.4"/><circle class="nb-ring" cx="10" cy="14" r="3.4"/><circle class="nb-ring" cx="18" cy="14" r="3.4"/>
+        <circle class="nb n1" cx="10" cy="8" r="3.4"/><circle class="nb n2" cx="18" cy="8" r="3.4"/><circle class="nb n3" cx="10" cy="14" r="3.4"/><circle class="nb n4" cx="18" cy="14" r="3.4"/>
+      </svg>
+    </button>
     <button class="btn sm" id="tldr-toggle" type="button" aria-haspopup="dialog" aria-controls="tldr">TL;DR</button>
-    <a class="btn sm" href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf">Download CV</a>
     <button class="icon-btn" id="theme-toggle" aria-label="Toggle colour theme" title="Toggle theme">
       <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -68,54 +74,50 @@
   <section class="hero" id="hero">
     <div class="hero-copy" id="hero-copy">
       <div class="hero-l">
-        <h1><span class="hi"><span class="w" id="hello">Hello</span></span>I'm Abhinav Bhat!</h1>
-        <p class="lead">Pursuing an M.S. in Computer Science at the <a class="em" href="https://cims.nyu.edu/" target="_blank" rel="noopener">Courant Institute, NYU</a>.</p>
+        <p class="hi" aria-hidden="true"><span class="w" id="hello">Hello</span> I'm</p>
+        <h1>Abhinav Bhat</h1>
+        <p class="lead">Machine learning for healthcare. M.S. in Computer Science at the <a class="em" href="https://cims.nyu.edu/" target="_blank" rel="noopener">Courant Institute, NYU</a>.</p>
+        <p class="seek">Seeking Summer 2027 internships in machine learning, applied AI, data engineering and software engineering.</p>
         <div class="links">
           <a class="btn glass pill primary" href="Abhinav_Bhat_CV.pdf" download="Abhinav_Bhat_CV.pdf">Download CV</a>
+          <a class="btn glass pill" href="mailto:abhinavbhat@nyu.edu">Email</a>
           <a class="btn glass pill" href="https://www.linkedin.com/in/abhinavbhat1/" target="_blank" rel="noopener">LinkedIn</a>
           <a class="btn glass pill" href="https://orcid.org/0009-0009-2148-2209" target="_blank" rel="noopener">ORCID</a>
-          <a class="btn glass pill" href="mailto:abhinavbhat@nyu.edu">Email</a>
         </div>
-        <div class="portrait"><img src="assets/portrait.jpg" alt="Abhinav Bhat" width="720" height="720" decoding="async"></div>
       </div>
       <div class="hero-r">
-        <a class="beacon glass pill" id="beacon" href="#research"><span class="pulse" aria-hidden="true"></span><span class="tag">Latest</span><span class="txt">Presenting PACD at AMIA 2026 · Dallas · Nov 9</span><span class="txt-s">PACD at AMIA 2026 · Dallas · Nov 9</span></a>
-        <p class="seek">Seeking Summer 2027 internships in machine learning, applied AI, data engineering and software engineering.</p>
-        <p class="lab">Working on</p>
-        <ul class="topics"><li class="glass pill">Machine learning</li><li class="glass pill">Healthcare AI</li><li class="glass pill">Data engineering</li><li class="glass pill">JEPA</li><li class="glass pill">World models</li></ul>
+        <div class="portrait"><img src="assets/portrait.jpg" alt="Abhinav Bhat" width="720" height="720" decoding="async"></div>
+        <a class="beacon glass pill" id="beacon" href="#research"><span class="pulse" aria-hidden="true"></span><span class="tag">Latest</span><span class="txt">PACD poster at AMIA 2026 · Dallas · Nov 9</span><span class="txt-s">AMIA 2026 poster · Nov 9</span></a>
+        <ul class="topics"><li class="glass pill">Machine learning</li><li class="glass pill">Healthcare AI</li><li class="glass pill">Data engineering</li><li class="glass pill">World models</li></ul>
       </div>
     </div>
   </section>
 
-  <div class="focus" id="focus-chips" role="group" aria-label="Focus the CV on a topic">
-    <span class="q" id="focus-q">What are you looking for?</span>
-    <button class="chip" data-f="all" aria-pressed="true">Everything</button>
-    <button class="chip" data-f="ml" aria-pressed="false">Machine learning</button>
-    <button class="chip" data-f="health" aria-pressed="false">Healthcare AI</button>
-    <button class="chip" data-f="data" aria-pressed="false">Data engineering</button>
-    <button class="chip" data-f="swe" aria-pressed="false">Software engineering</button>
-  </div>
+  <section class="chap stmt" id="about" aria-label="In one sentence">
+    <div class="stmt-pin"><p class="stmt-text" id="stmt">I build machine learning systems. For the real world.</p></div>
+  </section>
 
-  <section class="sec" id="research" data-layer="Research" data-where="both">
-    <div class="sec-head"><span class="num">01</span><h2>Research</h2></div>
-    <div class="sec-body">
+  <section class="chap stage" id="research" data-layer="Research" data-sub="Better lives through machine learning, one noisy dataset at a time." data-where="both">
+    <div class="stage-pin">
+      <div class="sec-head"><span class="num">01</span><h2>Research</h2></div>
+      <div class="sec-body">
       <article class="entry" data-short="Breast MRI">
         <div class="meta"><span class="date">2026 – present</span><span class="status">In progress</span></div>
         <div class="body">
           <h3>Predicting post-contrast 3D breast MRI from pre-contrast scans</h3>
-          <p class="org">Research Assistant, <b><a href="https://www.spchopra.net/" target="_blank" rel="noopener">Sumit Chopra Lab</a></b> · <a href="https://med.nyu.edu/research" target="_blank" rel="noopener">NYU Langone Health</a></p>
+          <p class="org">Research Assistant in the <b><a href="https://www.spchopra.net/" target="_blank" rel="noopener">Sumit Chopra Lab</a></b> · <a href="https://med.nyu.edu/research" target="_blank" rel="noopener">NYU Langone Health</a></p>
           <div class="logos"><span class="logo"><img src="assets/logos/nyu-langone.svg" alt="NYU Langone Health"></span></div>
 <ul class="lines">
-        <li data-w="1,1,0.2,0.3,0">Self-supervised <strong>LeJEPA</strong> representations of 3D MRI, learning to predict contrast enhancement so that fewer scans need a gadolinium injection.</li>
+        <li data-w="1,1,0.2,0.3,0">Research assistant on the lab's project: self-supervised <strong>LeJEPA</strong> representations of 3D MRI that learn to predict contrast enhancement, so that fewer scans need a gadolinium injection.</li>
       </ul>
-          <details class="try" data-auto="jepa"><summary>Try the idea: hide part of a scan, predict the rest</summary>
-<div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">The idea in one picture: hide part of a scan, learn to predict the hidden part from what is visible.</span></div>
-        <svg id="jepa-svg" role="img" aria-label="Masked prediction demo"></svg>
+          <div class="try" data-auto="jepa">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: hide part of a scan, predict the rest</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
+        <p class="what">The lab's idea in one picture: hide part of a scan, learn to predict the hidden part from what is visible.</p>        <svg id="jepa-svg" role="img" aria-label="Masked prediction demo"></svg>
         <div class="row"><label>Training <input type="range" id="jepa-prog" min="0" max="1" step="0.02" value="0"><output id="jepa-val">0%</output></label></div>
         <div class="out" id="jepa-out"></div>
-      </div>
-          </details>
+      </div></div>
+          </div>
         </div>
       </article>
       <article class="entry" data-short="LUMINA">
@@ -125,17 +127,17 @@
           <p class="org">Research Collaborator · <b><a href="https://www.dcinetwork.org/" target="_blank" rel="noopener">DCI Network</a></b>, <a href="https://www.bidmc.org/" target="_blank" rel="noopener">Beth Israel Deaconess Medical Center</a> / <a href="https://hms.harvard.edu/" target="_blank" rel="noopener">Harvard Medical School</a> · with <b><a href="https://www.healthkey.ai/" target="_blank" rel="noopener">HealthKey</a></b></p>
           <div class="logos"><span class="logo"><img src="assets/logos/dci-network.png" alt="DCI Network"></span><span class="logo"><img src="assets/logos/bidmc.svg" alt="Beth Israel Deaconess Medical Center"></span><span class="logo hms"><img src="assets/logos/hms.png" alt="Harvard Medical School"><span>Harvard<br>Medical School</span></span><span class="logo text">HealthKey<small>open-source patient record</small></span></div>
 <ul class="lines">
-        <li data-w="0.5,1,1,0.8,0.3">Own work package 3 of LUMINA, the <a href="https://www.dcinetwork.org/" target="_blank" rel="noopener">DCI Network</a>'s reference architecture for a longitudinal, multimodal patient record: a raw-readings archive, device sync and daily derivation into OMOP, delivered as pull requests to <strong><a href="https://arxiv.org/abs/2607.13947" target="_blank" rel="noopener">PRomop</a></strong>, <a href="https://www.healthkey.ai/" target="_blank" rel="noopener">HealthKey</a>'s open-source patient record.</li>
-        <li data-w="0.8,1,0.6,0.2,0.3">Found five concept-mapping issues for the OMOP work package, including the heart-rate-variability mix-up (SDNN vs RMSSD) that became my semantic-drift research question.</li>
+        <li data-w="0.5,1,1,0.8,0.3">Building the wearables archive of LUMINA, the <a href="https://www.dcinetwork.org/" target="_blank" rel="noopener">DCI Network</a>'s reference architecture for a longitudinal, multimodal patient record: raw readings kept as delivered, device sync, and daily derivation into OMOP, delivered as pull requests to <strong><a href="https://arxiv.org/abs/2607.13947" target="_blank" rel="noopener">PRomop</a></strong>, <a href="https://www.healthkey.ai/" target="_blank" rel="noopener">HealthKey</a>'s open-source patient record.</li>
+        <li data-w="0.8,1,0.6,0.2,0.3">Found five concept-mapping issues in the OMOP layer, including the heart-rate-variability mix-up (SDNN vs RMSSD) that became my semantic-drift research question.</li>
       </ul>
-          <details class="try" data-auto="vol"><summary>Try it: why the archive needs a daily derivation step</summary>
-<div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Why the archive needs a daily derivation step: raw wearable data is enormous.</span></div>
-        <div class="row"><label>Patients <input type="range" id="vol-n" min="2" max="5" step="0.05" value="3"><output id="vol-val">1,000</output></label></div>
+          <div class="try" data-auto="vol">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: why the archive needs a daily derivation step</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
+        <p class="what">Why the archive needs a daily derivation step: raw wearable data is enormous.</p>        <div class="row"><label>Patients <input type="range" id="vol-n" min="2" max="5" step="0.05" value="3"><output id="vol-val">1,000</output></label></div>
         <svg id="vol-svg" role="img" aria-label="Rows per year: raw vs daily"></svg>
         <div class="out" id="vol-out"></div>
-      </div>
-          </details>
+      </div></div>
+          </div>
         </div>
       </article>
       <article class="entry" data-short="PACD">
@@ -145,12 +147,12 @@
           <p class="org">Research Collaborator with <b><a href="https://research.bidmc.org/yuriquintana" target="_blank" rel="noopener">Dr. Yuri Quintana</a></b> · <a href="https://www.bidmc.org/" target="_blank" rel="noopener">Beth Israel Deaconess Medical Center</a> / <a href="https://hms.harvard.edu/" target="_blank" rel="noopener">Harvard Medical School</a></p>
           <div class="logos"><span class="logo"><img src="assets/logos/bidmc.svg" alt="Beth Israel Deaconess Medical Center"></span><span class="logo"><img src="assets/logos/harvard-teaching-hospital.svg" alt="A teaching hospital of Harvard Medical School"></span></div>
 <ul class="lines">
-        <li data-w="1,1,0.1,0.3,0.2">Personalises cardiovascular adherence interventions while only ever choosing from a clinician-approved set. <span class="st live"><i class="blip" aria-hidden="true"></i>Presenting at the <a href="https://amia.org/education-events/amia-2026-annual-symposium" target="_blank" rel="noopener">AMIA 2026 Annual Symposium</a> · Dallas · Nov 9</span></li>
+        <li data-w="1,1,0.1,0.3,0.2">Personalises cardiovascular adherence interventions while only ever choosing from a clinician-approved set. <span class="st live"><i class="blip" aria-hidden="true"></i>Accepted poster, <a href="https://amia.org/education-events/amia-2026-annual-symposium" target="_blank" rel="noopener">AMIA 2026 Annual Symposium</a> · Dallas · Nov 9</span></li>
       </ul>
-          <details class="try" data-auto="bandit"><summary>Try it: let the system learn which option keeps patients on their medication</summary>
-<div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Tick what the clinician allows, then let the system learn which option keeps patients on their medication.</span></div>
-        <div class="row" id="bandit-ok">
+          <div class="try" data-auto="bandit">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: let the system learn which option keeps patients on their medication</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
+        <p class="what">Tick what the clinician allows, then let the system learn which option keeps patients on their medication.</p>        <div class="row" id="bandit-ok">
           <label class="check"><input type="checkbox" data-i="0" checked>SMS reminder</label>
           <label class="check"><input type="checkbox" data-i="1" checked>Pharmacist call</label>
           <label class="check"><input type="checkbox" data-i="2" checked>App nudge</label>
@@ -158,10 +160,10 @@
           <button class="btn sm primary" id="bandit-play">Simulate 40 patients</button>
           <button class="btn sm" id="bandit-reset">Reset</button>
         </div>
-        <svg id="bandit-svg" role="img" aria-label="Estimated adherence per option" style="margin-top:.4rem"></svg>
+        <svg id="bandit-svg" role="img" aria-label="Estimated adherence per option"></svg>
         <div class="out" id="bandit-out"></div>
-      </div>
-          </details>
+      </div></div>
+          </div>
         </div>
       </article>
       <article class="entry" data-short="Scoping review">
@@ -184,41 +186,42 @@
         <li data-w="1,0.8,0.1,0.2,0">Multimodal depression detection (AVEC 2017): showed a 72%-accuracy model found only 7% of depressed patients, and set balanced reporting metrics · <a href="https://www.manipal.edu/mit-manipal" target="_blank" rel="noopener">Manipal Institute of Technology</a> &amp; <a href="https://www.deakin.edu.au/" target="_blank" rel="noopener">Deakin University</a>. <span class="st">Manuscript ready</span></li>
         <li data-w="0.8,0.9,0,0,0.2">First-author systematic review of automated mitotic-figure detection in breast histopathology · <a href="https://manipal.edu/msis.html" target="_blank" rel="noopener">Manipal School of Information Sciences</a>. <span class="st">Manuscript ready for submission</span></li>
       </ul>
-          <details class="try" data-auto="metrics"><summary>Try it: why accuracy lies</summary>
-<div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Move the decision threshold: accuracy barely changes while the share of depressed patients actually found collapses.</span></div>
-        <svg id="metrics-svg" role="img" aria-label="Score distributions and threshold"></svg>
-        <div class="row">
-          <label>Threshold <input type="range" id="m-thr" min="0.1" max="0.9" step="0.01" value="0.78"></label>
-          <span class="ro">Accuracy<b id="m-acc">–</b></span>
-          <span class="ro" id="m-rec-ro">Depressed found<b id="m-rec">–</b></span>
-        </div>
+          <div class="try" data-auto="metrics">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: why accuracy lies</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
+        <p class="what">Move the decision threshold: accuracy barely changes while the share of depressed patients actually found collapses.</p>        <svg id="metrics-svg" role="img" aria-label="Score distributions and threshold"></svg>
+        <div class="row"><label>Threshold <input type="range" id="m-thr" min="0.1" max="0.9" step="0.01" value="0.78"></label></div>
+        <div class="row"><span class="ro">Accuracy<b id="m-acc">–</b></span><span class="ro" id="m-rec-ro">Depressed found<b id="m-rec">–</b></span></div>
         <div class="out" id="metrics-out"></div>
-      </div>
-          </details>
+      </div></div>
+          </div>
         </div>
       </article>
+    
+      </div>
+      <div class="stage-cards" aria-hidden="false"></div>
     </div>
   </section>
 
-  <section class="sec" id="experience" data-layer="Experience" data-where="both">
-    <div class="sec-head"><span class="num">02</span><h2>Experience</h2></div>
-    <div class="sec-body">
+  <section class="chap stage" id="experience" data-layer="Experience" data-sub="Four and a half years at Honeywell, Intern to Tech Lead." data-where="both">
+    <div class="stage-pin">
+      <div class="sec-head"><span class="num">02</span><h2>Experience</h2></div>
+      <div class="sec-body">
       <article class="entry" data-short="Tech Lead">
         <div class="meta"><span class="date">Sep 2024 – Jul 2026</span><span class="place">Honeywell · Bengaluru</span></div>
         <div class="body">
           <h3>Tech Lead / Data Validation Engineer</h3>
           <p class="org"><a href="https://www.honeywell.com/" target="_blank" rel="noopener">Honeywell Technologies</a></p>
           <div class="logos"><span class="logo"><img src="assets/logos/honeywell.svg" alt="Honeywell"></span></div>
-<ul class="lines"><li data-w="0.4,0,1,0.6,1">Led five engineers on pipeline design, test strategy and release readiness for two enterprise platforms; built Snowflake and dbt validation frameworks that catch schema drift, silent corruption and data leakage before release; validated GenAI data migrations.</li></ul>
-          <details class="try" data-auto="drift"><summary>Try it: silent data corruption and the checks that catch it</summary>
-<div class="exp">
-        <div class="eh"><span class="tag">Try it</span><span class="auto" data-auto-badge>auto-running</span><span class="what">Pick what goes wrong in today's data and see which check catches it.</span></div>
-        <div class="row"><div class="seg" id="drift-mode" role="group" aria-label="Failure"><button data-v="none" aria-pressed="true">Healthy</button><button data-v="unit" aria-pressed="false">Unit change ×1000</button><button data-v="null" aria-pressed="false">Null spike</button><button data-v="shift" aria-pressed="false">Quiet drift</button></div></div>
-        <div class="two" style="margin-top:.6rem"><svg id="drift-svg" role="img" aria-label="Reference vs today"></svg><div class="checks" id="drift-checks"></div></div>
+<ul class="lines"><li data-w="0.4,0,1,0.6,1">Promoted from Data Validation Engineer to Tech Lead in May 2026; led five engineers on pipeline design, test strategy and release readiness for two enterprise platforms.</li><li data-w="0.2,0,1,0.5,0.3">Built Snowflake and dbt validation frameworks that catch schema drift, silent corruption and data leakage before release; validated GenAI data migrations with integrity checks, coverage analysis and root-cause analysis.</li><li data-w="0,0,0.9,0.4,0.2">Automated warehouse log ingestion and validation across platforms, with health metrics reported in Power BI.</li></ul>
+          <div class="try" data-auto="drift">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: silent corruption and the checks that catch it</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
+        <p class="what">Pick what goes wrong in today's data and see which check catches it.</p>        <div class="row"><div class="seg" id="drift-mode" role="group" aria-label="Failure"><button data-v="none" aria-pressed="true">Healthy</button><button data-v="unit" aria-pressed="false">Units ×1000</button><button data-v="null" aria-pressed="false">Null spike</button><button data-v="shift" aria-pressed="false">Quiet drift</button></div></div>
+        <div class="two"><svg id="drift-svg" role="img" aria-label="Last month vs today"></svg><div class="checks" id="drift-checks"></div></div>
         <div class="out" id="drift-out"></div>
-      </div>
-          </details>
+      </div></div>
+          </div>
         </div>
       </article>
       <article class="entry" data-short="Performance">
@@ -237,17 +240,20 @@
 <ul class="lines"><li data-w="0,0,0.3,1,0">Unit-testing web app and automated ISO builds with Python and PowerShell on a firewall-protected network.</li></ul>
         </div>
       </article>
+    
+      </div>
+      <div class="stage-cards" aria-hidden="false"></div>
     </div>
   </section>
 
-  <section class="sec" id="education" data-layer="Education" data-where="both">
+  <section class="chap grid stack" id="education" data-layer="Education" data-sub="From Manipal to New York." data-where="both">
     <div class="sec-head"><span class="num">03</span><h2>Education</h2></div>
     <div class="sec-body">
       <article class="entry" data-short="NYU Courant">
         <div class="meta"><div class="logos"><span class="logo"><img src="assets/logos/nyu-courant.png" alt="NYU Courant Institute"></span></div><span class="date">Expected May 2028</span></div>
         <div class="body">
           <h3><a href="https://www.nyu.edu/" target="_blank" rel="noopener">New York University</a></h3>
-          <p class="org">Master's of Computer Science · <a href="https://cims.nyu.edu/" target="_blank" rel="noopener">Courant Institute of Mathematical Sciences</a> · New York</p>
+          <p class="org">Master's of Computer Science · <a href="https://www.nyu.edu/" target="_blank" rel="noopener">New York University</a>, <a href="https://cims.nyu.edu/" target="_blank" rel="noopener">Courant Institute of Mathematical Sciences</a> · New York</p>
           <ul class="lines"><li data-w="1,0.6,0.3,0.6,0">Coursework: Machine Learning, Operating Systems, Programming Languages.</li></ul>
         </div>
       </article>
@@ -255,11 +261,11 @@
         <div class="meta"><div class="logos"><span class="logo"><img src="assets/logos/manipal.png" alt="Manipal Academy of Higher Education"></span></div><span class="date">Graduated Nov 2022</span></div>
         <div class="body">
           <h3><a href="https://www.manipal.edu/mit-manipal" target="_blank" rel="noopener">Manipal Institute of Technology</a></h3>
-          <p class="org">B.Tech. Computer Science and Engineering · <a href="https://www.manipal.edu/" target="_blank" rel="noopener">Manipal Academy of Higher Education</a> · Manipal, India</p>
+          <p class="org">B.Tech. Computer Science and Engineering · <a href="https://www.manipal.edu/mit-manipal" target="_blank" rel="noopener">Manipal Institute of Technology</a>, <a href="https://www.manipal.edu/" target="_blank" rel="noopener">Manipal Academy of Higher Education</a> · Manipal, India</p>
         </div>
       </article>
-      <article class="entry" data-short="Honours">
-        <div class="meta"><span class="date">Leadership &amp; honours</span></div>
+      <article class="entry" data-short="Honours" data-only="fun">
+        <div class="meta"><span class="date">2018 – 2026</span></div>
         <div class="body">
           <h3>Leadership &amp; honours</h3>
 <ul class="lines">
@@ -268,47 +274,49 @@
         <li data-w="0,0,0,0,1"><strong>National Board Member, <a href="https://iaeste.org/" target="_blank" rel="noopener">IAESTE India</a></strong>: national operations and international relations across 10+ committees <span class="dt">2019 – 2021</span></li>
         <li data-w="0,0,0,0,0.9"><strong>Content &amp; Marketing Head, <a href="https://iaeste.manipal.edu/" target="_blank" rel="noopener">IAESTE Manipal</a></strong>: grew engagement to 1,500+ followers <span class="dt">2018 – 2019</span></li>
       </ul>
-          <div class="logos" style="margin-top:1rem"><span class="logo"><img src="assets/logos/iaeste.png" alt="IAESTE"></span></div>
+          <div class="logos"><span class="logo"><img src="assets/logos/iaeste.png" alt="IAESTE"></span></div>
         </div>
       </article>
+    
     </div>
   </section>
 
-  <section class="sec" id="skills" data-layer="Skills" data-where="both">
+  <section class="chap grid toggle" id="skills" data-layer="Skills" data-sub="The toolkit, grouped the way the work is." data-where="both">
     <div class="sec-head"><span class="num">04</span><h2>Skills</h2></div>
     <div class="sec-body">
       <article class="entry" data-short="ML &amp; AI">
-        <div class="meta"><span class="date">Toolkit</span></div>
+        <div class="meta"></div>
         <div class="body">
           <h3>ML &amp; AI</h3>
           <div class="tags"><span data-f="ml health">PyTorch</span><span data-f="ml">TensorFlow</span><span data-f="ml data">scikit-learn</span><span data-f="ml">Hugging Face Transformers</span><span data-f="ml health">JEPA</span><span data-f="ml health">Computer vision</span><span data-f="ml health">Contextual bandits</span><span data-f="ml health">Model evaluation</span></div>
         </div>
       </article>
       <article class="entry" data-short="Data engineering">
-        <div class="meta"><span class="date">Toolkit</span></div>
+        <div class="meta"></div>
         <div class="body">
           <h3>Data engineering</h3>
-          <div class="tags"><span data-f="data">Snowflake</span><span data-f="data">dbt</span><span data-f="data swe">Kafka</span><span data-f="data">ETL pipelines</span><span data-f="data health">Data quality</span><span data-f="health data">OMOP</span><span data-f="swe data">Docker</span><span data-f="swe data">Kubernetes</span><span data-f="swe">REST APIs</span><span data-f="data">Power BI</span></div>
+          <div class="tags"><span data-f="data">Snowflake</span><span data-f="data">dbt</span><span data-f="data swe">Kafka</span><span data-f="data">ETL pipelines</span><span data-f="data health">Data quality</span><span data-f="health data">OMOP</span><span data-f="swe data">Docker</span><span data-f="swe data">Kubernetes</span><span data-f="swe">REST APIs</span><span data-f="swe data">Microservices</span><span data-f="data">Power BI</span></div>
         </div>
       </article>
       <article class="entry" data-short="Testing &amp; DevOps">
-        <div class="meta"><span class="date">Toolkit</span></div>
+        <div class="meta"></div>
         <div class="body">
           <h3>Testing &amp; DevOps</h3>
           <div class="tags"><span data-f="swe">Pytest</span><span data-f="data">Great Expectations</span><span data-f="swe">TestNG</span><span data-f="swe">Maven</span><span data-f="swe">JMeter</span><span data-f="swe data">Grafana</span><span data-f="swe">AppDynamics</span><span data-f="swe">CI/CD</span><span data-f="swe ml data">Git</span></div>
         </div>
       </article>
       <article class="entry" data-short="Programming">
-        <div class="meta"><span class="date">Toolkit</span></div>
+        <div class="meta"></div>
         <div class="body">
           <h3>Programming</h3>
           <div class="tags"><span data-f="ml health data swe">Python</span><span data-f="data swe health">SQL</span><span data-f="swe">Java</span><span data-f="swe ml">C++</span><span data-f="swe">C</span><span data-f="ml health">R</span><span data-f="swe data">Bash</span><span data-f="swe">PowerShell</span><span data-f="swe">Groovy</span></div>
         </div>
       </article>
+    
     </div>
   </section>
 
-  <section class="sec" id="contact" data-layer="Contact" data-where="both">
+  <section class="chap grid one" id="contact" data-layer="Contact" data-sub="Summer 2027, and research collaborations." data-where="both">
     <div class="sec-head"><span class="num">05</span><h2>Contact</h2></div>
     <div class="sec-body">
       <article class="entry" data-short="Contact">
@@ -325,6 +333,7 @@
           </ul>
         </div>
       </article>
+    
     </div>
   </section>
 
@@ -334,20 +343,22 @@
 <div id="journey" aria-hidden="false">
   <div id="spacer"></div>
   <div id="cards"></div>
+  <p id="statement" aria-hidden="true">I build machine learning systems. For the real world.</p>
+  <div id="laytitle" aria-hidden="true"><b></b><span></span></div>
 </div>
 
 <div class="tldr" id="tldr" aria-hidden="true">
-  <div class="tldr-card glass sheet" role="dialog" aria-modal="true" aria-labelledby="tldr-title">
+  <div class="tldr-card frost" role="dialog" aria-modal="true" aria-labelledby="tldr-title">
     <div class="lights"><button class="light close" id="tldr-close" type="button" aria-label="Close" title="Close"></button><button class="light min" id="tldr-min" type="button" aria-label="Minimise" title="Minimise"></button><span class="light zoom" aria-hidden="true"></span></div>
     <p class="kicker">TL;DR</p>
     <h2 id="tldr-title">Abhinav Bhat</h2>
     <p class="tldr-sub">M.S. Computer Science, <a href="https://cims.nyu.edu/" target="_blank" rel="noopener">NYU Courant</a> · expected May 2028</p>
     <p class="tldr-seek">Seeking Summer 2027 internships · machine learning, applied AI, data engineering, software engineering</p>
     <section class="tldr-sec"><h3>Now</h3><ul>
-      <li><span class="w">Presenting PACD at the <a href="https://amia.org/education-events/amia-2026-annual-symposium" target="_blank" rel="noopener">AMIA 2026 Annual Symposium</a></span><span class="m">Dallas · Nov 9</span></li>
+      <li><span class="w">PACD poster at the <a href="https://amia.org/education-events/amia-2026-annual-symposium" target="_blank" rel="noopener">AMIA 2026 Annual Symposium</a></span><span class="m">Dallas · Nov 9</span></li>
     </ul></section>
     <section class="tldr-sec"><h3>Research</h3><ul>
-      <li><span class="w">Post-contrast breast MRI prediction with LeJEPA</span><span class="m"><a href="https://www.spchopra.net/" target="_blank" rel="noopener">Sumit Chopra Lab</a> · <a href="https://med.nyu.edu/research" target="_blank" rel="noopener">NYU Langone</a></span></li>
+      <li><span class="w">Research assistant: post-contrast breast MRI prediction with LeJEPA</span><span class="m"><a href="https://www.spchopra.net/" target="_blank" rel="noopener">Sumit Chopra Lab</a> · <a href="https://med.nyu.edu/research" target="_blank" rel="noopener">NYU Langone</a></span></li>
       <li><span class="w">LUMINA: wearables archive for an AI-ready patient record</span><span class="m"><a href="https://www.dcinetwork.org/" target="_blank" rel="noopener">DCI Network</a> · <a href="https://www.bidmc.org/" target="_blank" rel="noopener">BIDMC</a> / <a href="https://hms.harvard.edu/" target="_blank" rel="noopener">HMS</a></span></li>
       <li><span class="w">PACD: contextual bandits for medication adherence</span><span class="m"><a href="https://research.bidmc.org/yuriquintana" target="_blank" rel="noopener">Dr. Yuri Quintana</a> · <a href="https://www.bidmc.org/" target="_blank" rel="noopener">BIDMC</a> / <a href="https://hms.harvard.edu/" target="_blank" rel="noopener">HMS</a></span></li>
       <li><span class="w">Scoping review: AI for medication adherence in CVD</span><span class="m"><a href="https://doi.org/10.1186/s12911-026-03422-3" target="_blank" rel="noopener">BMC Med Inform Decis Mak 26:132</a></span></li>
