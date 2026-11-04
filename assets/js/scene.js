@@ -256,12 +256,16 @@
     g.clearRect(0, 0, W, H); stepMesh(t, dt, 1);
   }
   window.__pulseAt = (x, y) => { let best = null, bd = 1e9; field.cl.forEach(cl => { if (cl.state !== 'float' || !cl.edges.length) return; const d = Math.hypot(cl.cx - x, cl.cy - y); if (d < bd) { bd = d; best = cl; } }); if (best) firePulse(best, 0.2); };
-  window.onModeChange = (m) => { warp.on = false; cancelTween(); clearTimeout(settleTimer); sv = 0; lastY = 0; lastSY = 0; camInit = false; avoidEls = null;
+  const launch = { on: false, t0: 0, dur: 1.1, x: 0, y: 0, trails: [] };
+  window.onModeChange = (m) => { warp.on = false; cancelTween(); clearTimeout(settleTimer); sv = 0; lastY = 0; lastSY = 0; camInit = false; avoidEls = null; launch.on = false;
     LAYERS.forEach(L => { L.open = null; if (L.panel) { L.panel.classList.remove('on'); L.panel.style.opacity = '0'; } });
     if (stmt) { stmt.classList.remove('on'); stmt.style.opacity = '0'; stmtA = -1; } if (lt) { lt.classList.remove('on'); lt.style.opacity = '0'; ltK = -1; }
     secbar.style.opacity = rail.style.opacity = '0'; secbar.style.pointerEvents = rail.style.pointerEvents = 'none'; setNav('');
     if (heroCopy) { heroCopy.style.opacity = ''; heroCopy.style.transform = ''; heroCopy.style.visibility = ''; }
-    if (m === 'journey') { nodes.forEach(nd => { nd.c = 0; nd.vis = 0; nd.vr = 0; nd.doneT = -1; nd.ox = nd.oy = nd.vx = nd.vy = 0; }); Object.assign(cam, poseHero()); camInit = true; layoutSpacer(); } };
+    if (m === 'journey') { nodes.forEach(nd => { nd.c = 0; nd.vis = 0; nd.vr = 0; nd.doneT = -1; nd.ox = nd.oy = nd.vx = nd.vy = 0; }); Object.assign(cam, poseHero()); camInit = true; layoutSpacer();
+      const sw = document.getElementById('mode-toggle'); const r = sw ? sw.getBoundingClientRect() : null;
+      if (r && r.width && !reduced) { launch.on = true; launch.t0 = tNow; launch.x = r.left + r.width / 2; launch.y = r.top + r.height / 2; launch.trails = byL[0].map(() => []); goTo(Math.round((HOLD + 0.08) * BEAT()), Math.round(launch.dur * 1000)); } } };
+  window.__launch = () => (launch.on ? { k: +((tNow - launch.t0) / launch.dur).toFixed(2) } : null);
   function drawJourney(t, dt) {
     if (mode() !== 'journey') { drawNormal(t, dt); return; }
     ptr.vx *= Math.exp(-dt * 9); ptr.vy *= Math.exp(-dt * 9);
@@ -290,7 +294,12 @@
       proj(nd.x * bk + nd.ox + wob * 0.16 * Math.sin(nd.y * 4 + t * 7 + nd.k), nd.y * bk + nd.oy + wob * 0.12 * Math.cos(nd.x * 3 + t * 6), nd.z * bk + wob * 0.35 * Math.sin(nd.x * 2 + nd.y * 3 + t * 5), nd.p);
       if (Wp && Wp.ht && Wp.sep > 0 && nd.piece != null) { const pc = warp.pieces[nd.piece]; nd.p.x += pc.dir.x * Wp.sep; nd.p.y += pc.dir.y * Wp.sep; } });
     if (hand !== handOn) { handOn = hand; document.body.style.cursor = hand ? 'pointer' : ''; }
+    // the launch: the input beads are drawn full size on a bent path from the switch to wherever the scroll has put them
+    if (launch.on) { const q = clamp((t - launch.t0) / launch.dur); if (q >= 1 || Wp) launch.on = false; else { const e = 1 - Math.pow(1 - q, 3);
+      byL[0].forEach((nd, i) => { nd.c = Math.max(nd.c, 1); nd.vr = 1; nd.vis = 1; const tx = nd.p.x, ty = nd.p.y; const sx = launch.x + (i - 1.5) * 7, sy = launch.y; const mx = (sx + tx) / 2 + (i - 1.5) * 30, my = (sy + ty) / 2 - 60; const u1 = 1 - e;
+        nd.p.x = u1 * u1 * sx + 2 * u1 * e * mx + e * e * tx; nd.p.y = u1 * u1 * sy + 2 * u1 * e * my + e * e * ty; const tr = launch.trails[i]; tr.push([nd.p.x, nd.p.y]); if (tr.length > 10) tr.shift(); }); } }
     g.clearRect(0, 0, W, H); if (floA > 0.01) stepMesh(t, dt, floA); g.lineWidth = 1;
+    if (launch.on) { g.strokeStyle = col.accent; g.lineWidth = 1.4; launch.trails.forEach(tr => { for (let i = 1; i < tr.length; i++) { g.globalAlpha = 0.5 * i / tr.length; g.beginPath(); g.moveTo(tr[i - 1][0], tr[i - 1][1]); g.lineTo(tr[i][0], tr[i][1]); g.stroke(); } }); g.globalAlpha = 1; g.lineWidth = 1; }
     // strings
     edges.forEach(e => { const ev = Math.min(clamp(e.B.c / 0.85), clamp(e.A.c * 2)); if (ev <= 0.001) return; const A = e.A.p, B = e.B.p; const inFocus = Math.max(lw[e.k - 1] || 0, lw[e.k] || 0); const pcut = (Wp && Wp.ht && Wp.cut > 0 && e.A.piece != null && e.B.piece != null && e.A.piece !== e.B.piece) ? 1 - Wp.cut : 1; if (pcut <= 0.01) return; const depth = clamp(1 - (A.z + B.z) * 0.22, 0.3, 1.2) * pcut;
       if (ev < 0.999) { // being drawn: a line growing out of the previous neuron, with a bright tip
@@ -341,7 +350,7 @@
         if (b <= 0.002) { if (c.b) closeRow(c); return; }
         c.b = b; c.el.style.setProperty('--open', b.toFixed(3)); c.el.classList.toggle('open', b > 0.5); c.head.setAttribute('aria-expanded', b > 0.5 ? 'true' : 'false');
         if (b >= 0.995) { if (c.body.style.height !== 'auto') c.body.style.height = 'auto';
-          if (!c.auto) { c.auto = true; const d = c.entry.querySelector('.try'); if (d && window.runExp) setTimeout(() => { if (c.b >= 0.995 && mode() === 'journey') window.runExp(d, 0); }, 420); } }
+          c.auto = true; }
         else c.body.style.height = (b * c.body.scrollHeight).toFixed(1) + 'px'; });
       if (openRow) { if (openB < 0.995) pn.scrollTop = Math.round(Math.max(0, openRow.el.offsetTop - 6) * smooth(openB)); L.open = { c: openRow, b: openB }; } });
     // a string from the neuron in focus to its row

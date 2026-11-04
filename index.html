@@ -56,16 +56,11 @@
   </nav>
   <div class="dock-r">
     <button class="mascot" id="mode-toggle" type="button" role="switch" aria-checked="false" aria-label="Fun mode: ride the network through this CV" title="Ride the network">
-      <svg class="clawd" viewBox="0 0 24 20" aria-hidden="true" shape-rendering="crispEdges">
-        <g class="cl-all">
-          <g class="cl-arm l" id="cl-arm-l"><rect x="-4.5" y="-1.25" width="5" height="2.5" rx=".5"/></g>
-          <g class="cl-arm r" id="cl-arm-r"><rect x="-0.5" y="-1.25" width="5" height="2.5" rx=".5"/></g>
-          <rect class="cl-body" x="4" y="2" width="16" height="13" rx="2"/>
-          <rect class="cl-eye" x="8" y="6" width="2.5" height="4.5"/><rect class="cl-eye" x="13.5" y="6" width="2.5" height="4.5"/>
-          <rect class="cl-leg" x="7" y="15" width="3.5" height="3.5"/><rect class="cl-leg" x="13.5" y="15" width="3.5" height="3.5"/>
-        </g>
+      <svg class="nbs" viewBox="0 0 28 22" aria-hidden="true">
+        <path class="nb-str" d="M10 8 L18 8 M10 8 L10 14 M10 8 L18 14 M18 8 L10 14 M18 8 L18 14 M10 14 L18 14"/>
+        <circle class="nb-ring" cx="10" cy="8" r="3.4"/><circle class="nb-ring" cx="18" cy="8" r="3.4"/><circle class="nb-ring" cx="10" cy="14" r="3.4"/><circle class="nb-ring" cx="18" cy="14" r="3.4"/>
+        <circle class="nb n1" cx="10" cy="8" r="3.4"/><circle class="nb n2" cx="18" cy="8" r="3.4"/><circle class="nb n3" cx="10" cy="14" r="3.4"/><circle class="nb n4" cx="18" cy="14" r="3.4"/>
       </svg>
-      <span class="bubble" id="bubble" aria-hidden="true"></span>
     </button>
     <button class="btn sm" id="tldr-toggle" type="button" aria-haspopup="dialog" aria-controls="tldr">TL;DR</button>
     <button class="icon-btn" id="theme-toggle" aria-label="Toggle colour theme" title="Toggle theme">
@@ -93,19 +88,10 @@
       <div class="hero-r">
         <div class="portrait"><img src="assets/portrait.jpg" alt="Abhinav Bhat" width="720" height="720" decoding="async"></div>
         <a class="beacon glass pill" id="beacon" href="#research"><span class="pulse" aria-hidden="true"></span><span class="tag">Latest</span><span class="txt">PACD poster at AMIA 2026 · Dallas · Nov 9</span><span class="txt-s">AMIA 2026 poster · Nov 9</span></a>
-        <ul class="topics"><li class="glass pill">Machine learning</li><li class="glass pill">Healthcare AI</li><li class="glass pill">Data engineering</li><li class="glass pill">JEPA</li><li class="glass pill">World models</li></ul>
+        <ul class="topics"><li class="glass pill">Machine learning</li><li class="glass pill">Healthcare AI</li><li class="glass pill">Data engineering</li><li class="glass pill">World models</li></ul>
       </div>
     </div>
   </section>
-
-  <div class="focus" id="focus-chips" role="group" aria-label="Focus the CV on a topic">
-    <span class="q" id="focus-q"></span>
-    <button class="chip" data-f="all" aria-pressed="true">Everything</button>
-    <button class="chip" data-f="ml" aria-pressed="false">Machine learning</button>
-    <button class="chip" data-f="health" aria-pressed="false">Healthcare AI</button>
-    <button class="chip" data-f="data" aria-pressed="false">Data engineering</button>
-    <button class="chip" data-f="swe" aria-pressed="false">Software engineering</button>
-  </div>
 
   <section class="chap stmt" id="about" aria-label="In one sentence">
     <div class="stmt-pin"><p class="stmt-text" id="stmt">I build machine learning systems. For the real world.</p></div>
@@ -125,12 +111,12 @@
         <li data-w="1,1,0.2,0.3,0">Research assistant on the lab's project: self-supervised <strong>LeJEPA</strong> representations of 3D MRI that learn to predict contrast enhancement, so that fewer scans need a gadolinium injection.</li>
       </ul>
           <div class="try" data-auto="jepa">
-            <p class="try-h"><span class="t">Try it: hide part of a scan, predict the rest</span><span class="auto" data-auto-badge>Runs on its own</span></p>
-<div class="exp">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: hide part of a scan, predict the rest</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
         <p class="what">The lab's idea in one picture: hide part of a scan, learn to predict the hidden part from what is visible.</p>        <svg id="jepa-svg" role="img" aria-label="Masked prediction demo"></svg>
         <div class="row"><label>Training <input type="range" id="jepa-prog" min="0" max="1" step="0.02" value="0"><output id="jepa-val">0%</output></label></div>
         <div class="out" id="jepa-out"></div>
-      </div>
+      </div></div>
           </div>
         </div>
       </article>
@@ -145,12 +131,12 @@
         <li data-w="0.8,1,0.6,0.2,0.3">Found five concept-mapping issues in the OMOP layer, including the heart-rate-variability mix-up (SDNN vs RMSSD) that became my semantic-drift research question.</li>
       </ul>
           <div class="try" data-auto="vol">
-            <p class="try-h"><span class="t">Try it: why the archive needs a daily derivation step</span><span class="auto" data-auto-badge>Runs on its own</span></p>
-<div class="exp">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: why the archive needs a daily derivation step</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
         <p class="what">Why the archive needs a daily derivation step: raw wearable data is enormous.</p>        <div class="row"><label>Patients <input type="range" id="vol-n" min="2" max="5" step="0.05" value="3"><output id="vol-val">1,000</output></label></div>
         <svg id="vol-svg" role="img" aria-label="Rows per year: raw vs daily"></svg>
         <div class="out" id="vol-out"></div>
-      </div>
+      </div></div>
           </div>
         </div>
       </article>
@@ -164,8 +150,8 @@
         <li data-w="1,1,0.1,0.3,0.2">Personalises cardiovascular adherence interventions while only ever choosing from a clinician-approved set. <span class="st live"><i class="blip" aria-hidden="true"></i>Accepted poster, <a href="https://amia.org/education-events/amia-2026-annual-symposium" target="_blank" rel="noopener">AMIA 2026 Annual Symposium</a> · Dallas · Nov 9</span></li>
       </ul>
           <div class="try" data-auto="bandit">
-            <p class="try-h"><span class="t">Try it: let the system learn which option keeps patients on their medication</span><span class="auto" data-auto-badge>Runs on its own</span></p>
-<div class="exp">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: let the system learn which option keeps patients on their medication</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
         <p class="what">Tick what the clinician allows, then let the system learn which option keeps patients on their medication.</p>        <div class="row" id="bandit-ok">
           <label class="check"><input type="checkbox" data-i="0" checked>SMS reminder</label>
           <label class="check"><input type="checkbox" data-i="1" checked>Pharmacist call</label>
@@ -176,7 +162,7 @@
         </div>
         <svg id="bandit-svg" role="img" aria-label="Estimated adherence per option"></svg>
         <div class="out" id="bandit-out"></div>
-      </div>
+      </div></div>
           </div>
         </div>
       </article>
@@ -201,13 +187,13 @@
         <li data-w="0.8,0.9,0,0,0.2">First-author systematic review of automated mitotic-figure detection in breast histopathology · <a href="https://manipal.edu/msis.html" target="_blank" rel="noopener">Manipal School of Information Sciences</a>. <span class="st">Manuscript ready for submission</span></li>
       </ul>
           <div class="try" data-auto="metrics">
-            <p class="try-h"><span class="t">Try it: why accuracy lies</span><span class="auto" data-auto-badge>Runs on its own</span></p>
-<div class="exp">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: why accuracy lies</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
         <p class="what">Move the decision threshold: accuracy barely changes while the share of depressed patients actually found collapses.</p>        <svg id="metrics-svg" role="img" aria-label="Score distributions and threshold"></svg>
         <div class="row"><label>Threshold <input type="range" id="m-thr" min="0.1" max="0.9" step="0.01" value="0.78"></label></div>
         <div class="row"><span class="ro">Accuracy<b id="m-acc">–</b></span><span class="ro" id="m-rec-ro">Depressed found<b id="m-rec">–</b></span></div>
         <div class="out" id="metrics-out"></div>
-      </div>
+      </div></div>
           </div>
         </div>
       </article>
@@ -229,12 +215,12 @@
           <div class="logos"><span class="logo"><img src="assets/logos/honeywell.svg" alt="Honeywell"></span></div>
 <ul class="lines"><li data-w="0.4,0,1,0.6,1">Promoted from Data Validation Engineer to Tech Lead in May 2026; led five engineers on pipeline design, test strategy and release readiness for two enterprise platforms.</li><li data-w="0.2,0,1,0.5,0.3">Built Snowflake and dbt validation frameworks that catch schema drift, silent corruption and data leakage before release; validated GenAI data migrations with integrity checks, coverage analysis and root-cause analysis.</li><li data-w="0,0,0.9,0.4,0.2">Automated warehouse log ingestion and validation across platforms, with health metrics reported in Power BI.</li></ul>
           <div class="try" data-auto="drift">
-            <p class="try-h"><span class="t">Try it: silent corruption and the checks that catch it</span><span class="auto" data-auto-badge>Runs on its own</span></p>
-<div class="exp">
+            <button class="try-h" type="button" aria-expanded="false"><span class="t">Visualize it: silent corruption and the checks that catch it</span><span class="auto" data-auto-badge></span><svg class="try-c" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div class="try-b"><div class="exp">
         <p class="what">Pick what goes wrong in today's data and see which check catches it.</p>        <div class="row"><div class="seg" id="drift-mode" role="group" aria-label="Failure"><button data-v="none" aria-pressed="true">Healthy</button><button data-v="unit" aria-pressed="false">Units ×1000</button><button data-v="null" aria-pressed="false">Null spike</button><button data-v="shift" aria-pressed="false">Quiet drift</button></div></div>
         <div class="two"><svg id="drift-svg" role="img" aria-label="Last month vs today"></svg><div class="checks" id="drift-checks"></div></div>
         <div class="out" id="drift-out"></div>
-      </div>
+      </div></div>
           </div>
         </div>
       </article>

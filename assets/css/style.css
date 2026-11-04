@@ -69,7 +69,8 @@ html.tldr-open { overflow: hidden; }
 @keyframes popin { 0% { transform: scale(1); } 35% { transform: scale(1.14); } 70% { transform: scale(.96); } 100% { transform: scale(1); } }
 
 /* ── The dock: a floating frosted pill. The field drifts under it instead of being cut by a bar. Scrolled, the name folds away and the mark stays ── */
-.dock { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; align-items: center; gap: 1.1rem; height: 48px; max-width: calc(100% - 24px); padding: 0 8px 0 14px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 76%, transparent); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--ink) 10%, transparent), 0 10px 34px rgba(20, 20, 20, .09), 0 1px 2px rgba(20, 20, 20, .04); transition: box-shadow .3s, background .3s; }
+.dock { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); transform-origin: 50% 0; z-index: 40; display: flex; align-items: center; gap: 1.1rem; height: 48px; max-width: calc(100% - 24px); padding: 0 8px 0 14px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 76%, transparent); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--ink) 10%, transparent), 0 10px 34px rgba(20, 20, 20, .09), 0 1px 2px rgba(20, 20, 20, .04); transition: box-shadow .3s, background .3s, transform .45s var(--drawer); }
+html.scrolled .dock { transform: translateX(-50%) scale(.94); }
 :root[data-theme="dark"] .dock { background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .09), 0 10px 34px rgba(0, 0, 0, .45); }
 .brand { display: inline-flex; align-items: center; gap: .55rem; font-weight: 600; font-size: 1.02rem; color: var(--ink); letter-spacing: -.01em; white-space: nowrap; }
 .brand .mark { width: 32px; height: 23px; flex: none; transition: opacity .2s; }
@@ -82,31 +83,23 @@ html.scrolled .brand-name { max-width: 0; opacity: 0; }
 .nav a:hover, .nav a.on { color: var(--ink); }
 .nav a.on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
 .dock-r { display: flex; align-items: center; gap: .4rem; }
-/* the fun-mode switch: a small pixel figure. It noodles while it waits, says so in a pixel speech bubble, then asks you to scroll;
-   bring the cursor near and its arms reach for it; switched on, it holds its arms up and the network is yours to ride */
+/* the fun-mode switch: four tiny neurons squished together, fidgeting nervously. Pressed, they leave the dock and fly into the
+   network on the canvas; four faint rings keep their place until they come back */
 .mascot { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 34px; border-radius: 12px; transition: background .2s, transform .16s var(--out); }
 .mascot:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
-.clawd { width: 32px; height: 27px; overflow: visible; display: block; }
-.cl-body, .cl-arm rect { fill: #d97757; }
-.cl-eye, .cl-leg { fill: #1a1a1a; }
-.cl-eye { transform-box: fill-box; transform-origin: center; animation: blink 4.6s infinite; }
-.cl-arm { transition: transform .32s var(--out); }
-.cl-arm.l { transform: translate(4px, 10px) rotate(28deg); } .cl-arm.r { transform: translate(20px, 10px) rotate(-28deg); }
-.cl-all { transform-origin: 12px 18px; }
-.mascot.noodle .cl-all { animation: noodle 1.5s ease-in-out infinite; }
-.mascot[aria-checked="true"] .cl-arm.l { transform: translate(4px, 10px) rotate(75deg); }
-.mascot[aria-checked="true"] .cl-arm.r { transform: translate(20px, 10px) rotate(-75deg); }
-.mascot[aria-checked="true"] .cl-all { animation: hop 2.4s ease-in-out infinite; }
-@keyframes noodle { 0%, 100% { transform: rotate(0); } 25% { transform: translateY(-1px) rotate(-4deg); } 75% { transform: translateY(0) rotate(4deg); } }
-@keyframes hop { 0%, 80%, 100% { transform: translateY(0); } 90% { transform: translateY(-2px); } }
-@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.15); } }
-/* the bubble: a pixel cartoon's, with a stepped tail, growing out of the figure */
-.bubble { position: absolute; top: calc(100% + 10px); left: 50%; z-index: 1; padding: .32rem .55rem .3rem; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font: 600 11px/1.2 ui-monospace, Menlo, monospace; white-space: nowrap; box-shadow: 3px 3px 0 var(--ink); opacity: 0; visibility: hidden; transform: translate(-50%, -4px) scale(.9); transform-origin: 50% 0; transition: opacity .22s var(--out), transform .22s var(--out), visibility 0s .22s; pointer-events: none; }
-.bubble.on { opacity: 1; visibility: visible; transform: translate(-50%, 0) scale(1); transition-delay: 0s; }
-.bubble::before, .bubble::after { content: ''; position: absolute; left: calc(50% - 6px); width: 12px; height: 8px; clip-path: polygon(0 100%, 100% 100%, 100% 75%, 83% 75%, 83% 50%, 66% 50%, 66% 25%, 50% 25%, 50% 50%, 33% 50%, 33% 75%, 17% 75%, 17% 100%); }
-.bubble::before { top: -10px; background: var(--ink); }
-.bubble::after { top: -8px; background: var(--surface); clip-path: polygon(17% 100%, 83% 100%, 83% 75%, 66% 75%, 66% 50%, 50% 50%, 50% 75%, 33% 75%, 33% 100%); }
-.bubble.say { transform: translate(-50%, 0) scale(1); }
+.nbs { width: 30px; height: 24px; overflow: visible; display: block; }
+.nb-str { fill: none; stroke: var(--dim); stroke-width: .9; opacity: .8; transition: opacity .3s; }
+.nb-ring { fill: none; stroke: var(--dim); stroke-width: .8; stroke-dasharray: 1.6 1.6; opacity: 0; transition: opacity .3s .25s; }
+.nb { fill: color-mix(in srgb, var(--accent) 28%, var(--surface)); stroke: var(--accent); stroke-width: 1; transform-box: fill-box; transform-origin: center; transition: opacity .3s var(--out), transform .4s var(--out); }
+.nb.n1 { animation: fidget1 .9s linear infinite; } .nb.n2 { animation: fidget2 1.1s linear infinite; } .nb.n3 { animation: fidget3 .8s linear infinite; } .nb.n4 { animation: fidget4 1.3s linear infinite; }
+@media (hover: hover) and (pointer: fine) { .mascot:hover .nbs { transform: scale(1.08); } .nbs { transition: transform .25s var(--out); } }
+.mascot[aria-checked="true"] .nb { opacity: 0; transform: scale(.3); }
+.mascot[aria-checked="true"] .nb-str { opacity: 0; transition-delay: 0s; }
+.mascot[aria-checked="true"] .nb-ring { opacity: .7; }
+@keyframes fidget1 { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(.5px, -.4px); } 45% { transform: translate(-.4px, .3px); } 70% { transform: translate(.3px, .5px); } }
+@keyframes fidget2 { 0%, 100% { transform: translate(0, 0); } 30% { transform: translate(-.5px, .3px); } 55% { transform: translate(.4px, -.4px); } 80% { transform: translate(-.2px, -.5px); } }
+@keyframes fidget3 { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(.4px, .4px); } 50% { transform: translate(-.5px, -.2px); } 75% { transform: translate(.2px, -.5px); } }
+@keyframes fidget4 { 0%, 100% { transform: translate(0, 0); } 35% { transform: translate(-.3px, -.5px); } 60% { transform: translate(.5px, .2px); } 85% { transform: translate(-.4px, .4px); } }
 .top-right { display: flex; align-items: center; gap: .5rem; }
 .icon-btn { width: 36px; height: 36px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); transition: color .2s, background .2s; }
 .icon-btn:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent); }
@@ -135,8 +128,8 @@ html.ready .hero-l > *, html.ready .hero-r > * { opacity: 1; transform: none; }
 html.ready .hero-l > :nth-child(2) { transition-delay: .06s } html.ready .hero-l > :nth-child(3) { transition-delay: .12s } html.ready .hero-l > :nth-child(4) { transition-delay: .18s } html.ready .hero-l > :nth-child(5) { transition-delay: .24s }
 html.ready .hero-r > :nth-child(1) { transition-delay: .3s } html.ready .hero-r > :nth-child(2) { transition-delay: .38s } html.ready .hero-r > :nth-child(3) { transition-delay: .44s } html.ready .hero-r > :nth-child(4) { transition-delay: .5s }
 .hero .hi { font-size: clamp(1.3rem, 2vw, 1.7rem); font-weight: 600; color: var(--ink); height: 1.3em; line-height: 1.3; margin-bottom: .3rem; }
-.hero .hi .w { color: var(--accent); }
-.hero .hi .w { display: inline-block; transition: opacity .32s ease, transform .32s ease; }
+.hero .hi .w { color: var(--accent); display: inline-flex; justify-content: flex-end; width: 5em; white-space: nowrap; }
+.hero .hi .w { transition: opacity .32s ease, transform .32s ease; }
 .hero .hi .w::after { content: ','; }
 .hero .hi .w.swap { opacity: 0; transform: translateY(.3em); }
 .hero h1 { font-size: clamp(2.8rem, 7vw, 5.6rem); line-height: 1; letter-spacing: -.045em; margin-bottom: 1.1rem; }
@@ -238,13 +231,6 @@ html[data-mode="normal"] #journey { display: none; }
 /* ── The page, Apple-style: chapters, one idea per screen. The lens under the hero, a statement that lights up as you scroll,
    two pinned stages whose rows open one after another with the scroll while the matching card crossfades in beside them,
    and three chapters of cards. ── */
-.focus { max-width: var(--maxw); margin: -2.5rem auto 0; padding: 0 var(--gutter); display: flex; align-items: center; justify-content: center; gap: .25rem; flex-wrap: wrap; }
-.focus .q { font-size: .84rem; color: var(--muted); margin-right: .4rem; white-space: nowrap; }
-.focus .q:empty { display: none; }
-.focus .q.set { color: var(--accent); }
-.chip { font-size: .84rem; padding: .4rem .8rem; border-radius: 999px; color: var(--muted); border: 1px solid transparent; white-space: nowrap; transition: color .2s, border-color .2s, background .2s; }
-.chip:hover { color: var(--ink); }
-.chip[aria-pressed="true"] { color: var(--ink); border-color: var(--line-2); background: color-mix(in srgb, var(--surface) 80%, transparent); }
 .chap { position: relative; z-index: 1; padding: clamp(5rem, 12vh, 9rem) var(--gutter); scroll-margin-top: 10px; }
 .sec-head { text-align: center; max-width: 44rem; margin: 0 auto clamp(2rem, 5vh, 3.5rem); }
 .sec-head .num { display: none; }
@@ -265,6 +251,11 @@ html[data-mode="normal"] #journey { display: none; }
 .stage-cards { grid-column: 2; grid-row: 1 / 3; display: grid; min-width: 0; align-self: center; }
 .scard { grid-area: 1 / 1; align-self: center; border-radius: 26px; padding: clamp(1.1rem, 2vw, 1.5rem); max-height: calc(100vh - var(--head) - 3.5rem); overflow: auto; scrollbar-width: thin; opacity: 0; visibility: hidden; transform: translateY(14px) scale(.985); pointer-events: none; transition: opacity .4s var(--out), transform .5s var(--out), visibility 0s .4s; will-change: transform, opacity; }
 .scard.on { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition-delay: 0s; }
+.scard.slim { text-align: center; padding: clamp(1.6rem, 3vw, 2.4rem) clamp(1.4rem, 3vw, 2.6rem); }
+.scard.slim .logos { justify-content: center; margin-bottom: 1.1rem; }
+.scard.slim .lines { margin: 0; gap: 0; }
+.scard.slim .lines li { padding-left: 0; font-size: 1.12rem; line-height: 1.5; color: var(--ink); max-width: 32rem; margin: 0 auto; }
+.scard.slim .lines li::before { display: none; }
 .scard .logos { margin: 0 0 .9rem; }
 .scard .lines { margin-bottom: .9rem; }
 .scard .try { margin-top: 0; }
@@ -362,13 +353,20 @@ html.ready[data-mode="normal"] .rv.in { opacity: 1; transform: none; }
 
 /* the experiments */
 .try { margin-top: 1rem; border-radius: 16px; background: color-mix(in srgb, var(--surface-2) 70%, var(--surface)); min-width: 0; }
-.try-h { display: flex; align-items: center; gap: .6rem; padding: .75rem 1rem .6rem; font-size: .9rem; font-weight: 500; color: var(--ink); line-height: 1.3; }
+.try-h { display: flex; align-items: center; gap: .6rem; width: 100%; padding: .75rem 1rem; font-size: .9rem; font-weight: 500; color: var(--ink); line-height: 1.3; text-align: left; border-radius: 16px; transition: background .2s; }
+@media (hover: hover) and (pointer: fine) { .try:not(.open) .try-h:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); } }
+.try-c { flex: none; width: 14px; height: 14px; color: var(--muted); transition: transform .4s var(--drawer); }
+.try.open .try-c { transform: rotate(180deg); }
+.try-b { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .5s var(--drawer); }
+.try.open .try-b { grid-template-rows: 1fr; }
+.try-b > .exp { min-height: 0; overflow: hidden; padding: 0 1rem; transition: padding-bottom .5s var(--drawer); }
+.try.open .try-b > .exp { padding-bottom: 1rem; }
 .try-h::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); animation: ask 2.2s ease-out infinite; }
-.try.played .try-h::before { animation: none; box-shadow: none; }
+.try.open .try-h::before, .try.played .try-h::before { animation: none; box-shadow: none; }
 .try-h .t { flex: 1 1 0; min-width: 0; }
 @keyframes ask { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); } 70% { box-shadow: 0 0 0 9px transparent; } 100% { box-shadow: 0 0 0 9px transparent; } }
-.try .exp { padding: 0 1rem 1rem; }
-.exp .what { font-size: .86rem; color: var(--muted); margin-bottom: .6rem; }
+.exp .what { font-size: .86rem; color: var(--muted); margin: .1rem 0 .6rem; }
+.auto:empty { display: none; }
 .auto { flex: none; margin-left: auto; font-size: .76rem; color: var(--accent); font-weight: 500; display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; transition: color .3s; }
 .auto::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 1s infinite; transition: background .3s; }
 .try.played .auto::before { animation: none; opacity: .9; }
@@ -406,7 +404,7 @@ html.ready[data-mode="normal"] .rv.in { opacity: 1; transform: none; }
 #jepa-svg { max-width: 430px; } #bandit-svg { max-width: 560px; } #vol-svg { max-width: 560px; } #metrics-svg { max-width: 520px; } #drift-svg { max-height: 110px; }
 .btn.sm.primary { background: var(--ink); color: var(--bg); }
 
-@media (prefers-reduced-motion: reduce) { .try-h::before, .auto::before { animation: none; } .mascot .cl-all, .cl-eye { animation: none !important; } .cl-arm { transition: none; } .bubble { transition: opacity .2s; transform: translate(-50%, 0); } html.ready[data-mode="normal"] .rv { opacity: 1; transform: none; transition: none; } #statement .w, .stmt-text .w { opacity: 1 !important; transform: none !important; } .blip::after { animation: none; } .beacon .pulse::before, .beacon .pulse::after { animation: none; } .hero-copy > * { opacity: 1 !important; transform: none !important; transition: none !important; } .scard { transition: opacity .3s; transform: none; } html[data-mode="normal"] .jrow-body { transition: none; } .exp svg .tr { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .try-h::before, .auto::before { animation: none; } .nb { animation: none !important; } html.scrolled .dock { transform: translateX(-50%); } .try-b, .try-b > .exp { transition: none; } html.ready[data-mode="normal"] .rv { opacity: 1; transform: none; transition: none; } #statement .w, .stmt-text .w { opacity: 1 !important; transform: none !important; } .blip::after { animation: none; } .beacon .pulse::before, .beacon .pulse::after { animation: none; } .hero-copy > * { opacity: 1 !important; transform: none !important; transition: none !important; } .scard { transition: opacity .3s; transform: none; } html[data-mode="normal"] .jrow-body { transition: none; } .exp svg .tr { transition: none; } }
 
 /* short screens: the pinned stage keeps all its rows in view */
 @media (min-width: 900px) and (max-height: 780px) {
@@ -418,7 +416,7 @@ html.ready[data-mode="normal"] .rv.in { opacity: 1; transform: none; }
   .stage .jrow-body > .entry { padding-bottom: .6rem; }
   .scard { max-height: calc(100vh - var(--head) - 1.75rem); padding: 1rem 1.1rem; }
   .scard .lines li { font-size: .92rem; } .scard .lines { gap: .4rem; margin-bottom: .7rem; } .scard .logos { margin-bottom: .6rem; } .logo { height: 24px; }
-  .exp .what { font-size: .82rem; margin-bottom: .4rem; } .try-h { padding: .6rem .9rem .4rem; font-size: .86rem; } .try .exp { padding: 0 .9rem .8rem; } .exp .out { font-size: .82rem; margin-top: .5rem; }
+  .exp .what { font-size: .82rem; margin-bottom: .4rem; } .try-h { padding: .6rem .9rem; font-size: .86rem; } .exp .out { font-size: .82rem; margin-top: .5rem; }
 }
 
 /* ── Mobile ── */
@@ -451,9 +449,6 @@ html.ready[data-mode="normal"] .rv.in { opacity: 1; transform: none; }
   #statement { top: auto; bottom: 14%; transform: translate(-50%, 0); font-size: 1.45rem; text-align: left; }
   #laytitle { top: auto; bottom: 22%; transform: translate(-50%, 0); }
   #secbar, #rail { display: flex; }
-  .focus { margin-top: -1.5rem; gap: .1rem; }
-  .focus .q { display: none; }
-  .focus .q.set { display: inline; }
   .chap { padding: 4rem var(--gutter); }
   .stmt { height: 150vh; }
   .stmt-pin { padding-top: var(--head); }
@@ -470,7 +465,7 @@ html.ready[data-mode="normal"] .rv.in { opacity: 1; transform: none; }
   .jrow.card .jrow-body > .entry { padding: 0 .8rem .9rem; }
   .jrow.toggle .jrow-body > .entry { padding: 0; } .jrow.toggle .e-rest { padding: 0 .8rem .9rem; }
   .grid .sec-body > .jrow { max-width: none; flex-basis: 100%; }
-  .mascot { width: 38px; height: 32px; } .clawd { width: 28px; height: 24px; }
+  .mascot { width: 38px; height: 32px; } .nbs { width: 27px; height: 22px; }
   .hero .hi { font-size: 1.25rem; }
   .two { grid-template-columns: 1fr; }
   .entry h3.big { font-size: 1.6rem; }
