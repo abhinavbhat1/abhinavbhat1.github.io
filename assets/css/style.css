@@ -68,32 +68,45 @@ html.tldr-open { overflow: hidden; }
 #tldr-toggle.bounce { animation: popin .45s ease-out; }
 @keyframes popin { 0% { transform: scale(1); } 35% { transform: scale(1.14); } 70% { transform: scale(.96); } 100% { transform: scale(1); } }
 
-/* ── The dock: a floating frosted pill. The field drifts under it instead of being cut by a bar ── */
+/* ── The dock: a floating frosted pill. The field drifts under it instead of being cut by a bar. Scrolled, the name folds away and the mark stays ── */
 .dock { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; align-items: center; gap: 1.1rem; height: 48px; max-width: calc(100% - 24px); padding: 0 8px 0 14px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 76%, transparent); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--ink) 10%, transparent), 0 10px 34px rgba(20, 20, 20, .09), 0 1px 2px rgba(20, 20, 20, .04); transition: box-shadow .3s, background .3s; }
 :root[data-theme="dark"] .dock { background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .09), 0 10px 34px rgba(0, 0, 0, .45); }
 .brand { display: inline-flex; align-items: center; gap: .55rem; font-weight: 600; font-size: 1.02rem; color: var(--ink); letter-spacing: -.01em; white-space: nowrap; }
 .brand .mark { width: 32px; height: 23px; flex: none; transition: opacity .2s; }
-.brand-name { display: inline-block; white-space: nowrap; vertical-align: middle; }
+.brand-name { display: inline-block; max-width: 9em; overflow: hidden; white-space: nowrap; vertical-align: middle; transition: max-width .45s var(--drawer), opacity .3s; }
+html.scrolled .brand-name { max-width: 0; opacity: 0; }
+.brand .mark { transition: transform .16s var(--out); }
+.brand:active .mark { transform: scale(.88); }
 .nav { display: flex; gap: 1.1rem; }
 .nav a { font-size: .86rem; color: var(--muted); position: relative; padding: .35rem .1rem; transition: color .2s; }
 .nav a:hover, .nav a.on { color: var(--ink); }
 .nav a.on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
 .dock-r { display: flex; align-items: center; gap: .4rem; }
-/* the fun-mode switch: a four-bead network. Off, a grey bead rests at the input; on, it rides the strings to the output, the
-   network lights up and a pulse keeps running through it */
-.mlp-sw { display: inline-flex; align-items: center; width: 56px; height: 32px; padding: 3px 4px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 6%, transparent); transition: background .25s; }
-.mlp-sw:hover { background: color-mix(in srgb, var(--ink) 11%, transparent); }
-.mlp-sw svg { width: 100%; height: 100%; overflow: visible; }
-.sw-str { fill: none; stroke: var(--dim); stroke-width: 1.1; stroke-linecap: round; transition: stroke .3s; }
-.sw-b { fill: var(--surface); stroke: var(--dim); stroke-width: 1; transition: fill .3s, stroke .3s; }
-.sw-knob { fill: var(--muted); transition: transform .45s var(--drawer), fill .3s; }
-.mlp-sw[aria-checked="true"] { background: color-mix(in srgb, var(--accent) 16%, transparent); }
-.mlp-sw[aria-checked="true"] .sw-str { stroke: var(--accent); stroke-dasharray: 3 11; animation: swpulse 1.6s linear infinite; }
-.mlp-sw[aria-checked="true"] .sw-b { fill: color-mix(in srgb, var(--accent) 30%, var(--surface)); stroke: var(--accent); }
-.mlp-sw[aria-checked="true"] .sw-knob { transform: translateX(26px); fill: var(--accent); }
-@keyframes swpulse { to { stroke-dashoffset: -14; } }
-.linkish .arrow { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; margin-left: .2rem; transition: transform .25s var(--out); }
-@media (hover: hover) and (pointer: fine) { .linkish:hover .arrow { transform: translateX(3px); } }
+/* the fun-mode switch: a small pixel figure. It noodles while it waits, says so in a pixel speech bubble, then asks you to scroll;
+   bring the cursor near and its arms reach for it; switched on, it holds its arms up and the network is yours to ride */
+.mascot { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 34px; border-radius: 12px; transition: background .2s, transform .16s var(--out); }
+.mascot:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.clawd { width: 32px; height: 27px; overflow: visible; display: block; }
+.cl-body, .cl-arm rect { fill: #d97757; }
+.cl-eye, .cl-leg { fill: #1a1a1a; }
+.cl-eye { transform-box: fill-box; transform-origin: center; animation: blink 4.6s infinite; }
+.cl-arm { transition: transform .32s var(--out); }
+.cl-arm.l { transform: translate(4px, 10px) rotate(28deg); } .cl-arm.r { transform: translate(20px, 10px) rotate(-28deg); }
+.cl-all { transform-origin: 12px 18px; }
+.mascot.noodle .cl-all { animation: noodle 1.5s ease-in-out infinite; }
+.mascot[aria-checked="true"] .cl-arm.l { transform: translate(4px, 10px) rotate(75deg); }
+.mascot[aria-checked="true"] .cl-arm.r { transform: translate(20px, 10px) rotate(-75deg); }
+.mascot[aria-checked="true"] .cl-all { animation: hop 2.4s ease-in-out infinite; }
+@keyframes noodle { 0%, 100% { transform: rotate(0); } 25% { transform: translateY(-1px) rotate(-4deg); } 75% { transform: translateY(0) rotate(4deg); } }
+@keyframes hop { 0%, 80%, 100% { transform: translateY(0); } 90% { transform: translateY(-2px); } }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.15); } }
+/* the bubble: a pixel cartoon's, with a stepped tail, growing out of the figure */
+.bubble { position: absolute; top: calc(100% + 10px); left: 50%; z-index: 1; padding: .32rem .55rem .3rem; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font: 600 11px/1.2 ui-monospace, Menlo, monospace; white-space: nowrap; box-shadow: 3px 3px 0 var(--ink); opacity: 0; visibility: hidden; transform: translate(-50%, -4px) scale(.9); transform-origin: 50% 0; transition: opacity .22s var(--out), transform .22s var(--out), visibility 0s .22s; pointer-events: none; }
+.bubble.on { opacity: 1; visibility: visible; transform: translate(-50%, 0) scale(1); transition-delay: 0s; }
+.bubble::before, .bubble::after { content: ''; position: absolute; left: calc(50% - 6px); width: 12px; height: 8px; clip-path: polygon(0 100%, 100% 100%, 100% 75%, 83% 75%, 83% 50%, 66% 50%, 66% 25%, 50% 25%, 50% 50%, 33% 50%, 33% 75%, 17% 75%, 17% 100%); }
+.bubble::before { top: -10px; background: var(--ink); }
+.bubble::after { top: -8px; background: var(--surface); clip-path: polygon(17% 100%, 83% 100%, 83% 75%, 66% 75%, 66% 50%, 50% 50%, 50% 75%, 33% 75%, 33% 100%); }
+.bubble.say { transform: translate(-50%, 0) scale(1); }
 .top-right { display: flex; align-items: center; gap: .5rem; }
 .icon-btn { width: 36px; height: 36px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); transition: color .2s, background .2s; }
 .icon-btn:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent); }
@@ -111,7 +124,6 @@ html.tldr-open { overflow: hidden; }
 .dock .btn.sm:hover { background: color-mix(in srgb, var(--ink) 12%, transparent); }
 .linkish { color: var(--accent); font-size: .9rem; }
 .linkish:hover { color: var(--accent-2); }
-.to-normal { display: none; } html[data-mode="fun"] .to-fun { display: none; } html[data-mode="fun"] .to-normal { display: inline; }
 
 /* ── Hero: centred. A greeting that keeps changing, the name very large, what and where, what is sought, the links; then the
    portrait, the latest, and the topics. In fun mode it is fixed and balls up into a bead on the first scroll. ── */
@@ -122,7 +134,8 @@ html.tldr-open { overflow: hidden; }
 html.ready .hero-l > *, html.ready .hero-r > * { opacity: 1; transform: none; }
 html.ready .hero-l > :nth-child(2) { transition-delay: .06s } html.ready .hero-l > :nth-child(3) { transition-delay: .12s } html.ready .hero-l > :nth-child(4) { transition-delay: .18s } html.ready .hero-l > :nth-child(5) { transition-delay: .24s }
 html.ready .hero-r > :nth-child(1) { transition-delay: .3s } html.ready .hero-r > :nth-child(2) { transition-delay: .38s } html.ready .hero-r > :nth-child(3) { transition-delay: .44s } html.ready .hero-r > :nth-child(4) { transition-delay: .5s }
-.hero .hi { font-size: clamp(1.1rem, 1.6vw, 1.35rem); font-weight: 600; color: var(--accent); height: 1.3em; line-height: 1.3; margin-bottom: .2rem; }
+.hero .hi { font-size: clamp(1.3rem, 2vw, 1.7rem); font-weight: 600; color: var(--ink); height: 1.3em; line-height: 1.3; margin-bottom: .3rem; }
+.hero .hi .w { color: var(--accent); }
 .hero .hi .w { display: inline-block; transition: opacity .32s ease, transform .32s ease; }
 .hero .hi .w::after { content: ','; }
 .hero .hi .w.swap { opacity: 0; transform: translateY(.3em); }
@@ -145,7 +158,6 @@ html.ready .hero-r > :nth-child(1) { transition-delay: .3s } html.ready .hero-r 
 .beacon .pulse::before, .beacon .pulse::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--accent); animation: beacon 2.4s ease-out infinite; }
 .beacon .pulse::after { animation-delay: 1.2s; }
 @keyframes beacon { 0% { transform: scale(.45); opacity: .95; } 100% { transform: scale(2.6); opacity: 0; } }
-.fun-hint { margin-top: 1.1rem; }
 .kicker { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.1rem; }
 
 /* ── Liquid glass: the link buttons, the beacon, the topic chips and the TL;DR sheet. Not frosted: the page behind is bent at
@@ -178,7 +190,6 @@ html[data-mode="fun"] .hero-copy { pointer-events: none; will-change: opacity, t
 html[data-mode="fun"] .hero-copy a, html[data-mode="fun"] .hero-copy button { pointer-events: auto; }
 html[data-mode="fun"] .hero-copy .topics li { pointer-events: none; }
 html[data-mode="normal"] #journey { display: none; }
-html[data-mode="fun"] .fun-hint { display: block; }
 #spacer { width: 1px; }
 #cards { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
 /* ── The accordion: one panel per layer, docked on the right of the network (below the band on phones). One row per neuron; the
@@ -229,6 +240,7 @@ html[data-mode="fun"] .fun-hint { display: block; }
    and three chapters of cards. ── */
 .focus { max-width: var(--maxw); margin: -2.5rem auto 0; padding: 0 var(--gutter); display: flex; align-items: center; justify-content: center; gap: .25rem; flex-wrap: wrap; }
 .focus .q { font-size: .84rem; color: var(--muted); margin-right: .4rem; white-space: nowrap; }
+.focus .q:empty { display: none; }
 .focus .q.set { color: var(--accent); }
 .chip { font-size: .84rem; padding: .4rem .8rem; border-radius: 999px; color: var(--muted); border: 1px solid transparent; white-space: nowrap; transition: color .2s, border-color .2s, background .2s; }
 .chip:hover { color: var(--ink); }
@@ -250,8 +262,8 @@ html[data-mode="fun"] .fun-hint { display: block; }
 .stage .sec-head h2 { font-size: clamp(2.2rem, 3.8vw, 3.4rem); }
 .stage .sec-head .sub { font-size: 1.02rem; margin-top: .4rem; max-width: 24rem; }
 .stage .sec-body { grid-column: 1; min-width: 0; align-self: start; }
-.stage-cards { grid-column: 2; grid-row: 1 / 3; display: grid; min-width: 0; align-self: start; }
-.scard { grid-area: 1 / 1; align-self: start; border-radius: 26px; padding: clamp(1.1rem, 2vw, 1.5rem); max-height: calc(100vh - var(--head) - 3.5rem); overflow: auto; scrollbar-width: thin; opacity: 0; visibility: hidden; transform: translateY(14px) scale(.985); pointer-events: none; transition: opacity .4s var(--out), transform .5s var(--out), visibility 0s .4s; will-change: transform, opacity; }
+.stage-cards { grid-column: 2; grid-row: 1 / 3; display: grid; min-width: 0; align-self: center; }
+.scard { grid-area: 1 / 1; align-self: center; border-radius: 26px; padding: clamp(1.1rem, 2vw, 1.5rem); max-height: calc(100vh - var(--head) - 3.5rem); overflow: auto; scrollbar-width: thin; opacity: 0; visibility: hidden; transform: translateY(14px) scale(.985); pointer-events: none; transition: opacity .4s var(--out), transform .5s var(--out), visibility 0s .4s; will-change: transform, opacity; }
 .scard.on { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition-delay: 0s; }
 .scard .logos { margin: 0 0 .9rem; }
 .scard .lines { margin-bottom: .9rem; }
@@ -266,18 +278,37 @@ html[data-mode="fun"] .fun-hint { display: block; }
 .stage .e-top .org { margin-bottom: 0; font-size: .92rem; }
 .stage .e-top .meta { margin-bottom: .35rem; }
 /* chapters of cards */
-.grid .sec-body { max-width: var(--maxw); margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
-.grid.one .sec-body { max-width: 760px; }
+.grid .sec-body { max-width: var(--maxw); margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 1rem; }
+.grid .sec-body > .jrow { flex: 1 1 300px; max-width: calc((100% - 2rem) / 3); }
+.grid.one .sec-body, .grid.stack .sec-body { max-width: 760px; }
+.grid.one .sec-body > .jrow, .grid.stack .sec-body > .jrow { max-width: none; flex-basis: 100%; }
+.grid.stack .e-top { display: grid; gap: .5rem; }
+.grid.stack .e-top .meta { justify-content: space-between; align-items: center; }
+.grid.stack .e-top .meta .date { font-size: .9rem; color: var(--text); }
+.grid.stack .e-top .org { margin: 0; }
+.grid.stack .entry h3 { margin-bottom: 0; }
 .grid.one .jrow-head, .grid.one .e-top .meta { display: none; }
-.jrow.static { border-radius: 24px; padding: .5rem; }
-.jrow.static .jrow-head { pointer-events: none; cursor: default; font-size: 1.15rem; font-weight: 600; padding: .9rem 1rem .3rem; align-items: flex-start; }
-.jrow.static .jrow-head .jrow-i, .jrow.static .jrow-head .jrow-c, .jrow.static .jrow-head .jrow-m { display: none; }
-.jrow.static .jrow-t { -webkit-line-clamp: 6; }
+.jrow[hidden] { display: none !important; }
+.jrow.card { border-radius: 24px; padding: .5rem; }
+.jrow.card .jrow-head { font-size: 1.15rem; font-weight: 600; padding: .9rem 1rem .3rem; align-items: flex-start; }
+.jrow.card .jrow-head .jrow-i, .jrow.card .jrow-head .jrow-m { display: none; }
+.jrow.card .jrow-t { -webkit-line-clamp: 6; }
+.jrow.card .jrow-body > .entry { padding: 0 1rem 1rem; opacity: 1; transform: none; }
+.jrow.card .e-top .meta .date { display: block; }
+.jrow.card .entry h3.big { display: block; font-size: 1.7rem; margin: .2rem 0 .6rem; }
+.jrow.card .try { margin-top: 1rem; }
+.jrow.static .jrow-head { pointer-events: none; cursor: default; }
+.jrow.static .jrow-head .jrow-c { display: none; }
 html[data-mode="normal"] .jrow.static .jrow-body { grid-template-rows: 1fr; transition: none; }
-.jrow.static .jrow-body > .entry { padding: 0 1rem 1rem; opacity: 1; transform: none; }
-.jrow.static .e-top .meta .date { display: block; }
-.jrow.static .entry h3.big { display: block; font-size: 1.7rem; margin: .2rem 0 .6rem; }
-.jrow.static .try { margin-top: 1rem; }
+/* a card that opens on a click: closed it is one line with a chevron, a tone step when open. Its padding sits inside the clipped
+   box so a closed card shows nothing, and its content fades with --open like a stage row */
+.jrow.toggle { background: color-mix(in srgb, var(--surface) 55%, transparent); transition: background-color .3s, --open .45s var(--drawer); }
+.jrow.toggle .jrow-body > .entry { padding: 0; opacity: calc(var(--open) * 1.6 - .6); transform: translateY(calc((1 - var(--open)) * 6px)); }
+.jrow.toggle .e-rest { padding: 0 1rem 1rem; }
+.jrow.toggle .jrow-head { padding: .9rem 1rem; align-items: center; }
+.jrow.toggle .jrow-head .jrow-c { display: block; margin-left: auto; color: var(--muted); }
+.jrow.toggle.open .jrow-head { padding-bottom: .3rem; }
+@media (hover: hover) and (pointer: fine) { .jrow.toggle:not(.open):hover { background: color-mix(in srgb, var(--surface) 80%, transparent); } }
 /* rows in the document: a grid-row trick for the open height, a transition on --open for the dot and the chevron */
 html[data-mode="normal"] .jrow-body { display: grid; grid-template-rows: 0fr; height: auto; transition: grid-template-rows .5s var(--drawer); }
 html[data-mode="normal"] .jrow.open .jrow-body { grid-template-rows: 1fr; }
@@ -375,7 +406,7 @@ html.ready[data-mode="normal"] .rv.in { opacity: 1; transform: none; }
 #jepa-svg { max-width: 430px; } #bandit-svg { max-width: 560px; } #vol-svg { max-width: 560px; } #metrics-svg { max-width: 520px; } #drift-svg { max-height: 110px; }
 .btn.sm.primary { background: var(--ink); color: var(--bg); }
 
-@media (prefers-reduced-motion: reduce) { .try-h::before, .auto::before { animation: none; } html.ready[data-mode="normal"] .rv { opacity: 1; transform: none; transition: none; } #statement .w, .stmt-text .w { opacity: 1 !important; transform: none !important; } .blip::after { animation: none; } .beacon .pulse::before, .beacon .pulse::after { animation: none; } .hero-copy > * { opacity: 1 !important; transform: none !important; transition: none !important; } .scard { transition: opacity .3s; transform: none; } html[data-mode="normal"] .jrow-body { transition: none; } .exp svg .tr { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .try-h::before, .auto::before { animation: none; } .mascot .cl-all, .cl-eye { animation: none !important; } .cl-arm { transition: none; } .bubble { transition: opacity .2s; transform: translate(-50%, 0); } html.ready[data-mode="normal"] .rv { opacity: 1; transform: none; transition: none; } #statement .w, .stmt-text .w { opacity: 1 !important; transform: none !important; } .blip::after { animation: none; } .beacon .pulse::before, .beacon .pulse::after { animation: none; } .hero-copy > * { opacity: 1 !important; transform: none !important; transition: none !important; } .scard { transition: opacity .3s; transform: none; } html[data-mode="normal"] .jrow-body { transition: none; } .exp svg .tr { transition: none; } }
 
 /* short screens: the pinned stage keeps all its rows in view */
 @media (min-width: 900px) and (max-height: 780px) {
@@ -433,9 +464,14 @@ html.ready[data-mode="normal"] .rv.in { opacity: 1; transform: none; }
   .stage .sec-head .sub { max-width: none; font-size: 1.05rem; }
   .stage-cards { display: none; }
   .stage .sec-body { display: grid; gap: 1rem; }
-  .jrow.static { padding: .35rem; }
-  .jrow.static .jrow-head { padding: .8rem .8rem .25rem; font-size: 1.1rem; }
-  .jrow.static .jrow-body > .entry { padding: 0 .8rem .9rem; }
+  .jrow.card { padding: .35rem; }
+  .jrow.card .jrow-head { padding: .8rem .8rem .25rem; font-size: 1.1rem; }
+  .jrow.toggle .jrow-head { padding: .8rem .8rem; }
+  .jrow.card .jrow-body > .entry { padding: 0 .8rem .9rem; }
+  .jrow.toggle .jrow-body > .entry { padding: 0; } .jrow.toggle .e-rest { padding: 0 .8rem .9rem; }
+  .grid .sec-body > .jrow { max-width: none; flex-basis: 100%; }
+  .mascot { width: 38px; height: 32px; } .clawd { width: 28px; height: 24px; }
+  .hero .hi { font-size: 1.25rem; }
   .two { grid-template-columns: 1fr; }
   .entry h3.big { font-size: 1.6rem; }
   .logo { height: 24px; } .logo img { max-width: 140px; }

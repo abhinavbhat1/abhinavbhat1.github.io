@@ -55,27 +55,39 @@
   function autoRun(c) { if (c.ran) return; c.ran = true; const d = c.rest.querySelector('.try'); if (!d) return; setTimeout(() => { if (c.el.classList.contains('open') && currentMode() === 'normal' && desk()) runExp(d, 0); }, 500); }
   function activate(L, i, run) { if (L.active !== i) { L.active = i; L.cards.forEach((c, j) => setRow(c, j === i)); } if (run && i >= 0) autoRun(L.cards[i]); }
   // where the pieces live. Fun mode: the panel rows hold everything and the heads go to the neuron. The document on a desktop: a stage
-  // row holds the top, its card the rest, and the heads scroll to the row's beat. Everywhere else (the card chapters, and every section
-  // on a phone) the rows are plain cards, all open, with static heads
+  // row holds the top, its card the rest, and the heads scroll to the row's beat. Everywhere else the rows are cards: in a `.toggle`
+  // chapter they are closed and open on a click; otherwise they are plain cards, all open, with static heads. An entry marked
+  // data-only="fun" is a neuron of the journey but not a card of the document
   let placed = '';
   function placeRows(m) { const key = m + (desk() ? ':d' : ':m'); if (key === placed) return; placed = key;
-    LAYERS.forEach(L => { const host = m === 'journey' ? L.panel : L.body; L.active = -1; const live = m === 'journey' || (L.stage && desk());
+    LAYERS.forEach(L => { const host = m === 'journey' ? L.panel : L.body; L.active = -1; const kind = m === 'journey' || (L.stage && desk()) ? 'live' : L.sec.classList.contains('toggle') ? 'toggle' : 'static'; L.kind = kind;
       L.cards.forEach(c => { if (c.el.parentElement !== host) host.appendChild(c.el); const restHost = (m === 'normal' && L.stage && desk() && c.scard) ? c.scard : c.entry; if (c.rest.parentElement !== restHost) restHost.appendChild(c.rest);
-        c.body.style.height = ''; c.b = 0; c.auto = false; setRow(c, false); c.el.classList.toggle('static', !live); c.head.tabIndex = live ? 0 : -1; });
-      if (m === 'normal') { if (live) activate(L, 0, false); else L.cards.forEach(c => setRow(c, true)); } }); }
+        c.body.style.height = ''; c.b = 0; c.auto = false; setRow(c, false); c.el.classList.toggle('card', kind !== 'live'); c.el.classList.toggle('static', kind === 'static'); c.el.classList.toggle('toggle', kind === 'toggle'); c.head.tabIndex = kind === 'static' ? -1 : 0; c.el.hidden = m === 'normal' && c.entry.dataset.only === 'fun'; });
+      if (m === 'normal') { if (kind === 'live') activate(L, 0, false); else if (kind === 'static') L.cards.forEach(c => setRow(c, true)); } }); }
   const modeSw = $('mode-toggle');
   function setMode(m, remember) { root.setAttribute('data-mode', m); if (remember) { try { localStorage.setItem('mode', m); } catch (e) { } }
     modeSw.setAttribute('aria-checked', m === 'fun' ? 'true' : 'false'); placeRows(m === 'fun' ? 'journey' : 'normal'); window.scrollTo(0, 0); root.classList.remove('scrolled');
     if (window.onModeChange) window.onModeChange(m === 'fun' ? 'journey' : 'normal'); }
   placeRows(currentMode()); modeSw.setAttribute('aria-checked', currentMode() === 'journey' ? 'true' : 'false');
   modeSw.addEventListener('click', () => setMode(currentMode() === 'journey' ? 'normal' : 'fun', true));
-  const hint = $('fun-hint'); if (hint) hint.addEventListener('click', () => setMode(currentMode() === 'journey' ? 'normal' : 'fun', true));
   window.setMode = setMode;
   window.addEventListener('resize', () => placeRows(currentMode()));
+  (function () { const bubble = $('bubble'), al = $('cl-arm-l'), ar = $('cl-arm-r'); if (!bubble) return; let said = false, timers = [];
+    const say = (t) => { bubble.textContent = t; bubble.classList.add('on'); };
+    if (!reduced && currentMode() === 'normal') { modeSw.classList.add('noodle'); let dots = 0; timers.push(setTimeout(() => { say('Noodling'); timers.push(setInterval(() => { dots = (dots + 1) % 4; if (!said) say('Noodling' + '.'.repeat(dots)); }, 380)); }, 900)); timers.push(setTimeout(() => { said = true; say('Try scrolling now ;)'); }, 3000)); }
+    const hush = () => { timers.forEach(clearTimeout); timers.forEach(clearInterval); said = true; bubble.classList.remove('on'); modeSw.classList.remove('noodle'); };
+    modeSw.addEventListener('click', hush, { once: true });
+    // the arms: within reach, both turn toward the pointer; out of reach they rest (or stay up in fun mode)
+    let near = false, raf = 0, px = 0, py = 0;
+    const aim = () => { raf = 0; const r = modeSw.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2, dx = px - cx, dy = py - cy, d = Math.hypot(dx, dy);
+      const inReach = d < 64 && d > 4; if (inReach) { const a = Math.atan2(dy, dx) * 180 / Math.PI; const wrap = (v) => ((v + 540) % 360) - 180; const l = Math.max(-110, Math.min(110, wrap(a - 180))), rr = Math.max(-110, Math.min(110, wrap(a))); al.style.transform = `translate(4px, 10px) rotate(${l.toFixed(1)}deg)`; ar.style.transform = `translate(20px, 10px) rotate(${rr.toFixed(1)}deg)`; near = true; }
+      else if (near) { near = false; al.style.transform = ''; ar.style.transform = ''; } };
+    if (!reduced && window.matchMedia('(hover: hover) and (pointer: fine)').matches) window.addEventListener('pointermove', (e) => { px = e.clientX; py = e.clientY; if (!raf) raf = requestAnimationFrame(aim); }, { passive: true });
+    window.__mascot = () => ({ bubble: bubble.textContent, on: bubble.classList.contains('on'), noodle: modeSw.classList.contains('noodle'), near, arms: [al.style.transform, ar.style.transform] }); })();
   const stageTop = (L) => L.sec.getBoundingClientRect().top + window.scrollY;
   const beatOf = (L, i) => stageTop(L) + (i + 0.5) / L.cards.length * (L.sec.offsetHeight - window.innerHeight);
   LAYERS.forEach((L, j) => L.cards.forEach((c, i) => { c.k = j + 1;
-    c.head.addEventListener('click', () => { if (currentMode() === 'journey') { if (window.goToNeuron) window.goToNeuron(c.k, c.i); return; } if (L.stage && desk()) window.scrollTo({ top: Math.round(beatOf(L, i)), behavior: reduced ? 'auto' : 'smooth' }); }); }));
+    c.head.addEventListener('click', () => { if (currentMode() === 'journey') { if (window.goToNeuron) window.goToNeuron(c.k, c.i); return; } if (L.kind === 'toggle') { setRow(c, !c.el.classList.contains('open')); return; } if (L.stage && desk()) window.scrollTo({ top: Math.round(beatOf(L, i)), behavior: reduced ? 'auto' : 'smooth' }); }); }));
   // ── Scroll: on a desktop the stages pick their open row from how far they are scrolled; the statement lights up word by word ──
   const stmt = $('stmt'); const words = stmt ? stmt.textContent.trim().split(/\s+/) : []; if (stmt) stmt.innerHTML = words.map(w => `<span class="w">${w}</span>`).join(' ');
   const wEls = stmt ? Array.from(stmt.children) : []; const stmtSec = stmt ? stmt.closest('.stmt') : null; let stmtQ = -1;
@@ -147,7 +159,7 @@
   const hi = $('hello'); if (hi && !reduced) { const HI = ['Hello', 'नमस्ते', 'ನಮಸ್ಕಾರ', 'Hola', 'Bonjour', 'こんにちは', 'Ciao', '안녕하세요', 'Hallo', '你好', 'Olá', 'Привет', 'مرحبا', 'வணக்கம்', 'Γεια σου', 'สวัสดี', 'Hej', 'Salut']; let i = 0; setTimeout(() => setInterval(() => { if (document.visibilityState !== 'visible') return; hi.classList.add('swap'); setTimeout(() => { i = (i + 1) % HI.length; hi.textContent = HI[i]; hi.classList.remove('swap'); }, 330); }, 2600), 2200); }
 
   // ── Home: the mark warps home; pressed at home it shoots neurons that build up architectures in the field ──
-  const goHome = (e) => { e.preventDefault(); if (currentMode() === 'journey' && window.warpHome) window.warpHome(); else window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); };
+  const goHome = (e) => { e.preventDefault(); if (currentMode() === 'journey' && window.warpHome) { window.warpHome(); return; } if (window.scrollY < 40 && window.shootNeurons && e.currentTarget.id === 'brand') { window.shootNeurons(); return; } window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); };
   $('brand').addEventListener('click', goHome); $('to-top').addEventListener('click', goHome);
   // the beacon: straight to what's latest (the PACD neuron, or its row in the document)
   const beacon = $('beacon'); if (beacon) beacon.addEventListener('click', (e) => { e.preventDefault(); if (currentMode() === 'journey') { if (window.jumpToNeuron) window.jumpToNeuron(1, 2); return; } const L = LAYERS[0], c = L && L.cards[2]; if (!c) return; if (desk()) window.scrollTo({ top: Math.round(beatOf(L, 2)), behavior: reduced ? 'auto' : 'smooth' }); else c.el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); });
@@ -160,7 +172,7 @@
   const note = $('focus-q'); const skills = Array.from(document.querySelectorAll('.tags span[data-f]'));
   function applyFocus(f) {
     skills.forEach(sp => { const on = f !== 'all' && sp.dataset.f.split(' ').includes(f); sp.classList.toggle('on', on); sp.classList.toggle('off', f !== 'all' && !on); });
-    if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = 'What are you looking for?'; note.classList.remove('set'); return; }
+    if (f === 'all') { lines.forEach(li => { li.classList.remove('hi', 'lo'); li.style.opacity = ''; }); note.textContent = ''; note.classList.remove('set'); return; }
     const k = TOPICS.indexOf(f); const scores = lines.map(li => li._w[k]);
     const mx = Math.max(...scores); const ex = scores.map(s => Math.exp(6 * (s - mx))); const Z = ex.reduce((a, b) => a + b, 0); const att = ex.map(e => e / Z); const amax = Math.max(...att);
     let kept = 0;

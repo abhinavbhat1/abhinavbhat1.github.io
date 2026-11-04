@@ -333,7 +333,7 @@
     LAYERS.forEach((L, k) => { if (!L.panel) return; const pn = L.panel; const pk = (Wp ? clamp(Wp.lw(k)) : panelK(k, u)) * zoomK; L.open = null;
       if (pk <= 0.01) { if (pn.classList.contains('on')) { pn.classList.remove('on'); pn.style.opacity = '0'; pn.scrollTop = 0; L.cards.forEach(c => { if (c.b) closeRow(c); }); } return; }
       pn.classList.add('on'); let left, top, pw, mh;
-      if (narrow()) { const P = panelRect(); left = P.left; top = P.top; pw = P.width; mh = P.height; } else { pw = PW(); left = W - pw - 24; top = HEAD() + 16; mh = H - HEAD() - 32; }
+      if (narrow()) { const P = panelRect(); left = P.left; top = P.top; pw = P.width; mh = P.height; } else { pw = PW(); left = W - pw - 24; mh = H - HEAD() - 32; const ph = Math.min(pn.offsetHeight || 0, mh); top = Math.round(Math.max(HEAD() + 16, (H - ph) / 2)); }
       pn.style.left = left + 'px'; pn.style.top = top + 'px'; pn.style.width = pw + 'px'; pn.style.maxHeight = mh + 'px';
       const e = smooth(pk); pn.style.opacity = e.toFixed(3); pn.style.transform = `translateY(${((1 - e) * 18).toFixed(1)}px) scale(${(0.97 + 0.03 * e).toFixed(4)})`;
       let openRow = null, openB = 0;
